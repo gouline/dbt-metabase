@@ -29,13 +29,8 @@ setup(
     license='MIT License',
     packages=find_packages(exclude=['tests']),
     test_suite='tests',
-    entry_points={
-        'console_scripts': [
-            'dbtmetabase = dbtmetabase:main'
-        ]
-    },
     scripts=[
-        'dbtmetabase/scripts/dbtmetabase'
+        'dbtmetabase/bin/dbt-metabase'
     ],
     tests_require=test_requires,
     install_requires=requires,

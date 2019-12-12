@@ -2,11 +2,25 @@ import yaml
 import re
 
 class DbtReader:
+    """Reader for dbt project configuration.
+    """
 
     def __init__(self, project_path: str):
+        """Constructor.
+        
+        Arguments:
+            project_path {str} -- Path to dbt project root.
+        """
+
         self.project_path = project_path
     
     def read_models(self) -> list:
+        """Reads dbt models in Metabase-friendly format.
+        
+        Returns:
+            list -- List of dbt models in Metabase-friendly format.
+        """
+
         mb_models = []
 
         for path in (self.project_path / 'models').rglob('*.yml'):
@@ -18,6 +32,15 @@ class DbtReader:
         return mb_models
     
     def read_model(self, model: dict) -> dict:
+        """Reads one dbt model in Metabase-friendly format.
+        
+        Arguments:
+            model {dict} -- One dbt model to read.
+        
+        Returns:
+            dict -- One dbt model in Metabase-friendly format.
+        """
+
         mb_columns = []
 
         for column in model.get('columns', []):
@@ -30,6 +53,15 @@ class DbtReader:
         }
     
     def read_column(self, column: dict) -> dict:
+        """Reads one dbt column in Metabase-friendly format.
+        
+        Arguments:
+            column {dict} -- One dbt column to read.
+        
+        Returns:
+            dict -- One dbt column in Metabase-friendly format.
+        """
+
         mb_column = {
             'name': column.get('name', '').upper(),
             'description': column.get('description')
@@ -51,6 +83,15 @@ class DbtReader:
 
     @staticmethod
     def parse_ref(text: str) -> str:
+        """Parses dbt ref() statement.
+        
+        Arguments:
+            text {str} -- Full statement in dbt YAML.
+        
+        Returns:
+            str -- Name of the reference.
+        """
+
         matches = re.findall(r"ref\(['\"]([\w\_\-\ ]+)['\"]\)", text)
         if matches:
             return matches[0]
