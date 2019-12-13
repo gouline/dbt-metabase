@@ -174,6 +174,10 @@ class MetabaseClient:
             fk_target_field_id = field_lookup.get(column['fk_target_table'], {}) \
                 .get(column['fk_target_column'], {}) \
                 .get('id')
+            
+            self.api('put', f'/api/field/{fk_target_field_id}', json={
+                'special_type': 'type/PK'
+            })
 
         api_field = self.api('get', f'/api/field/{field_id}')
 
