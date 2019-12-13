@@ -1,5 +1,6 @@
 import yaml
 import re
+from pathlib import Path
 
 class DbtReader:
     """Reader for dbt project configuration.
@@ -23,7 +24,7 @@ class DbtReader:
 
         mb_models = []
 
-        for path in (self.project_path / 'models').rglob('*.yml'):
+        for path in (Path(self.project_path) / 'models').rglob('*.yml'):
             with open(path, 'r') as stream:
                 schema = yaml.safe_load(stream)
                 for model in schema.get('models', []):
