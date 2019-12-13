@@ -130,3 +130,8 @@ dmypy.json
 
 # IDE
 .vscode/
+
+# dbt
+target/
+dbt_modules/
+logs/

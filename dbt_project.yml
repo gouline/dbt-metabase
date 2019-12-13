@@ -1,0 +1,9 @@
+name: 'dbt_metabase'
+version: '0.1.1'
+
+target-path: "target"
+clean-targets: ["target", "dbt_modules"]
+macro-paths: ["macros"]
+log-path: "logs"
+
+require-dbt-version: ">=0.13.0"
