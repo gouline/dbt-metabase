@@ -1,4 +1,4 @@
-{% macro test_metabase(model, column_name, special_type) -%}
+{% macro test_column(model, column_name, special_type) -%}
 select '{{ special_type }}' as type where type not in (
     'type/AvatarURL',
     'type/Category',

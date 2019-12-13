@@ -1,5 +1,5 @@
-name: 'dbt_metabase'
-version: '0.1.1'
+name: 'metabase'
+version: '0.1.2'
 
 target-path: "target"
 clean-targets: ["target", "dbt_modules"]
