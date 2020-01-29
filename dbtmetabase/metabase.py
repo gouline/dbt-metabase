@@ -11,16 +11,20 @@ class MetabaseClient:
 
     _SYNC_PERIOD_SECS = 5
 
-    def __init__(self, host: str, user: str, password: str):
+    def __init__(self, host: str, user: str, password: str, https = True):
         """Constructor.
         
         Arguments:
             host {str} -- Metabase hostname.
             user {str} -- Metabase username.
             password {str} -- Metabase password.
+        
+        Keyword Arguments:
+            https {bool} -- Use HTTPS instead of HTTP. (default: {True})
         """
 
         self.host = host
+        self.protocol = "https" if https else "http"
         self.session_id = self.get_session_id(user, password)
         logging.info("Session established successfully")
     
@@ -283,10 +287,9 @@ class MetabaseClient:
         if authenticated:
             headers['X-Metabase-Session'] = self.session_id
 
-        response = requests.request(method, f"https://{self.host}{path}", **kwargs)
+        response = requests.request(method, f"{self.protocol}://{self.host}{path}", **kwargs)
         if critical:
             response.raise_for_status()
         elif not response.ok:
             return False
         return json.loads(response.text)
-
