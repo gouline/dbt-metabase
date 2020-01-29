@@ -3,12 +3,12 @@ import logging
 from .dbt import DbtReader
 from .metabase import MetabaseClient
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 def export(dbt_path: str, 
-        mb_host: str, mb_user: str, mb_password: str, 
+        mb_host: str, mb_user: str, mb_password: str,
         database: str, schema: str,
-        sync = True, sync_timeout = 30):
+        mb_https = True, sync = True, sync_timeout = 30):
     """Exports models from dbt to Metabase.
     
     Arguments:
@@ -20,11 +20,12 @@ def export(dbt_path: str,
         schema {str} -- Target schema name.
     
     Keyword Arguments:
+        mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
         sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
     """
 
-    mbc = MetabaseClient(mb_host, mb_user, mb_password)
+    mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https)
     models = DbtReader(dbt_path).read_models()
 
     if sync:
@@ -47,6 +48,7 @@ def main(args: list = None):
     parser.add_argument('--mb_host', metavar='HOST', required=True, help="Metabase hostname")
     parser.add_argument('--mb_user', metavar='USER', required=True, help="Metabase username")
     parser.add_argument('--mb_password', metavar='PASS', required=True, help="Metabase password")
+    parser.add_argument('--mb_https', metavar='HTTPS', type=bool, default=True, help="use HTTPS to connect to Metabase instead of HTTP")
     parser.add_argument('--database', metavar='DB', required=True, help="target database name")
     parser.add_argument('--schema', metavar='SCHEMA', required=True, help="target schema name")
     parser.add_argument('--sync', metavar='ENABLE', type=bool, default=True, help="synchronize Metabase database before export")
@@ -59,6 +61,7 @@ def main(args: list = None):
             mb_host=parsed.mb_host,
             mb_user=parsed.mb_user,
             mb_password=parsed.mb_password,
+            mb_https=parsed.mb_https,
             database=parsed.database,
             schema=parsed.schema,
             sync=parsed.sync,
