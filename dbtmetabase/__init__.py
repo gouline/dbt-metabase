@@ -3,7 +3,7 @@ import logging
 from .dbt import DbtReader
 from .metabase import MetabaseClient
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 def export(dbt_path: str, 
         mb_host: str, mb_user: str, mb_password: str,

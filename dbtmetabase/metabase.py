@@ -68,7 +68,7 @@ class MetabaseClient:
             logging.critical("Cannot find database by name %s", database)
             return
         
-        self.api('post', f'/api/database/{database_id}/sync')
+        self.api('post', f'/api/database/{database_id}/sync_schema')
 
         deadline = int(time.time()) + timeout
         sync_successful = False
