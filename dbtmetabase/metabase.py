@@ -182,15 +182,20 @@ class MetabaseClient:
             self.api('put', f'/api/field/{fk_target_field_id}', json={
                 'special_type': 'type/PK'
             })
+        
+        # Nones are not accepted, default to normal
+        if not column.get('visibility_type'):
+            column['visibility_type'] = 'normal'
 
         api_field = self.api('get', f'/api/field/{field_id}')
 
         if api_field['description'] != column.get('description') or \
                 api_field['special_type'] != column.get('special_type') or \
+                api_field['visibility_type'] != column.get('visibility_type') or \
                 api_field['fk_target_field_id'] != fk_target_field_id:
-            api_field['description'] = self.sanitize_macro_field(column.get('description'))
-            api_field['special_type'] = self.sanitize_macro_field(column.get('special_type'))
-            api_field['visibility_type'] = self.sanitize_macro_field(column.get('visibility_type'))
+            api_field['description'] = column.get('description')
+            api_field['special_type'] = column.get('special_type')
+            api_field['visibility_type'] = column.get('visibility_type')
             api_field['fk_target_field_id'] = fk_target_field_id
 
             self.api('put', f'/api/field/{field_id}', json=api_field)
@@ -294,18 +299,3 @@ class MetabaseClient:
         elif not response.ok:
             return False
         return json.loads(response.text)
-
-    @staticmethod
-    def sanitize_macro_field(value: str) -> Any:
-        """Sanitizes macro field values for possible empty strings.
-        
-        Arguments:
-            value {str} -- String, could be empty or none.
-        
-        Returns:
-            Any -- Either none or non-empty string.
-        """
-
-        if not value:
-            return None
-        return value

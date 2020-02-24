@@ -170,7 +170,7 @@ Visibility Types
 In addition to special types, you can optionally specify visibility for each
 field. This affects whether or not they are displayed in the Metabase UI.
 
-Here is how you would make that same email column hidden:
+Here is how you would hide that same email:
 
 .. code-block:: yaml
 
@@ -179,15 +179,15 @@ Here is how you would make that same email column hidden:
       tests:
         - metabase.field:
             special_type: type/Email
-            visibility_type: hidden
+            visibility_type: sensitive
 
 Here are the visibility types supported by Metabase:
 
 * ``normal`` (default)
 * ``details-only``
-* ``hidden``
-* ``retired``
 * ``sensitive``
+* ``hidden`` (supported but not reflected in the UI)
+* ``retired`` (supported but not reflected in the UI)
 
 If you notice new ones, please submit a PR to update this readme and
 ``macros/tests.sql``.
