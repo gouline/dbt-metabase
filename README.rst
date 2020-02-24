@@ -107,7 +107,7 @@ Change the ``email`` column as follows:
     - name: email
       description: User's email address.
       tests:
-        - metabase.column:
+        - metabase.field:
             special_type: type/Email
 
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
@@ -160,6 +160,34 @@ Here is the list of special types currently accepted by Metabase:
 * ``type/Cost``
 * ``type/GrossMargin``
 * ``type/Birthdate``
+
+If you notice new ones, please submit a PR to update this readme and
+``macros/tests.sql``.
+
+Visibility Types
+----------------
+
+In addition to special types, you can optionally specify visibility for each
+field. This affects whether or not they are displayed in the Metabase UI.
+
+Here is how you would make that same email column hidden:
+
+.. code-block:: yaml
+
+    - name: email
+      description: User's email address.
+      tests:
+        - metabase.field:
+            special_type: type/Email
+            visibility_type: hidden
+
+Here are the visibility types supported by Metabase:
+
+* ``normal`` (default)
+* ``details-only``
+* ``hidden``
+* ``retired``
+* ``sensitive``
 
 If you notice new ones, please submit a PR to update this readme and
 ``macros/tests.sql``.

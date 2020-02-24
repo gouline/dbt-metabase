@@ -74,11 +74,12 @@ class DbtReader:
                     relationships = test['relationships']
                     mb_column['special_type'] = 'type/FK'
                     mb_column['fk_target_table'] = self.parse_ref(relationships['to']).upper()
-                    mb_column['fk_target_column'] = relationships['field'].upper()
-                elif 'metabase.column' in test:
-                    metabase = test['metabase.column']
-                    if mb_column.get('special_type') != 'type/FK':
+                    mb_column['fk_target_field'] = relationships['field'].upper()
+                elif 'metabase.field' in test:
+                    metabase = test['metabase.field']
+                    if not mb_column.get('special_type'):
                         mb_column['special_type'] = metabase.get('special_type')
+                    mb_column['visibility_type'] = metabase.get('visibility_type')
         
         return mb_column
 

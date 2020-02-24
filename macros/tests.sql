@@ -1,5 +1,6 @@
-{% macro test_column(model, column_name, special_type) -%}
-select '{{ special_type }}' as type where type not in (
+{% macro test_field(model, column_name, special_type='', visibility_type='normal') -%}
+
+select '{{ special_type }}' as special_type where special_type not in (
     'type/AvatarURL',
     'type/Category',
     'type/City',
@@ -44,6 +45,18 @@ select '{{ special_type }}' as type where type not in (
     'type/Comment',
     'type/Cost',
     'type/GrossMargin',
-    'type/Birthdate'
+    'type/Birthdate',
+    ''
+)
+
+union
+
+select '{{ visibility_type }}' as visibility_type where visibility_type not in (
+    'details-only',
+    'hidden',
+    'normal',
+    'retired',
+    'sensitive'
 );
+
 {%- endmacro %}
