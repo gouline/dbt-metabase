@@ -122,8 +122,7 @@ class MetabaseClient:
             logging.critical("Cannot find database by name %s", database)
             return
         
-        table_lookup = self.build_table_lookup(database_id, schema)
-        field_lookup = self.build_field_lookup(database_id, schema)
+        table_lookup, field_lookup = self.build_metadata_lookups(database_id, schema)
 
         for model in models:
             self.export_model(model, table_lookup, field_lookup)
@@ -218,8 +217,8 @@ class MetabaseClient:
                 return database['id']
         return None
     
-    def build_table_lookup(self, database_id: str, schema: str) -> dict:
-        """Builds table lookup.
+    def build_metadata_lookups(self, database_id: str, schema: str) -> (dict, dict):
+        """Builds table and field lookups.
         
         Arguments:
             database_id {str} -- Metabase database ID.
@@ -227,47 +226,29 @@ class MetabaseClient:
         
         Returns:
             dict -- Dictionary of tables indexed by name.
-        """
-
-        lookup = {}
-
-        for table in self.api('get', f'/api/table'):
-            if table['db_id'] != database_id or table['schema'].upper() != schema.upper():
-                continue
-
-            table_name = table['name'].upper()
-            lookup[table_name] = table
-        
-        return lookup
-
-    def build_field_lookup(self, database_id: str, schema: str) -> dict:
-        """Builds field lookup.
-        
-        Arguments:
-            database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
-        
-        Returns:
             dict -- Dictionary of fields indexed by name, indexed by table name.
         """
 
-        lookup = {}
+        table_lookup = {}
+        field_lookup = {}
 
-        for field in self.api('get', f'/api/database/{database_id}/fields'):
-            if field['schema'].upper() != schema.upper():
-                continue
-        
-            table_name = field['table_name'].upper()
-            table_lookup = {}
-            if table_name in lookup:
-                table_lookup = lookup[table_name]
-            else:
-                lookup[table_name] = table_lookup
+        metadata = self.api('get', f'/api/database/{database_id}/metadata')
+        for table in metadata.get('tables', []):
+            table_name = table['name'].upper()
+            table_lookup[table_name] = table
 
-            field_name = field['name'].upper()
-            table_lookup[field_name] = field
+            table_field_lookup = {}
+
+            for field in table.get('fields', []):
+                if field['schema'].upper() != schema.upper():
+                    continue
+
+                field_name = field['name'].upper()
+                table_field_lookup[field_name] = field
+
+            field_lookup[table_name] = table_field_lookup
         
-        return lookup
+        return table_lookup, field_lookup
 
     def api(self, method: str, path: str, authenticated = True, critical = True, **kwargs) -> Any:
         """Unified way of calling Metabase API.
