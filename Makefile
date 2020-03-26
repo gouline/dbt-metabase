@@ -16,3 +16,6 @@ clean:
 
 dev-requirements:
 	pip3 install -r dev-requirements.txt
+
+dev-install: build
+	pip3 uninstall -y dbt-metabase && pip3 install dist/dbt_metabase-*-py3-none-any.whl
