@@ -236,15 +236,15 @@ class MetabaseClient:
 
         metadata = self.api('get', f'/api/database/{database_id}/metadata')
         for table in metadata.get('tables', []):
+            if table['schema'].upper() != schema.upper():
+                continue
+
             table_name = table['name'].upper()
             table_lookup[table_name] = table
 
             table_field_lookup = {}
 
             for field in table.get('fields', []):
-                if field['schema'].upper() != schema.upper():
-                    continue
-
                 field_name = field['name'].upper()
                 table_field_lookup[field_name] = field
 
