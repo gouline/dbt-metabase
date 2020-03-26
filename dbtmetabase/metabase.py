@@ -93,7 +93,7 @@ class MetabaseClient:
             bool -- True if schema compatible with models, false otherwise.
         """
 
-        field_lookup = self.build_field_lookup(database_id, schema)
+        _, field_lookup = self.build_metadata_lookups(database_id, schema)
 
         for model in models:
             model_name = model['name'].upper()
@@ -145,9 +145,10 @@ class MetabaseClient:
 
         table_id = api_table['id']
         if api_table['description'] != model['description']:
-            api_table['description'] = model['description']
-
-            self.api('put', f'/api/table/{table_id}', json=api_table)
+            # Update with new values
+            self.api('put', f'/api/table/{table_id}', json={
+                'description': model['description']
+            })
             logging.info("Updated table %s successfully", model_name)
         else:
             logging.info("Table %s is up-to-date", model_name)
@@ -192,12 +193,13 @@ class MetabaseClient:
                 api_field['special_type'] != column.get('special_type') or \
                 api_field['visibility_type'] != column.get('visibility_type') or \
                 api_field['fk_target_field_id'] != fk_target_field_id:
-            api_field['description'] = column.get('description')
-            api_field['special_type'] = column.get('special_type')
-            api_field['visibility_type'] = column.get('visibility_type')
-            api_field['fk_target_field_id'] = fk_target_field_id
-
-            self.api('put', f'/api/field/{field_id}', json=api_field)
+            # Update with new values
+            self.api('put', f'/api/field/{field_id}', json={
+                'description': column.get('description'),
+                'special_type': column.get('special_type'),
+                'visibility_type': column.get('visibility_type'),
+                'fk_target_field_id': fk_target_field_id
+            })
             logging.info("Updated field %s.%s successfully", model_name, column_name)
         else:
             logging.info("Field %s.%s is up-to-date", model_name, column_name)
