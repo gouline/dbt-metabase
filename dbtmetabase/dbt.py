@@ -15,9 +15,13 @@ class DbtReader:
 
         self.project_path = project_path
     
-    def read_models(self) -> list:
+    def read_models(self, includes = [], excludes = []) -> list:
         """Reads dbt models in Metabase-friendly format.
         
+        Keyword Arguments:
+            includes {list} -- Model names to limit processing to. (default: {[]})
+            excludes {list} -- Model names to exclude. (default: {[]})
+
         Returns:
             list -- List of dbt models in Metabase-friendly format.
         """
@@ -28,7 +32,9 @@ class DbtReader:
             with open(path, 'r') as stream:
                 schema = yaml.safe_load(stream)
                 for model in schema.get('models', []):
-                    mb_models.append(self.read_model(model))
+                    name = model['name']
+                    if (not includes or name in includes) and (name not in excludes):
+                        mb_models.append(self.read_model(model))
         
         return mb_models
     

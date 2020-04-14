@@ -3,12 +3,13 @@ import logging
 from .dbt import DbtReader
 from .metabase import MetabaseClient
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 
 def export(dbt_path: str, 
         mb_host: str, mb_user: str, mb_password: str,
         database: str, schema: str,
-        mb_https = True, sync = True, sync_timeout = 30):
+        mb_https = True, sync = True, sync_timeout = 30, 
+        includes = [], excludes = []):
     """Exports models from dbt to Metabase.
     
     Arguments:
@@ -23,10 +24,15 @@ def export(dbt_path: str,
         mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
         sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
+        includes {list} -- Model names to limit processing to. (default: {[]})
+        excludes {list} -- Model names to exclude. (default: {[]})
     """
 
     mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https)
-    models = DbtReader(dbt_path).read_models()
+    models = DbtReader(dbt_path).read_models(
+        includes=includes, 
+        excludes=excludes
+    )
 
     if sync:
         if not mbc.sync_and_wait(database, schema, models, sync_timeout):
@@ -53,6 +59,8 @@ def main(args: list = None):
     parser.add_argument('--schema', metavar='SCHEMA', required=True, help="target schema name")
     parser.add_argument('--sync', metavar='ENABLE', type=bool, default=True, help="synchronize Metabase database before export")
     parser.add_argument('--sync_timeout', metavar='SECS', type=int, default=30, help="synchronization timeout (in secs)")
+    parser.add_argument('--includes', metavar='MODELS', nargs='*', default=[], help="model names to limit processing to")
+    parser.add_argument('--excludes', metavar='MODELS', nargs='*', default=[], help="model names to exclude")
     parsed = parser.parse_args(args=args)
 
     if parsed.command == 'export':
@@ -65,5 +73,7 @@ def main(args: list = None):
             database=parsed.database,
             schema=parsed.schema,
             sync=parsed.sync,
-            sync_timeout=parsed.sync_timeout
+            sync_timeout=parsed.sync_timeout,
+            includes=parsed.includes,
+            excludes=parsed.excludes
         )
