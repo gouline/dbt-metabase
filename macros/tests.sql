@@ -3,6 +3,8 @@
 select sum(count) as count from (
   
   select count(*) as count where '{{ special_type }}' not in (
+      'type/PK',
+      'type/FK',
       'type/AvatarURL',
       'type/Category',
       'type/City',

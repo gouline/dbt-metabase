@@ -115,6 +115,8 @@ now marked as "Email".
 
 Here is the list of special types currently accepted by Metabase:
 
+* ``type/PK``
+* ``type/FK``
 * ``type/AvatarURL``
 * ``type/Category``
 * ``type/City``
