@@ -3,6 +3,12 @@ import yaml
 import re
 from pathlib import Path
 
+# Allowed metabase.* fields
+_META_FIELDS = [
+    'special_type', 
+    'visibility_type'
+]
+
 class DbtReader:
     """Reader for dbt project configuration.
     """
@@ -83,9 +89,11 @@ class DbtReader:
                     mb_column['fk_target_table'] = self.parse_ref(relationships['to']).upper()
                     mb_column['fk_target_field'] = relationships['field'].upper()
         
-        for val in ['special_type', 'visibility_type']:
-            if f'metabase.{val}' in column:
-                mb_column[val] = column[f'metabase.{val}']
+        if 'meta' in column:
+            meta = column.get('meta')
+            for field in _META_FIELDS:
+                if f'metabase.{field}' in meta:
+                    mb_column[field] = meta[f'metabase.{field}']
 
         return mb_column
 
