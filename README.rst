@@ -27,20 +27,6 @@ You can install dbt-metabase from `PyPI`_:
 
     pip install dbt-metabase
 
-To install the dbt package in your project, add the following to your
-``packages.yml``:
-
-.. code-block:: yaml
-
-    packages:
-      - git: https://github.com/gouline/dbt-metabase.git
-        revision: vX.Y.Z
-
-Where ``vX.Y.Z`` corresponds to the `latest release`_. Now run ``dbt deps`` and
-you're ready to go.
-
-.. _`latest release`: https://github.com/gouline/dbt-metabase/releases/latest
-
 Basic Example
 -------------
 
@@ -106,9 +92,8 @@ Change the ``email`` column as follows:
 
     - name: email
       description: User's email address.
-      tests:
-        - metabase.field:
-            special_type: type/Email
+      meta:
+        metabase.special_type: type/Email
 
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
@@ -163,8 +148,7 @@ Here is the list of special types currently accepted by Metabase:
 * ``type/GrossMargin``
 * ``type/Birthdate``
 
-If you notice new ones, please submit a PR to update this readme and
-``macros/tests.sql``.
+If you notice new ones, please submit a PR to update this readme.
 
 Visibility Types
 ----------------
@@ -178,10 +162,9 @@ Here is how you would hide that same email:
 
     - name: email
       description: User's email address.
-      tests:
-        - metabase.field:
-            special_type: type/Email
-            visibility_type: sensitive
+      meta:
+        metabase.special_type: type/Email
+        metabase.visibility_type: sensitive
 
 Here are the visibility types supported by Metabase:
 
@@ -191,8 +174,7 @@ Here are the visibility types supported by Metabase:
 * ``hidden`` (supported but not reflected in the UI)
 * ``retired`` (supported but not reflected in the UI)
 
-If you notice new ones, please submit a PR to update this readme and
-``macros/tests.sql``.
+If you notice new ones, please submit a PR to update this readme.
 
 Database Sync
 -------------
