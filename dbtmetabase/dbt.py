@@ -1,3 +1,4 @@
+import logging
 import yaml
 import re
 from pathlib import Path
@@ -81,12 +82,11 @@ class DbtReader:
                     mb_column['special_type'] = 'type/FK'
                     mb_column['fk_target_table'] = self.parse_ref(relationships['to']).upper()
                     mb_column['fk_target_field'] = relationships['field'].upper()
-                elif 'metabase.field' in test:
-                    metabase = test['metabase.field']
-                    if not mb_column.get('special_type'):
-                        mb_column['special_type'] = metabase.get('special_type')
-                    mb_column['visibility_type'] = metabase.get('visibility_type')
         
+        for val in ['special_type', 'visibility_type']:
+            if f'metabase.{val}' in column:
+                mb_column[val] = column[f'metabase.{val}']
+
         return mb_column
 
     @staticmethod
