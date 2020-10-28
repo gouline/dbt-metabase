@@ -177,13 +177,18 @@ class MetabaseClient:
         field_id = field['id']
         fk_target_field_id = None
         if column.get('special_type') == 'type/FK':
-            fk_target_field_id = field_lookup.get(column['fk_target_table'], {}) \
-                .get(column['fk_target_field'], {}) \
+            target_table = column['fk_target_table']
+            target_field = column['fk_target_field']
+            fk_target_field_id = field_lookup.get(target_table, {}) \
+                .get(target_field, {}) \
                 .get('id')
             
-            self.api('put', f'/api/field/{fk_target_field_id}', json={
-                'special_type': 'type/PK'
-            })
+            if fk_target_field_id:
+                self.api('put', f'/api/field/{fk_target_field_id}', json={
+                    'special_type': 'type/PK'
+                })
+            else:
+                logging.error("Unable to find foreign key target %s.%s", target_table, target_field)
         
         # Nones are not accepted, default to normal
         if not column.get('visibility_type'):
