@@ -95,20 +95,21 @@ class MetabaseClient:
 
         _, field_lookup = self.build_metadata_lookups(database_id, schema)
 
+        are_models_compatible = True
         for model in models:
             model_name = model['name'].upper()
             if model_name not in field_lookup:
                 logging.warn("Model %s not found", model_name)
-                return False
-
-            table_lookup = field_lookup[model_name]
-            for column in model.get('columns', []):
-                column_name = column['name'].upper()
-                if column_name not in table_lookup:
-                    logging.warn("Column %s not found in model %s", column_name, model_name)
-                    return False
+                are_models_compatible = False
+            else:
+                table_lookup = field_lookup[model_name]
+                for column in model.get('columns', []):
+                    column_name = column['name'].upper()
+                    if column_name not in table_lookup:
+                        logging.warn("Column %s not found in model %s", column_name, model_name)
+                        are_models_compatible = False
         
-        return True
+        return are_models_compatible
 
     def export_models(self, database: str, schema: str, models: list):
         """Exports dbt models to Metabase database schema.
