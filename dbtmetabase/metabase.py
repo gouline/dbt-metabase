@@ -241,7 +241,11 @@ class MetabaseClient:
         table_lookup = {}
         field_lookup = {}
 
-        metadata = self.api('get', f'/api/database/{database_id}/metadata')
+        metadata = self.api(
+            'get',
+            f'/api/database/{database_id}/metadata',
+            params=dict(include_hidden=True)
+        )
         for table in metadata.get('tables', []):
             table_schema = 'public' if table['schema'] is None else table['schema']
             if table_schema.upper() != schema.upper():
