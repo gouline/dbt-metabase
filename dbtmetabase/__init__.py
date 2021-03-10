@@ -65,7 +65,7 @@ def main(args: list = None):
     parser.add_argument('--sync_timeout', metavar='SECS', type=int, default=30, help="synchronization timeout (in secs)")
     parser.add_argument('--includes', metavar='MODELS', nargs='*', default=[], help="model names to limit processing to")
     parser.add_argument('--excludes', metavar='MODELS', nargs='*', default=[], help="model names to exclude")
-    parser.add_argument('--ignore_undefined', metavar='IGNORE_NONE', type=bool, default=False, help="ignore properties not defined in dbt models")
+    parser.add_argument('--ignore_undefined', metavar='IGNORE_UNDEFINED', type=bool, default=False, help="ignore properties not defined in dbt models")
     parsed = parser.parse_args(args=args)
 
     if parsed.command == 'export':
