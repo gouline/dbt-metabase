@@ -204,6 +204,6 @@ line. But if you prefer to call it from your code, here's how to do it:
 Code of Conduct
 ===============
 
-All contributors are expected to follow the PyPA `Code of Conduct`_.
+All contributors are expected to follow the `PyPA Code of Conduct`_.
 
-.. _`Code of Conduct`: https://www.pypa.io/en/latest/code-of-conduct/
+.. _`PyPA Code of Conduct`: https://www.pypa.io/en/latest/code-of-conduct/
