@@ -8,7 +8,7 @@ Model synchronization from `dbt`_ to `Metabase`_.
 
 If dbt is your source of truth for database schemas and you use Metabase as
 your analytics tool, dbt-metabase can propagate table relationships, model and
-column descriptions and special types (e.g. currency, category, URL) to your
+column descriptions and semantic types (e.g. currency, category, URL) to your
 Metabase data model.
 
 Requirements
@@ -80,8 +80,8 @@ Check your Metabase instance by going into Settings > Admin > Data Model, you
 will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
 ``GROUP_ID`` is marked as "Foreign Key" pointing to ``ID`` in ``STG_GROUPS``.
 
-Special Types
--------------
+Semantic Types
+--------------
 
 Now that we have primary and foreign keys, let's tell Metabase that ``email``
 column contains email addresses.
@@ -93,12 +93,12 @@ Change the ``email`` column as follows:
     - name: email
       description: User's email address.
       meta:
-        metabase.special_type: type/Email
+        metabase.semantic_type: type/Email
 
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
 
-Here is the list of special types currently accepted by Metabase:
+Here is the list of semantic types (formerly known as special types) currently accepted by Metabase:
 
 * ``type/PK``
 * ``type/FK``
@@ -153,7 +153,7 @@ If you notice new ones, please submit a PR to update this readme.
 Visibility Types
 ----------------
 
-In addition to special types, you can optionally specify visibility for each
+In addition to semantic types, you can optionally specify visibility for each
 field. This affects whether or not they are displayed in the Metabase UI.
 
 Here is how you would hide that same email:
@@ -163,7 +163,7 @@ Here is how you would hide that same email:
     - name: email
       description: User's email address.
       meta:
-        metabase.special_type: type/Email
+        metabase.semantic_type: type/Email
         metabase.visibility_type: sensitive
 
 Here are the visibility types supported by Metabase:
