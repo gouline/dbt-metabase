@@ -4,7 +4,10 @@ import re
 from pathlib import Path
 
 # Allowed metabase.* fields
-_META_FIELDS = ["special_type", "visibility_type"]
+_META_FIELDS = [
+    "semantic_type",
+    "visibility_type",
+]
 
 
 class DbtReader:
@@ -82,7 +85,7 @@ class DbtReader:
             if isinstance(test, dict):
                 if "relationships" in test:
                     relationships = test["relationships"]
-                    mb_column["special_type"] = "type/FK"
+                    mb_column["semantic_type"] = "type/FK"
                     mb_column["fk_target_table"] = self.parse_ref(
                         relationships["to"]
                     ).upper()
@@ -93,6 +96,14 @@ class DbtReader:
             for field in _META_FIELDS:
                 if f"metabase.{field}" in meta:
                     mb_column[field] = meta[f"metabase.{field}"]
+
+            # TODO: remove deprecation in future
+            if "metabase.special_type" in meta:
+                logging.warning(
+                    "DEPRECATION: metabase.special_type is deprecated and will be removed, use metabase.semantic_type instead"
+                )
+                if "semantic_type" not in mb_column:
+                    mb_column["semantic_type"] = meta["metabase.special_type"]
 
         return mb_column
 

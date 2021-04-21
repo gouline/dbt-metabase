@@ -190,8 +190,14 @@ class MetabaseClient:
             return
 
         field_id = field["id"]
+        api_field = self.api("get", f"/api/field/{field_id}")
+
+        semantic_type_key = "semantic_type"
+        if "special_type" in api_field:
+            semantic_type_key = "special_type"  # before 0.39.0
+
         fk_target_field_id = None
-        if column.get("special_type") == "type/FK":
+        if column.get("semantic_type") == "type/FK":
             target_table = column["fk_target_table"]
             target_field = column["fk_target_field"]
             fk_target_field_id = (
@@ -202,7 +208,7 @@ class MetabaseClient:
                 self.api(
                     "put",
                     f"/api/field/{fk_target_field_id}",
-                    json={"special_type": "type/PK"},
+                    json={semantic_type_key: "type/PK"},
                 )
             else:
                 logging.error(
@@ -215,11 +221,9 @@ class MetabaseClient:
         if not column.get("visibility_type"):
             column["visibility_type"] = "normal"
 
-        api_field = self.api("get", f"/api/field/{field_id}")
-
         if (
             api_field["description"] != column.get("description")
-            or api_field["special_type"] != column.get("special_type")
+            or api_field[semantic_type_key] != column.get("semantic_type")
             or api_field["visibility_type"] != column.get("visibility_type")
             or api_field["fk_target_field_id"] != fk_target_field_id
         ):
@@ -229,7 +233,7 @@ class MetabaseClient:
                 f"/api/field/{field_id}",
                 json={
                     "description": column.get("description"),
-                    "special_type": column.get("special_type"),
+                    semantic_type_key: column.get("semantic_type"),
                     "visibility_type": column.get("visibility_type"),
                     "fk_target_field_id": fk_target_field_id,
                 },
@@ -253,7 +257,9 @@ class MetabaseClient:
                 return database["id"]
         return None
 
-    def build_metadata_lookups(self, database_id: str, schema: str) -> Tuple[dict, dict]:
+    def build_metadata_lookups(
+        self, database_id: str, schema: str
+    ) -> Tuple[dict, dict]:
         """Builds table and field lookups.
 
         Arguments:
