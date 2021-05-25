@@ -40,6 +40,7 @@ class DbtReader:
             with open(path, "r") as stream:
                 schema = yaml.safe_load(stream)
                 if schema is None:
+                    logging.warn(f"SKIPPING EMPTY/INVALID YML: {path}")
                     continue
                 for model in schema.get("models", []):
                     name = model.get("identifier", model["name"])
