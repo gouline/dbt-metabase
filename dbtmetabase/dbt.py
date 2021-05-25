@@ -71,7 +71,7 @@ class DbtReader:
             mb_columns.append(self.read_column(column))
 
         return {
-            "name": model.get('identifier', model["name"]).upper(),
+            "name": model.get("identifier", model["name"]).upper(),
             "description": model.get("description"),
             "columns": mb_columns,
         }
