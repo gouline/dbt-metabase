@@ -36,21 +36,22 @@ class DbtReader:
         mb_models = []
 
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
-            print(path)
+            logging.info(path)
             with open(path, "r") as stream:
                 schema = yaml.safe_load(stream)
                 if schema is None:
                     continue
                 for model in schema.get("models", []):
-                    name = model.get('identifier', model["name"])
+                    name = model.get("identifier", model["name"])
                     print("MODEL", name)
                     if (not includes or name in includes) and (name not in excludes):
                         mb_models.append(self.read_model(model))
-                for source in schema.get("sources", [{}])[0].get("tables", []):
-                    name = source.get('identifier', source["name"])
-                    print("SOURCE", name)
-                    if (not includes or name in includes) and (name not in excludes):
-                        mb_models.append(self.read_model(source))
+                for source in schema.get("sources", []):
+                    for model in source.get("tables", []):
+                        name = model.get("identifier", model["name"])
+                        print("SOURCE", name)
+                        if (not includes or name in includes) and (name not in excludes):
+                            mb_models.append(self.read_model(model))
 
         return mb_models
 
