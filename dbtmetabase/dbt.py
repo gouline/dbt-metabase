@@ -44,7 +44,7 @@ class DbtReader:
                 schema = yaml.safe_load(stream)
                 if schema is None:
                     logging.warn(
-                        "Skipping empty/invalid YML file at %s", 
+                        "Skipping empty or invalid YAML: %s", 
                         path
                     )
                     continue
