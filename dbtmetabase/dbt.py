@@ -36,6 +36,10 @@ class DbtReader:
         mb_models = []
 
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
+            logging.info(
+                "Processing model: %s", 
+                path
+            )
             with open(path, "r") as stream:
                 schema = yaml.safe_load(stream)
                 if schema is None:
