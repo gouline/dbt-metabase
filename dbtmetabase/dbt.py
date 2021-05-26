@@ -36,34 +36,24 @@ class DbtReader:
         mb_models = []
 
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
-            logging.info(
-                "Processing model: %s", 
-                path
-            )
+            logging.info("Processing model: %s", path)
             with open(path, "r") as stream:
                 schema = yaml.safe_load(stream)
                 if schema is None:
-                    logging.warn(
-                        "Skipping empty or invalid YAML: %s", 
-                        path
-                    )
+                    logging.warn("Skipping empty or invalid YAML: %s", path)
                     continue
                 for model in schema.get("models", []):
                     name = model.get("identifier", model["name"])
-                    logging.info(
-                        "Model: %s", 
-                        name
-                    )
+                    logging.info("Model: %s", name)
                     if (not includes or name in includes) and (name not in excludes):
                         mb_models.append(self.read_model(model))
                 for source in schema.get("sources", []):
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
-                        logging.info(
-                            "Source: %s", 
-                            name
-                        )
-                        if (not includes or name in includes) and (name not in excludes):
+                        logging.info("Source: %s", name)
+                        if (not includes or name in includes) and (
+                            name not in excludes
+                        ):
                             mb_models.append(self.read_model(model))
 
         return mb_models
@@ -109,9 +99,11 @@ class DbtReader:
                 if "relationships" in test:
                     relationships = test["relationships"]
                     mb_column["semantic_type"] = "type/FK"
-                    mb_column["fk_target_table"] = column.get("meta", {}).get(
-                        "metabase.fk_ref", self.parse_ref(relationships["to"])
-                    ).upper()
+                    mb_column["fk_target_table"] = (
+                        column.get("meta", {})
+                        .get("metabase.fk_ref", self.parse_ref(relationships["to"]))
+                        .upper()
+                    )
                     mb_column["fk_target_field"] = relationships["field"].upper()
 
         if "meta" in column:
