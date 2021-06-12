@@ -1,17 +1,18 @@
-import logging
-import yaml
 import re
+import logging
 from pathlib import Path
+from typing import List
 
-# Allowed metabase.* fields
-_META_FIELDS = [
-    "semantic_type",
-    "visibility_type",
-]
+import yaml
+
+from ..models.metabase import METABASE_META_FIELDS
+from ..models.metabase import MetabaseModel, MetabaseColumn
 
 
-class DbtReader:
-    """Reader for dbt project configuration."""
+class DbtFolderReader:
+    """
+    Reader for dbt project configuration.
+    """
 
     def __init__(self, project_path: str):
         """Constructor.
@@ -22,7 +23,16 @@ class DbtReader:
 
         self.project_path = project_path
 
-    def read_models(self, includes=[], excludes=[]) -> list:
+    def read_models(
+        self,
+        database,
+        schema,
+        schemas_excludes=[],
+        includes=[],
+        excludes=[],
+        include_tags=True,
+        dbt_docs_url=None,
+    ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
         Keyword Arguments:
@@ -33,7 +43,7 @@ class DbtReader:
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        mb_models = []
+        mb_models: List[MetabaseModel] = []
 
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
             logging.info("Processing model: %s", path)
@@ -46,7 +56,9 @@ class DbtReader:
                     name = model.get("identifier", model["name"])
                     logging.info("Model: %s", name)
                     if (not includes or name in includes) and (name not in excludes):
-                        mb_models.append(self.read_model(model))
+                        mb_models.append(
+                            self._read_model(model, include_tags=include_tags)
+                        )
                 for source in schema.get("sources", []):
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
@@ -54,11 +66,13 @@ class DbtReader:
                         if (not includes or name in includes) and (
                             name not in excludes
                         ):
-                            mb_models.append(self.read_model(model))
+                            mb_models.append(
+                                self._read_model(model, include_tags=include_tags)
+                            )
 
         return mb_models
 
-    def read_model(self, model: dict) -> dict:
+    def _read_model(self, model: dict, include_tags=True) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
         Arguments:
@@ -68,18 +82,24 @@ class DbtReader:
             dict -- One dbt model in Metabase-friendly format.
         """
 
-        mb_columns = []
+        mb_columns: List[MetabaseColumn] = []
 
         for column in model.get("columns", []):
-            mb_columns.append(self.read_column(column))
+            mb_columns.append(self._read_column(column))
 
-        return {
-            "name": model.get("identifier", model["name"]).upper(),
-            "description": model.get("description"),
-            "columns": mb_columns,
-        }
+        description = model.get("description")
 
-    def read_column(self, column: dict) -> dict:
+        if include_tags:
+            tags = model.get("tags", [])
+            tags = tags.join(", ")
+
+            description += f"\n\nTags: {tags}"
+
+        return MetabaseModel(
+            name=model["name"].upper(), description=description, columns=mb_columns
+        )
+
+    def _read_column(self, column: dict) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:
@@ -89,36 +109,28 @@ class DbtReader:
             dict -- One dbt column in Metabase-friendly format.
         """
 
-        mb_column = {
-            "name": column.get("name", "").upper(),
-            "description": column.get("description"),
-        }
+        mb_column = MetabaseColumn(
+            name=column.get("name", "").upper(), description=column.get("description")
+        )
 
         for test in column.get("tests", []):
             if isinstance(test, dict):
                 if "relationships" in test:
                     relationships = test["relationships"]
-                    mb_column["semantic_type"] = "type/FK"
-                    mb_column["fk_target_table"] = (
+                    mb_column.special_type = "type/FK"
+                    mb_column.fk_target_table = (
                         column.get("meta", {})
                         .get("metabase.fk_ref", self.parse_ref(relationships["to"]))
                         .upper()
+                        .strip('"')
                     )
-                    mb_column["fk_target_field"] = relationships["field"].upper()
+                    mb_column.fk_target_field = relationships["field"].upper()
 
         if "meta" in column:
             meta = column.get("meta")
-            for field in _META_FIELDS:
+            for field in METABASE_META_FIELDS:
                 if f"metabase.{field}" in meta:
-                    mb_column[field] = meta[f"metabase.{field}"]
-
-            # TODO: remove deprecation in future
-            if "metabase.special_type" in meta:
-                logging.warning(
-                    "DEPRECATION: metabase.special_type is deprecated and will be removed, use metabase.semantic_type instead"
-                )
-                if "semantic_type" not in mb_column:
-                    mb_column["semantic_type"] = meta["metabase.special_type"]
+                    setattr(mb_column, field, meta[f"metabase.{field}"])
 
         return mb_column
 

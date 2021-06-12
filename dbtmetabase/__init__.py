@@ -1,23 +1,31 @@
 import logging
+import os
 
-from .dbt import DbtReader
 from .metabase import MetabaseClient
+from .parsers.dbt_folder import DbtFolderReader
+from .parsers.dbt_manifest import DbtManifestReader
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 
 def export(
     dbt_path: str,
+    dbt_manifest_path: str,
     mb_host: str,
     mb_user: str,
     mb_password: str,
     database: str,
+    dbt_database: str,
     schema: str,
+    schemas_excludes=[],
     mb_https=True,
+    mb_verify=None,
     sync=True,
     sync_timeout=30,
     includes=[],
     excludes=[],
+    include_tags: bool = True,
+    dbt_docs_url: str = None,
 ):
     """Exports models from dbt to Metabase.
 
@@ -35,10 +43,40 @@ def export(
         sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
         includes {list} -- Model names to limit processing to. (default: {[]})
         excludes {list} -- Model names to exclude. (default: {[]})
+        include_tags {bool} -- Append the dbt tags to the end of the table description (default: {True})
+        dbt_docs_url {str} -- URL to your dbt docs hosted catalog. A link will be appended to the model description (default: {None})
     """
 
-    mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https)
-    models = DbtReader(dbt_path).read_models(includes=includes, excludes=excludes)
+    if dbt_path and dbt_manifest_path:
+        raise ValueError(
+            "Bad arguments. dbt_path and dbt_manifest_path cannot be provide at the same time"
+        )
+
+    if schema and schemas_excludes:
+        raise ValueError(
+            "Bad arguments. schema and schema_excludes cannot be provide at the same time"
+        )
+
+    mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https, verify=mb_verify)
+
+    if dbt_path:
+        dbt_path = os.path.expandvars(dbt_path)
+        reader = DbtFolderReader(dbt_path)
+    else:
+        dbt_manifest_path = os.path.expandvars(dbt_manifest_path)
+        reader = DbtManifestReader(dbt_manifest_path)
+
+    schemas_excludes = {schema.upper() for schema in schemas_excludes}
+
+    models = reader.read_models(
+        database=dbt_database,
+        schema=schema,
+        schemas_excludes=schemas_excludes,
+        includes=includes,
+        excludes=excludes,
+        include_tags=include_tags,
+        dbt_docs_url=dbt_docs_url,
+    )
 
     if sync:
         if not mbc.sync_and_wait(database, schema, models, sync_timeout):

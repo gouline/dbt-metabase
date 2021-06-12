@@ -8,13 +8,26 @@ Model synchronization from `dbt`_ to `Metabase`_.
 
 If dbt is your source of truth for database schemas and you use Metabase as
 your analytics tool, dbt-metabase can propagate table relationships, model and
-column descriptions and semantic types (e.g. currency, category, URL) to your
+column descriptions and special types (e.g. currency, category, URL) to your
 Metabase data model.
 
 Requirements
 ============
 
 Requires Python 3.6 or above.
+
+Main features
+=============
+
+The main features provided by dbt-metabase are:
+
+* Parsing your dbt project (either through the ``manifest.json`` or directly through the YAML files)
+* Triggering a Metabase schema sync before propagating the metadata
+* Propagating table descriptions to Metabase
+* Propagating columns description to Metabase
+* Propagating columns special types and visibility types to Metabase through the use of dbt meta fields
+* Propagating table relationships represented as dbt ``relationships`` column tests
+
 
 Usage
 =====
@@ -52,6 +65,7 @@ Let's start by defining a short sample ``schema.yml`` as below.
               - relationships:
                   to: ref('groups')
                   field: id
+
       - name: stg_groups
         description: User groups.
         columns:
@@ -80,8 +94,40 @@ Check your Metabase instance by going into Settings > Admin > Data Model, you
 will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
 ``GROUP_ID`` is marked as "Foreign Key" pointing to ``ID`` in ``STG_GROUPS``.
 
-Semantic Types
---------------
+Reading your dbt project
+------------------------
+
+There are two approaches provided by this library to read your dbt project:
+
+1. Artifacts
+^^^^^^^^^^^^
+
+The recommended approach is to instruct dbt-metabase to read your ``manifest.json``, an
+`dbt artifact`_ containing the full representation of your dbt project's resources. If
+your dbt project uses multiple schemas, multiple databases or model aliases, you must use
+this approach.
+
+Note that you you have to run ``dbt compile --target prod`` or any of the other dbt commands
+listed in the dbt documentation above to get a fresh copy of your ``manifest.json``. Remember
+to run it against your production target.
+
+When using the ``dbt-metabase`` CLI, you must provide a ``--dbt_manifest_path`` argument
+pointing to your ``manifest.json`` file (usually in the ``target/`` folder of your dbt
+project).
+
+.. _`dbt artifact`: https://docs.getdbt.com/reference/artifacts/dbt-artifacts
+
+2. Direct parsing
+^^^^^^^^^^^^^^^^^
+
+The second alternative is to provide the path to your dbt project root folder
+using the argument ``--dbt_path``. dbt-metabase will then look for all .yml files
+and parse your documentation and tests directly from there. It will not support
+dbt projects with custom schemas.
+
+
+Special Types
+-------------
 
 Now that we have primary and foreign keys, let's tell Metabase that ``email``
 column contains email addresses.
@@ -93,12 +139,12 @@ Change the ``email`` column as follows:
     - name: email
       description: User's email address.
       meta:
-        metabase.semantic_type: type/Email
+        metabase.special_type: type/Email
 
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
 
-Here is the list of semantic types (formerly known as special types) currently accepted by Metabase:
+Here is the list of special types currently accepted by Metabase:
 
 * ``type/PK``
 * ``type/FK``
@@ -153,7 +199,7 @@ If you notice new ones, please submit a PR to update this readme.
 Visibility Types
 ----------------
 
-In addition to semantic types, you can optionally specify visibility for each
+In addition to special types, you can optionally specify visibility for each
 field. This affects whether or not they are displayed in the Metabase UI.
 
 Here is how you would hide that same email:
@@ -163,7 +209,7 @@ Here is how you would hide that same email:
     - name: email
       description: User's email address.
       meta:
-        metabase.semantic_type: type/Email
+        metabase.special_type: type/Email
         metabase.visibility_type: sensitive
 
 Here are the visibility types supported by Metabase:
@@ -204,6 +250,6 @@ line. But if you prefer to call it from your code, here's how to do it:
 Code of Conduct
 ===============
 
-All contributors are expected to follow the `PyPA Code of Conduct`_.
+All contributors are expected to follow the PyPA `Code of Conduct`_.
 
-.. _`PyPA Code of Conduct`: https://www.pypa.io/en/latest/code-of-conduct/
+.. _`Code of Conduct`: https://www.pypa.io/en/latest/code-of-conduct/
