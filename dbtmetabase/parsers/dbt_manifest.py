@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Iterable
+from typing import List, Iterable, Mapping
 import logging
 
 from dbtmetabase.models.metabase import METABASE_META_FIELDS
@@ -78,7 +78,7 @@ class DbtManifestReader:
         return mb_models
 
     def _read_model(
-        self, model: dict, include_tags=True, dbt_docs_url=None
+        self, model: dict, include_tags: bool = True, dbt_docs_url: str = None
     ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
@@ -150,7 +150,7 @@ class DbtManifestReader:
             columns=mb_columns,
         )
 
-    def _read_column(self, column: dict, relationship: dict) -> MetabaseColumn:
+    def _read_column(self, column: Mapping, relationship: dict) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:
