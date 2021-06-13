@@ -8,7 +8,7 @@ Model synchronization from `dbt`_ to `Metabase`_.
 
 If dbt is your source of truth for database schemas and you use Metabase as
 your analytics tool, dbt-metabase can propagate table relationships, model and
-column descriptions and special types (e.g. currency, category, URL) to your
+column descriptions and semantic types (e.g. currency, category, URL) to your
 Metabase data model.
 
 Requirements
@@ -25,7 +25,7 @@ The main features provided by dbt-metabase are:
 * Triggering a Metabase schema sync before propagating the metadata
 * Propagating table descriptions to Metabase
 * Propagating columns description to Metabase
-* Propagating columns special types and visibility types to Metabase through the use of dbt meta fields
+* Propagating columns semantic types and visibility types to Metabase through the use of dbt meta fields
 * Propagating table relationships represented as dbt ``relationships`` column tests
 
 
@@ -126,7 +126,7 @@ and parse your documentation and tests directly from there. It will not support
 dbt projects with custom schemas.
 
 
-Special Types
+Semantic Types
 -------------
 
 Now that we have primary and foreign keys, let's tell Metabase that ``email``
@@ -144,7 +144,7 @@ Change the ``email`` column as follows:
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
 
-Here is the list of special types currently accepted by Metabase:
+Here is the list of semantic types currently accepted by Metabase:
 
 * ``type/PK``
 * ``type/FK``
@@ -199,7 +199,7 @@ If you notice new ones, please submit a PR to update this readme.
 Visibility Types
 ----------------
 
-In addition to special types, you can optionally specify visibility for each
+In addition to semantic types, you can optionally specify visibility for each
 field. This affects whether or not they are displayed in the Metabase UI.
 
 Here is how you would hide that same email:
