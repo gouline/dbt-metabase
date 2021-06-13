@@ -16,8 +16,8 @@ def export(
     mb_https=True,
     sync=True,
     sync_timeout=30,
-    includes=[],
-    excludes=[],
+    includes=None,
+    excludes=None,
 ):
     """Exports models from dbt to Metabase.
 
@@ -33,9 +33,14 @@ def export(
         mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
         sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
-        includes {list} -- Model names to limit processing to. (default: {[]})
-        excludes {list} -- Model names to exclude. (default: {[]})
+        includes {list} -- Model names to limit processing to. (default: {None})
+        excludes {list} -- Model names to exclude. (default: {None})
     """
+
+    if includes is None:
+        includes = []
+    if excludes is None:
+        excludes = []
 
     mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https)
     models = DbtReader(dbt_path).read_models(includes=includes, excludes=excludes)
