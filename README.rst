@@ -102,7 +102,7 @@ There are two approaches provided by this library to read your dbt project:
 1. Artifacts
 ^^^^^^^^^^^^
 
-The recommended approach is to instruct dbt-metabase to read your ``manifest.json``, an
+The recommended approach is to instruct dbt-metabase to read your ``manifest.json``, a
 `dbt artifact`_ containing the full representation of your dbt project's resources. If
 your dbt project uses multiple schemas, multiple databases or model aliases, you must use
 this approach.
@@ -139,7 +139,7 @@ Change the ``email`` column as follows:
     - name: email
       description: User's email address.
       meta:
-        metabase.special_type: type/Email
+        metabase.semantic_type: type/Email
 
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
@@ -209,7 +209,7 @@ Here is how you would hide that same email:
     - name: email
       description: User's email address.
       meta:
-        metabase.special_type: type/Email
+        metabase.semantic_type: type/Email
         metabase.visibility_type: sensitive
 
 Here are the visibility types supported by Metabase:
