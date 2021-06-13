@@ -19,8 +19,13 @@ class DbtManifestReader:
             manifest_path {str} -- Path to dbt manifest.json.
         """
 
-        self.manifest_path = manifest_path
+        self.manifest_path = (
+            manifest_path
+            if manifest_path[0] != "~"
+            else (os.path.expanduser("~") + manifest_path[1:])
+        )
         self.manifest = None
+        self.catch_aliases = {}
 
     def read_models(
         self,
