@@ -111,10 +111,13 @@ class DbtManifestReader:
                 )[0]
 
                 fk_target_table_alias = self.manifest["nodes"][depends_on_id]["alias"]
+                fk_target_schema = self.manifest["nodes"][depends_on_id].get(
+                    "schema", "public"
+                )
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
 
                 relationship_tests[child["column_name"]] = {
-                    "fk_target_table": fk_target_table_alias,
+                    "fk_target_table": f"{fk_target_schema}.{fk_target_table_alias}",
                     "fk_target_field": fk_target_field,
                 }
 
@@ -166,6 +169,12 @@ class DbtManifestReader:
             mb_column.semantic_type = "type/FK"
             mb_column.fk_target_table = relationship["fk_target_table"].upper()
             mb_column.fk_target_field = relationship["fk_target_field"].upper()
+            logging.debug(
+                "Relation from",
+                column.get("name", "").upper().strip('"'),
+                "to",
+                f"{mb_column.fk_target_table}.{mb_column.fk_target_field}",
+            )
 
         if column["meta"]:
             meta = column.get("meta")
