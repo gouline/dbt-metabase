@@ -1,6 +1,7 @@
 import json
 import os
 from typing import List
+import logging
 
 from dbtmetabase.models.metabase import METABASE_META_FIELDS
 from dbtmetabase.models.metabase import MetabaseModel, MetabaseColumn
@@ -31,8 +32,8 @@ class DbtManifestReader:
         include_tags=True,
         dbt_docs_url=None,
     ) -> List[MetabaseModel]:
-        path = os.path.join(self.manifest_path)
 
+        path = os.path.join(self.manifest_path)
         mb_models: List[MetabaseModel] = []
 
         with open(path, "r") as manifest_file:
@@ -42,21 +43,29 @@ class DbtManifestReader:
             model_name = node["name"].upper()
 
             if node["config"]["materialized"] == "ephemeral":
+                logging.info(
+                    "Skipping ephemeral model %s not manifested in database", model_name
+                )
                 continue
 
             if node["database"].upper() != database.upper():
+                # Skip model not associated with target database
                 continue
 
             if node["resource_type"] != "model":
+                # Target only model nodes
                 continue
 
             if schema and node["schema"].upper() != schema.upper():
+                # Skip any models not in target schema
                 continue
 
             if schemas_excludes and node["schema"].upper() in schemas_excludes:
+                # Skip any model in a schema marked for exclusion
                 continue
 
             if (includes and model_name not in includes) or (model_name in excludes):
+                # Process only intersect of includes and excludes
                 continue
 
             mb_models.append(
@@ -88,26 +97,26 @@ class DbtManifestReader:
             child = self.manifest["nodes"][child_id]
 
             if (
-                child["resource_type"] != "test"
-                or child["test_metadata"]["name"] != "relationships"
+                child.get("resource_type", "") == "test"
+                and child.get("test_metadata", {}).get("name", "") == "relationships"
             ):
-                continue
+                # Only proceed if we are seeing an explicitly declared relationship test
 
-            # To get the name of the foreign table, we could use child['test_metadata']['kwargs']['to'], which
-            # would return the ref() written in the test, but if the model as an alias, that's not enough.
-            # It is better to use child['depends_on']['nodes'] and exclude the current model
+                # To get the name of the foreign table, we could use child['test_metadata']['kwargs']['to'], which
+                # would return the ref() written in the test, but if the model as an alias, that's not enough.
+                # It is better to use child['depends_on']['nodes'] and exclude the current model
 
-            depends_on_id = list(
-                set(child["depends_on"]["nodes"]) - {model["unique_id"]}
-            )[0]
+                depends_on_id = list(
+                    set(child["depends_on"]["nodes"]) - {model["unique_id"]}
+                )[0]
 
-            fk_target_table_alias = self.manifest["nodes"][depends_on_id]["alias"]
-            fk_target_field = child["test_metadata"]["kwargs"]["field"]
+                fk_target_table_alias = self.manifest["nodes"][depends_on_id]["alias"]
+                fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
 
-            relationship_tests[child["column_name"]] = {
-                "fk_target_table": fk_target_table_alias,
-                "fk_target_field": fk_target_field,
-            }
+                relationship_tests[child["column_name"]] = {
+                    "fk_target_table": fk_target_table_alias,
+                    "fk_target_field": fk_target_field,
+                }
 
         for _, column in model.get("columns", {}).items():
             mb_columns.append(
@@ -118,19 +127,16 @@ class DbtManifestReader:
 
         if include_tags:
             tags = model.get("tags")
-
             if tags:
                 tags = ", ".join(tags)
-
                 if description != "":
                     description += "\n\n"
-
                 description += f"Tags: {tags}"
 
         if dbt_docs_url:
             full_path = f"{dbt_docs_url}/#!/model/{model['unique_id']}"
-
-            description += "\n\n"
+            if description != "":
+                description += "\n\n"
             description += f"dbt docs link: {full_path}"
 
         return MetabaseModel(
@@ -153,11 +159,11 @@ class DbtManifestReader:
         description = column.get("description")
 
         mb_column = MetabaseColumn(
-            name=column.get("name", "").upper(), description=description
+            name=column.get("name", "").upper().strip('"'), description=description
         )
 
         if relationship:
-            mb_column.special_type = "type/FK"
+            mb_column.semantic_type = "type/FK"
             mb_column.fk_target_table = relationship["fk_target_table"].upper()
             mb_column.fk_target_field = relationship["fk_target_field"].upper()
 
