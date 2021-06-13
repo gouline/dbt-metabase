@@ -39,8 +39,8 @@ class DbtFolderReader:
         """Reads dbt models in Metabase-friendly format.
 
         Keyword Arguments:
-            includes {list} -- Model names to limit processing to. (default: {[]})
-            excludes {list} -- Model names to exclude. (default: {[]})
+            includes {list} -- Model names to limit processing to. (default: {None})
+            excludes {list} -- Model names to exclude. (default: {None})
 
         Returns:
             list -- List of dbt models in Metabase-friendly format.

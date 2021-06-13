@@ -48,8 +48,8 @@ def export(
         mb_verify {str} -- Supply path to certificate or disable verification. (default: {None})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
         sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
-        includes {list} -- Model names to limit processing to. (default: {[]})
-        excludes {list} -- Model names to exclude. (default: {[]})
+        includes {list} -- Model names to limit processing to. (default: {None})
+        excludes {list} -- Model names to exclude. (default: {None})
         include_tags {bool} -- Append the dbt tags to the end of the table description. (default: {True})
         dbt_docs_url {str} -- URL to your dbt docs hosted catalog. A link will be appended to the model description. Only works for manifest parsing. (default: {None})
     """
