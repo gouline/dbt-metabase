@@ -13,7 +13,14 @@ class MetabaseClient:
 
     _SYNC_PERIOD_SECS = 5
 
-    def __init__(self, host: str, user: str, password: str, https: bool = True, verify: Any = None):
+    def __init__(
+        self,
+        host: str,
+        user: str,
+        password: str,
+        https: bool = True,
+        verify: Any = None,
+    ):
         """Constructor.
 
         Arguments:
