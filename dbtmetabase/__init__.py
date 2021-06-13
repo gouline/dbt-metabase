@@ -1,4 +1,5 @@
 import logging
+import sys
 import os
 
 from .metabase import MetabaseClient
@@ -78,7 +79,9 @@ def export(
     models = reader.read_models(
         database=dbt_database,
         schema=schema,
-        schemas_excludes={schema.upper() for schema in schemas_excludes},
+        schemas_excludes={schema.upper() for schema in schemas_excludes}
+        if schemas_excludes
+        else None,
         includes=includes,
         excludes=excludes,
         include_tags=include_tags,
@@ -95,7 +98,7 @@ def export(
             return
 
     # Process Metabase stuff
-    mbc.export_models(mb_database, schema, models)
+    mbc.export_models(mb_database, schema, models, reader.catch_aliases)
 
 
 def main(args: list = None):
@@ -111,12 +114,10 @@ def main(args: list = None):
     parser.add_argument("command", choices=["export"], help="command to execute")
     parser.add_argument(
         "--dbt_path",
-        metavar="DBT PROJECT PATH",
         help="Path to dbt project. Cannot be specified with --dbt_manifest_path.",
     )
     parser.add_argument(
         "--dbt_manifest_path",
-        metavar="DBT MANIFEST PATH",
         help="Path to dbt manifest.json typically located in the /target/ directory of the dbt project directory. Cannot be specified with --dbt_path.",
     )
     parser.add_argument(
@@ -130,9 +131,8 @@ def main(args: list = None):
     )
     parser.add_argument(
         "--mb_https",
-        metavar="HTTPS",
-        type=bool,
-        default=True,
+        action="store_true",
+        default=False,
         help="Use HTTPS to connect to Metabase instead of HTTP",
     )
     parser.add_argument(
@@ -142,7 +142,7 @@ def main(args: list = None):
     )
     parser.add_argument(
         "--mb_database",
-        metavar="METABASE DB ALIAS",
+        metavar="ALIAS",
         required=True,
         help="Target database name as set in Metabase (typically aliased)",
     )
@@ -163,9 +163,8 @@ def main(args: list = None):
     )
     parser.add_argument(
         "--sync",
-        metavar="ENABLE",
-        type=bool,
-        default=True,
+        action="store_true",
+        default=False,
         help="Synchronize Metabase database before export. Useful for CI/CD deployment after dbt run.",
     )
     parser.add_argument(
@@ -190,8 +189,7 @@ def main(args: list = None):
     )
     parser.add_argument(
         "--include_tags",
-        metavar="TAGS",
-        type=bool,
+        action="store_true",
         default=False,
         help="Append tags to Table descriptions in Metabase.",
     )
@@ -200,7 +198,18 @@ def main(args: list = None):
         metavar="DOCS URL",
         help="Pass in url to dbt docs site. Appends dbt docs url for each model to Metabase table description.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Verbose output.",
+    )
     parsed = parser.parse_args(args=args)
+
+    if parsed.verbose:
+        logger = logging.getLogger()
+        logger.addHandler(logging.StreamHandler(sys.stdout))
+        logger.setLevel(logging.DEBUG)
 
     if parsed.command == "export":
         export(
@@ -214,7 +223,7 @@ def main(args: list = None):
             mb_verify=parsed.mb_verify,
             mb_database=parsed.mb_database,
             schema=parsed.schema,
-            schemas_excludes=parsed.schemas_excludes,
+            schemas_excludes=parsed.schema_excludes,
             sync=parsed.sync,
             sync_timeout=parsed.sync_timeout,
             includes=parsed.includes,
