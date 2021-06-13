@@ -144,7 +144,7 @@ Change the ``email`` column as follows:
 Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
 
-Here is the list of semantic types currently accepted by Metabase:
+Here is the list of semantic types (formerly known as special types) currently accepted by Metabase:
 
 * ``type/PK``
 * ``type/FK``
