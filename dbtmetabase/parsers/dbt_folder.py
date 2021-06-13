@@ -3,7 +3,7 @@ import os
 import logging
 
 from pathlib import Path
-from typing import List
+from typing import List, Iterable, Mapping
 
 import yaml
 
@@ -30,9 +30,9 @@ class DbtFolderReader:
         self,
         database: str,
         schema: str,
-        schemas_excludes: list = [],
-        includes: list = [],
-        excludes: list = [],
+        schemas_excludes: Iterable = [],
+        includes: Iterable = [],
+        excludes: Iterable = [],
         include_tags: bool = True,
         dbt_docs_url: str = None,
     ) -> List[MetabaseModel]:
@@ -81,7 +81,9 @@ class DbtFolderReader:
 
         return mb_models
 
-    def _read_model(self, model: dict, schema: str, include_tags=True) -> MetabaseModel:
+    def _read_model(
+        self, model: dict, schema: str, include_tags: bool = True
+    ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
         Arguments:
@@ -114,7 +116,7 @@ class DbtFolderReader:
             columns=mb_columns,
         )
 
-    def _read_column(self, column: dict, schema: str) -> MetabaseColumn:
+    def _read_column(self, column: Mapping, schema: str) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:
@@ -139,17 +141,19 @@ class DbtFolderReader:
                     mb_column.fk_target_table = (
                         column.get("meta", {})
                         .get(
-                            "metabase.fk_ref",  # Prioritize explicitly set FK in yml file which should have format schema.table unaliased
-                            self.parse_ref(
-                                relationships["to"]
-                            ),  # We will be translating any potentially aliased source() calls later during FK parsing since we do not have all possible aliases yet
+                            # Prioritize explicitly set FK in yml file which should have format schema.table unaliased
+                            "metabase.fk_ref",
+                            # If metabase.fk_ref not present in YAML, infer FK relation to table in target schema and parse ref/source
+                            # We will be translating any potentially aliased source() calls later during FK parsing since we do not have all possible aliases yet and thus cannot unalias
+                            self.parse_ref(relationships["to"], schema),
                         )
                         .strip('"')
                     )
                     # Lets be lenient and try to infer target schema if it was not provided when specified in metabase.fk_ref
+                    # Because parse_ref guarantees schema.table format, we can assume this was derived through fk_ref
                     if not "." in mb_column.fk_target_table:
                         logging.warn(
-                            "Target table %s has fk ref(s) declared through metabase.fk_ref missing schema in format schema.table, inferring from target",
+                            "Target table %s has fk ref declared through metabase.fk_ref missing schema (Format should be schema.table), inferring from target",
                             mb_column.fk_target_table,
                         )
                         mb_column.fk_target_table = (
@@ -173,7 +177,7 @@ class DbtFolderReader:
         return mb_column
 
     @staticmethod
-    def parse_ref(text: str) -> str:
+    def parse_ref(text: str, schema: str) -> str:
         """Parses dbt ref() statement.
 
         Arguments:
@@ -188,5 +192,5 @@ class DbtFolderReader:
         # We can and should identify a way to handle indentifier specs, but as is this will add compatibility with many sources
         matches = re.findall(r"['\"]([\w\_\-\ ]+)['\"].*\)", text)
         if matches:
-            return matches[0]
-        return text
+            return schema + "." + matches[0]
+        return schema + "." + text
