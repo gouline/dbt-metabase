@@ -108,13 +108,14 @@ class MetabaseClient:
 
         are_models_compatible = True
         for model in models:
+
             schema_name = model.schema.upper()
             model_name = model.name.upper()
 
             lookup_key = f"{schema_name}.{model_name}"
 
             if lookup_key not in field_lookup:
-                logging.warn("Model %s not found", lookup_key)
+                logging.warn("Model %s not found in %s schema", lookup_key, schema_name)
                 are_models_compatible = False
             else:
                 table_lookup = field_lookup[lookup_key]
@@ -122,7 +123,7 @@ class MetabaseClient:
                     column_name = column.name.upper()
                     if column_name not in table_lookup:
                         logging.warn(
-                            "Column %s not found in model %s", column_name, lookup_key
+                            "Column %s not found in %s model", column_name, lookup_key
                         )
                         are_models_compatible = False
 
@@ -183,7 +184,7 @@ class MetabaseClient:
         else:
             logging.info("Table %s is up-to-date", lookup_key)
 
-        for column in model.get("columns", []):
+        for column in model.columns:
             self.export_column(schema_name, model_name, column, field_lookup)
 
     def export_column(
@@ -213,8 +214,15 @@ class MetabaseClient:
 
         field_id = field["id"]
 
+        api_field = self.api("get", f"/api/field/{field_id}")
+
+        if "special_type" in api_field:
+            semantic_type = "special_type"
+        else:
+            semantic_type = "semantic_type"
+
         fk_target_field_id = None
-        if column.special_type == "type/FK":
+        if column.semantic_type == "type/FK":
             target_table = column.fk_target_table
             target_field = column.fk_target_field
             fk_target_field_id = (
@@ -222,10 +230,15 @@ class MetabaseClient:
             )
 
             if fk_target_field_id:
+                logging.debug(
+                    "Setting target field %s to PK in order to facilitate FK ref for %s column",
+                    fk_target_field_id,
+                    column_name,
+                )
                 self.api(
                     "put",
                     f"/api/field/{fk_target_field_id}",
-                    json={"special_type": "type/PK"},
+                    json={semantic_type: "type/PK"},
                 )
             else:
                 logging.error(
@@ -238,11 +251,9 @@ class MetabaseClient:
         if not column.visibility_type:
             column.visibility_type = "normal"
 
-        api_field = self.api("get", f"/api/field/{field_id}")
-
         if (
             api_field["description"] != column.description
-            or api_field["special_type"] != column.special_type
+            or api_field[semantic_type] != column.semantic_type
             or api_field["visibility_type"] != column.visibility_type
             or api_field["fk_target_field_id"] != fk_target_field_id
         ):
@@ -252,7 +263,7 @@ class MetabaseClient:
                 f"/api/field/{field_id}",
                 json={
                     "description": column.description,
-                    "special_type": column.special_type,
+                    semantic_type: column.semantic_type,
                     "visibility_type": column.visibility_type,
                     "fk_target_field_id": fk_target_field_id,
                 },
@@ -299,11 +310,11 @@ class MetabaseClient:
             params=dict(include_hidden=True),
         )
         for table in metadata.get("tables", []):
-            table_schema = table.get("schema", "public")
+            table_schema = table.get("schema", "public").upper()
             table_name = table["name"].upper()
 
             if schema:
-                if table_schema.upper() != schema.upper():
+                if table_schema != schema.upper():
                     logging.debug(
                         f"Ignoring Metabase table {table_name} in schema {table_schema}. It does not belong to selected schema {schema}"
                     )
@@ -314,13 +325,12 @@ class MetabaseClient:
                     exclusion.upper() for exclusion in schemas_to_exclude
                 }
 
-                if table_schema.upper() in schemas_to_exclude:
+                if table_schema in schemas_to_exclude:
                     logging.debug(
                         f"Ignoring Metabase table {table_name} in schema {table_schema}. It belongs to excluded schemas {schemas_to_exclude}"
                     )
                     continue
 
-            # TODO: Document it. Conflict with 2 tables with the same name in different schemas
             lookup_key = f"{table_schema}.{table_name}"
             table_lookup[lookup_key] = table
             table_field_lookup = {}
@@ -329,7 +339,7 @@ class MetabaseClient:
                 field_name = field["name"].upper()
                 table_field_lookup[field_name] = field
 
-            field_lookup[table_name] = table_field_lookup
+            field_lookup[lookup_key] = table_field_lookup
 
         return table_lookup, field_lookup
 
