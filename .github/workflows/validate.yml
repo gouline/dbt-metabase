@@ -1,0 +1,31 @@
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: validate
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - uses: nanasess/setup-chromedriver@master
+
+      - name: Requirements
+        run: make requirements
+
+      - name: Lint
+        run: make lint
+
+      - name: Type check
+        run: make type
+
+      - name: Test
+        run: make test
