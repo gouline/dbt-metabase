@@ -22,16 +22,21 @@ class DbtReader:
 
         self.project_path = project_path
 
-    def read_models(self, includes=[], excludes=[]) -> list:
+    def read_models(self, includes=None, excludes=None) -> list:
         """Reads dbt models in Metabase-friendly format.
 
         Keyword Arguments:
-            includes {list} -- Model names to limit processing to. (default: {[]})
-            excludes {list} -- Model names to exclude. (default: {[]})
+            includes {list} -- Model names to limit processing to. (default: {None})
+            excludes {list} -- Model names to exclude. (default: {None})
 
         Returns:
             list -- List of dbt models in Metabase-friendly format.
         """
+
+        if includes is None:
+            includes = []
+        if excludes is None:
+            excludes = []
 
         mb_models = []
 
@@ -40,7 +45,7 @@ class DbtReader:
             with open(path, "r") as stream:
                 schema = yaml.safe_load(stream)
                 if schema is None:
-                    logging.warn("Skipping empty or invalid YAML: %s", path)
+                    logging.warning("Skipping empty or invalid YAML: %s", path)
                     continue
                 for model in schema.get("models", []):
                     name = model.get("identifier", model["name"])
@@ -112,7 +117,7 @@ class DbtReader:
                 if f"metabase.{field}" in meta:
                     mb_column[field] = meta[f"metabase.{field}"]
 
-            # TODO: remove deprecation in future
+            # remove deprecation in future
             if "metabase.special_type" in meta:
                 logging.warning(
                     "DEPRECATION: metabase.special_type is deprecated and will be removed, use metabase.semantic_type instead"

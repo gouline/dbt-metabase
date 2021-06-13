@@ -1,5 +1,4 @@
 import logging
-import yaml
 import requests
 import json
 import time
@@ -107,14 +106,14 @@ class MetabaseClient:
         for model in models:
             model_name = model["name"].upper()
             if model_name not in field_lookup:
-                logging.warn("Model %s not found", model_name)
+                logging.warning("Model %s not found", model_name)
                 are_models_compatible = False
             else:
                 table_lookup = field_lookup[model_name]
                 for column in model.get("columns", []):
                     column_name = column["name"].upper()
                     if column_name not in table_lookup:
-                        logging.warn(
+                        logging.warning(
                             "Column %s not found in model %s", column_name, model_name
                         )
                         are_models_compatible = False
