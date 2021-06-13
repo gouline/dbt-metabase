@@ -1,12 +1,13 @@
 import re
 import logging
+
 from pathlib import Path
 from typing import List
 
 import yaml
 
-from ..models.metabase import METABASE_META_FIELDS
-from ..models.metabase import MetabaseModel, MetabaseColumn
+from dbtmetabase.models.metabase import METABASE_META_FIELDS
+from dbtmetabase.models.metabase import MetabaseModel, MetabaseColumn
 
 
 class DbtFolderReader:
@@ -25,13 +26,13 @@ class DbtFolderReader:
 
     def read_models(
         self,
-        database,
-        schema,
-        schemas_excludes=[],
-        includes=[],
-        excludes=[],
-        include_tags=True,
-        dbt_docs_url=None,
+        database: str,
+        schema: str,
+        schemas_excludes: list = [],
+        includes: list = [],
+        excludes: list = [],
+        include_tags: bool = True,
+        dbt_docs_url: str = None,
     ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
@@ -48,18 +49,18 @@ class DbtFolderReader:
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
             logging.info("Processing model: %s", path)
             with open(path, "r") as stream:
-                schema = yaml.safe_load(stream)
-                if schema is None:
+                schema_file = yaml.safe_load(stream)
+                if schema_file is None:
                     logging.warn("Skipping empty or invalid YAML: %s", path)
                     continue
-                for model in schema.get("models", []):
+                for model in schema_file.get("models", []):
                     name = model.get("identifier", model["name"])
                     logging.info("Model: %s", name)
                     if (not includes or name in includes) and (name not in excludes):
                         mb_models.append(
-                            self._read_model(model, include_tags=include_tags)
+                            self._read_model(model, schema, include_tags=include_tags)
                         )
-                for source in schema.get("sources", []):
+                for source in schema_file.get("sources", []):
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
                         logging.info("Source: %s", name)
@@ -67,12 +68,14 @@ class DbtFolderReader:
                             name not in excludes
                         ):
                             mb_models.append(
-                                self._read_model(model, include_tags=include_tags)
+                                self._read_model(
+                                    model, schema, include_tags=include_tags
+                                )
                             )
 
         return mb_models
 
-    def _read_model(self, model: dict, include_tags=True) -> MetabaseModel:
+    def _read_model(self, model: dict, schema: str, include_tags=True) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
         Arguments:
@@ -90,13 +93,18 @@ class DbtFolderReader:
         description = model.get("description")
 
         if include_tags:
-            tags = model.get("tags", [])
-            tags = tags.join(", ")
-
-            description += f"\n\nTags: {tags}"
+            tags = model.get("tags")
+            if tags:
+                tags = ", ".join(tags)
+                if description != "":
+                    description += "\n\n"
+                description += f"Tags: {tags}"
 
         return MetabaseModel(
-            name=model["name"].upper(), description=description, columns=mb_columns
+            name=model["name"].upper(),
+            schema=schema,
+            description=description,
+            columns=mb_columns,
         )
 
     def _read_column(self, column: dict) -> MetabaseColumn:
@@ -117,7 +125,7 @@ class DbtFolderReader:
             if isinstance(test, dict):
                 if "relationships" in test:
                     relationships = test["relationships"]
-                    mb_column.special_type = "type/FK"
+                    mb_column.semantic_type = "type/FK"
                     mb_column.fk_target_table = (
                         column.get("meta", {})
                         .get("metabase.fk_ref", self.parse_ref(relationships["to"]))
