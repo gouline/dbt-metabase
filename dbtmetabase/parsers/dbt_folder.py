@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 
 from pathlib import Path
@@ -22,7 +23,12 @@ class DbtFolderReader:
             project_path {str} -- Path to dbt project root.
         """
 
-        self.project_path = project_path
+        self.project_path = (
+            project_path
+            if project_path[0] != "~"
+            else (os.path.expanduser("~") + project_path[1:])
+        )
+        self.catch_aliases = {}
 
     def read_models(
         self,
@@ -55,6 +61,8 @@ class DbtFolderReader:
                     continue
                 for model in schema_file.get("models", []):
                     name = model.get("identifier", model["name"])
+                    if "identifier" in model:
+                        self.catch_aliases[name] = model["name"]
                     logging.info("Model: %s", name)
                     if (not includes or name in includes) and (name not in excludes):
                         mb_models.append(
@@ -63,6 +71,8 @@ class DbtFolderReader:
                 for source in schema_file.get("sources", []):
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
+                        if "identifier" in model:
+                            self.catch_aliases[name] = model["name"]
                         logging.info("Source: %s", name)
                         if (not includes or name in includes) and (
                             name not in excludes
@@ -101,7 +111,8 @@ class DbtFolderReader:
                 description += f"Tags: {tags}"
 
         return MetabaseModel(
-            name=model["name"].upper(),
+            # We are implicitly complying with aliases by doing this
+            name=model.get("identifier", model["name"]).upper(),
             schema=schema,
             description=description,
             columns=mb_columns,
@@ -118,7 +129,8 @@ class DbtFolderReader:
         """
 
         mb_column = MetabaseColumn(
-            name=column.get("name", "").upper(), description=column.get("description")
+            name=column.get("name", "").upper().strip('"'),
+            description=column.get("description"),
         )
 
         for test in column.get("tests", []):
@@ -132,12 +144,29 @@ class DbtFolderReader:
                         column.get("meta", {})
                         .get(
                             "metabase.fk_ref",  # Prioritize explicitly set FK in yml file which should have format schema.table unaliased
-                            schema + "." + self.parse_ref(relationships["to"]),
+                            self.parse_ref(
+                                relationships["to"]
+                            ),  # We will be translating any potentially aliased source() calls later during FK parsing since we do not have all possible aliases yet
                         )
-                        .upper()
                         .strip('"')
                     )
-                    mb_column.fk_target_field = relationships["field"].upper()
+                    # Lets be lenient and try to infer target schema if it was not provided when specified in metabase.fk_ref
+                    if not "." in mb_column.fk_target_table:
+                        logging.warn(
+                            "Target table %s has fk ref(s) declared through metabase.fk_ref missing schema in format schema.table, inferring from target",
+                            mb_column.fk_target_table,
+                        )
+                        mb_column.fk_target_table = (
+                            schema + "." + mb_column.fk_target_table
+                        )
+                    mb_column.fk_target_table = mb_column.fk_target_table.upper()
+                    mb_column.fk_target_field = (
+                        relationships["field"]
+                        .upper()
+                        .strip(
+                            '"'
+                        )  # Account for (example) '"Id"' relationship: to: fields used as a workaround for current tests not quoting consistently
+                    )
 
         if "meta" in column:
             meta = column.get("meta")
@@ -158,7 +187,10 @@ class DbtFolderReader:
             str -- Name of the reference.
         """
 
-        matches = re.findall(r"ref\(['\"]([\w\_\-\ ]+)['\"]\)", text)
+        # matches = re.findall(r"ref\(['\"]([\w\_\-\ ]+)['\"]\)", text)
+        # If we relax our matching here, we are able to catch the rightmost argument of either source or ref which is ultimately the table name
+        # We can and should identify a way to handle indentifier specs, but as is this will add compatibility with many sources
+        matches = re.findall(r"['\"]([\w\_\-\ ]+)['\"].*\)", text)
         if matches:
             return matches[0]
         return text
