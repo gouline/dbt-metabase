@@ -88,7 +88,7 @@ class DbtFolderReader:
         mb_columns: List[MetabaseColumn] = []
 
         for column in model.get("columns", []):
-            mb_columns.append(self._read_column(column))
+            mb_columns.append(self._read_column(column, schema))
 
         description = model.get("description")
 
@@ -107,7 +107,7 @@ class DbtFolderReader:
             columns=mb_columns,
         )
 
-    def _read_column(self, column: dict) -> MetabaseColumn:
+    def _read_column(self, column: dict, schema: str) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:
@@ -126,9 +126,14 @@ class DbtFolderReader:
                 if "relationships" in test:
                     relationships = test["relationships"]
                     mb_column.semantic_type = "type/FK"
+                    # Note: For foreign keys that point to a different schema than the target, the yml meta: metabase.fk_ref must be used
+                    # Otherwise we use target schema which should be fine in 95% of cases
                     mb_column.fk_target_table = (
                         column.get("meta", {})
-                        .get("metabase.fk_ref", self.parse_ref(relationships["to"]))
+                        .get(
+                            "metabase.fk_ref",  # Prioritize explicitly set FK in yml file which should have format schema.table unaliased
+                            schema + "." + self.parse_ref(relationships["to"]),
+                        )
                         .upper()
                         .strip('"')
                     )
