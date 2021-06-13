@@ -2,7 +2,7 @@ import logging
 import requests
 import json
 import time
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple, Dict
 
 
 class MetabaseClient:
@@ -68,12 +68,12 @@ class MetabaseClient:
                 timeout,
                 self._SYNC_PERIOD_SECS,
             )
-            return
+            return False
 
         database_id = self.find_database_id(database)
         if not database_id:
             logging.critical("Cannot find database by name %s", database)
-            return
+            return False
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
@@ -241,7 +241,7 @@ class MetabaseClient:
         else:
             logging.info("Field %s.%s is up-to-date", model_name, column_name)
 
-    def find_database_id(self, name: str) -> str:
+    def find_database_id(self, name: str) -> Optional[str]:
         """Finds Metabase database ID by name.
 
         Arguments:
@@ -313,7 +313,7 @@ class MetabaseClient:
             Any -- JSON payload of the endpoint.
         """
 
-        headers = {}
+        headers: Dict[str, str] = {}
         if "headers" not in kwargs:
             kwargs["headers"] = headers
         else:

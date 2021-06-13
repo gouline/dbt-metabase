@@ -112,7 +112,7 @@ class DbtReader:
                     mb_column["fk_target_field"] = relationships["field"].upper()
 
         if "meta" in column:
-            meta = column.get("meta")
+            meta = column.get("meta", {})
             for field in _META_FIELDS:
                 if f"metabase.{field}" in meta:
                     mb_column[field] = meta[f"metabase.{field}"]
