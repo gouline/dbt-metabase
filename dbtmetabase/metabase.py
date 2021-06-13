@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Sequence, Optional, Tuple
+from typing import Any, Sequence, Optional, Tuple, Iterable
 
 import requests
 import time
@@ -13,7 +13,7 @@ class MetabaseClient:
 
     _SYNC_PERIOD_SECS = 5
 
-    def __init__(self, host: str, user: str, password: str, https=True, verify=None):
+    def __init__(self, host: str, user: str, password: str, https: bool = True, verify: Any = None):
         """Constructor.
 
         Arguments:
@@ -50,7 +50,7 @@ class MetabaseClient:
         )["id"]
 
     def sync_and_wait(
-        self, database: str, schema: str, models: list, timeout=30
+        self, database: str, schema: str, models: Sequence, timeout=30
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
@@ -92,7 +92,9 @@ class MetabaseClient:
                 break
         return sync_successful
 
-    def models_compatible(self, database_id: str, schema: str, models: list) -> bool:
+    def models_compatible(
+        self, database_id: str, schema: str, models: Sequence
+    ) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
@@ -315,7 +317,7 @@ class MetabaseClient:
         return None
 
     def build_metadata_lookups(
-        self, database_id: str, schema: str, schemas_to_exclude=[]
+        self, database_id: str, schema: str, schemas_to_exclude: Iterable = []
     ) -> Tuple[dict, dict]:
         """Builds table and field lookups.
 
@@ -371,7 +373,12 @@ class MetabaseClient:
         return table_lookup, field_lookup
 
     def api(
-        self, method: str, path: str, authenticated=True, critical=True, **kwargs
+        self,
+        method: str,
+        path: str,
+        authenticated: bool = True,
+        critical: bool = True,
+        **kwargs,
     ) -> Any:
         """Unified way of calling Metabase API.
 

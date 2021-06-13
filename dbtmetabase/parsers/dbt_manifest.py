@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List
+from typing import List, Iterable
 import logging
 
 from dbtmetabase.models.metabase import METABASE_META_FIELDS
@@ -19,23 +19,19 @@ class DbtManifestReader:
             manifest_path {str} -- Path to dbt manifest.json.
         """
 
-        self.manifest_path = (
-            manifest_path
-            if manifest_path[0] != "~"
-            else (os.path.expanduser("~") + manifest_path[1:])
-        )
+        self.manifest_path = os.path.expanduser(manifest_path)
         self.manifest = None
         self.catch_aliases = {}
 
     def read_models(
         self,
-        database,
+        database: str,
         schema: str,
-        schemas_excludes=[],
-        includes=[],
-        excludes=[],
-        include_tags=True,
-        dbt_docs_url=None,
+        schemas_excludes: Iterable = [],
+        includes: Iterable = [],
+        excludes: Iterable = [],
+        include_tags: bool = True,
+        dbt_docs_url: bool = None,
     ) -> List[MetabaseModel]:
 
         path = os.path.join(self.manifest_path)

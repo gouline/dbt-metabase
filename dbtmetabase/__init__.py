@@ -6,7 +6,7 @@ from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
-from typing import Mapping, Iterable
+from typing import Mapping, Iterable, List
 
 __version__ = "0.8.0"
 
@@ -103,7 +103,7 @@ def export(
     mbc.export_models(database, schema, models, reader.catch_aliases)
 
 
-def main(args: list = None):
+def main(args: List = None):
     import argparse
 
     logging.basicConfig(

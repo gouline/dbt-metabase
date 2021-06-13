@@ -23,11 +23,7 @@ class DbtFolderReader:
             project_path {str} -- Path to dbt project root.
         """
 
-        self.project_path = (
-            project_path
-            if project_path[0] != "~"
-            else (os.path.expanduser("~") + project_path[1:])
-        )
+        self.project_path = os.path.expanduser(project_path)
         self.catch_aliases = {}
 
     def read_models(
