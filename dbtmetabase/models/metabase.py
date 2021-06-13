@@ -7,6 +7,9 @@ METABASE_META_FIELDS = ["special_type", "semantic_type", "visibility_type"]
 
 
 class NonEmptyString:
+    def __init__(self):
+        self.name = None
+
     def __set_name__(self, owner, name):
         self.name = name
 

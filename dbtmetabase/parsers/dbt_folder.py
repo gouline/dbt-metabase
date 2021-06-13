@@ -53,6 +53,18 @@ class DbtFolderReader:
         if excludes is None:
             excludes = []
 
+        if database:
+            logging.info(
+                "Argument --database %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                database,
+            )
+
+        if dbt_docs_url:
+            logging.info(
+                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                dbt_docs_url,
+            )
+
         mb_models: List[MetabaseModel] = []
 
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
@@ -60,7 +72,7 @@ class DbtFolderReader:
             with open(path, "r") as stream:
                 schema_file = yaml.safe_load(stream)
                 if schema_file is None:
-                    logging.warn("Skipping empty or invalid YAML: %s", path)
+                    logging.warning("Skipping empty or invalid YAML: %s", path)
                     continue
                 for model in schema_file.get("models", []):
                     name = model.get("identifier", model["name"])
@@ -159,7 +171,7 @@ class DbtFolderReader:
                     # Lets be lenient and try to infer target schema if it was not provided when specified in metabase.fk_ref
                     # Because parse_ref guarantees schema.table format, we can assume this was derived through fk_ref
                     if not "." in mb_column.fk_target_table:
-                        logging.warn(
+                        logging.warning(
                             "Target table %s has fk ref declared through metabase.fk_ref missing schema (Format should be schema.table), inferring from target",
                             mb_column.fk_target_table,
                         )

@@ -124,14 +124,16 @@ class MetabaseClient:
             lookup_key = f"{schema_name}.{model_name}"
 
             if lookup_key not in field_lookup:
-                logging.warn("Model %s not found in %s schema", lookup_key, schema_name)
+                logging.warning(
+                    "Model %s not found in %s schema", lookup_key, schema_name
+                )
                 are_models_compatible = False
             else:
                 table_lookup = field_lookup[lookup_key]
                 for column in model.columns:
                     column_name = column.name.upper()
                     if column_name not in table_lookup:
-                        logging.warn(
+                        logging.warning(
                             "Column %s not found in %s model", column_name, lookup_key
                         )
                         are_models_compatible = False
@@ -355,7 +357,10 @@ class MetabaseClient:
             if schema:
                 if table_schema != schema.upper():
                     logging.debug(
-                        f"Ignoring Metabase table {table_name} in schema {table_schema}. It does not belong to selected schema {schema}"
+                        "Ignoring Metabase table %s in schema %s. It does not belong to selected schema %s",
+                        table_name,
+                        table_schema,
+                        schema,
                     )
                     continue
 
@@ -366,7 +371,10 @@ class MetabaseClient:
 
                 if table_schema in schemas_to_exclude:
                     logging.debug(
-                        f"Ignoring Metabase table {table_name} in schema {table_schema}. It belongs to excluded schemas {schemas_to_exclude}"
+                        "Ignoring Metabase table %s in schema %s. It belongs to excluded schemas %s",
+                        table_name,
+                        table_schema,
+                        schemas_to_exclude,
                     )
                     continue
 
@@ -421,10 +429,12 @@ class MetabaseClient:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
                 if "password" in kwargs["json"]:
-                    logging.error(f"HTTP request failed. Response: {response.text}")
+                    logging.error("HTTP request failed. Response: %s", response.text)
                 else:
                     logging.error(
-                        f"HTTP request failed. Payload: {kwargs['json']}. Response: {response.text}"
+                        "HTTP request failed. Payload: %s. Response: %s",
+                        kwargs["json"],
+                        response.text,
                     )
                 raise
         elif not response.ok:

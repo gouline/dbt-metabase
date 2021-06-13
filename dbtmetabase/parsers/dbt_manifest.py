@@ -178,10 +178,10 @@ class DbtManifestReader:
             mb_column.fk_target_table = relationship["fk_target_table"].upper()
             mb_column.fk_target_field = relationship["fk_target_field"].upper()
             logging.debug(
-                "Relation from",
+                "Relation from %s to %s.%s",
                 column.get("name", "").upper().strip('"'),
-                "to",
-                f"{mb_column.fk_target_table}.{mb_column.fk_target_field}",
+                mb_column.fk_target_table,
+                mb_column.fk_target_field,
             )
 
         if column["meta"]:
