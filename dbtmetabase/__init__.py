@@ -20,13 +20,13 @@ def export(
     dbt_manifest_path: str = None,
     dbt_path: str = None,
     schema: str = "public",
-    schemas_excludes: Iterable = [],
+    schemas_excludes: Iterable = None,
     mb_https: bool = True,
     mb_verify: str = None,
     sync: bool = True,
     sync_timeout: int = None,
-    includes: Iterable = [],
-    excludes: Iterable = [],
+    includes: Iterable = None,
+    excludes: Iterable = None,
     include_tags: bool = True,
     dbt_docs_url: str = None,
 ):
@@ -53,6 +53,13 @@ def export(
         include_tags {bool} -- Append the dbt tags to the end of the table description. (default: {True})
         dbt_docs_url {str} -- URL to your dbt docs hosted catalog. A link will be appended to the model description. Only works for manifest parsing. (default: {None})
     """
+
+    if schemas_excludes is None:
+        schemas_excludes = []
+    if includes is None:
+        includes = []
+    if excludes is None:
+        excludes = []
 
     # Assertions
     assert bool(dbt_path) != bool(

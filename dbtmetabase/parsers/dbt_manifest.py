@@ -27,12 +27,19 @@ class DbtManifestReader:
         self,
         database: str,
         schema: str,
-        schemas_excludes: Iterable = [],
-        includes: Iterable = [],
-        excludes: Iterable = [],
+        schemas_excludes: Iterable = None,
+        includes: Iterable = None,
+        excludes: Iterable = None,
         include_tags: bool = True,
         dbt_docs_url: bool = None,
     ) -> List[MetabaseModel]:
+
+        if schemas_excludes is None:
+            schemas_excludes = []
+        if includes is None:
+            includes = []
+        if excludes is None:
+            excludes = []
 
         path = os.path.join(self.manifest_path)
         mb_models: List[MetabaseModel] = []

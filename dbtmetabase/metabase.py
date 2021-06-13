@@ -324,7 +324,7 @@ class MetabaseClient:
         return None
 
     def build_metadata_lookups(
-        self, database_id: str, schema: str, schemas_to_exclude: Iterable = []
+        self, database_id: str, schema: str, schemas_to_exclude: Iterable = None
     ) -> Tuple[dict, dict]:
         """Builds table and field lookups.
 
@@ -336,6 +336,9 @@ class MetabaseClient:
             dict -- Dictionary of tables indexed by name.
             dict -- Dictionary of fields indexed by name, indexed by table name.
         """
+
+        if schemas_to_exclude is None:
+            schemas_to_exclude = []
 
         table_lookup = {}
         field_lookup = {}
