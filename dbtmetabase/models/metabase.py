@@ -3,7 +3,7 @@ from typing import Sequence, Optional, MutableMapping
 
 # Allowed metabase.* fields
 # Should be covered by attributes in the MetabaseColumn class
-METABASE_META_FIELDS = ["special_type", "visibility_type"]
+METABASE_META_FIELDS = ["special_type", "semantic_type", "visibility_type"]
 
 
 class NonEmptyString:
@@ -27,7 +27,7 @@ class MetabaseColumn:
 
     meta_fields: MutableMapping = field(default_factory=dict)
 
-    special_type: Optional[str] = None
+    semantic_type: Optional[str] = None
     visibility_type: Optional[str] = None
 
     fk_target_table: Optional[str] = None
