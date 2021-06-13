@@ -130,7 +130,7 @@ class MetabaseClient:
         return are_models_compatible
 
     def export_models(
-        self, database: str, schema: str, models: Sequence[MetabaseModel]
+        self, database: str, schema: str, models: Sequence[MetabaseModel], aliases
     ):
         """Exports dbt models to Metabase database schema.
 
@@ -138,6 +138,7 @@ class MetabaseClient:
             database {str} -- Metabase database name.
             schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
+            aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
 
         database_id = self.find_database_id(database)
@@ -148,10 +149,14 @@ class MetabaseClient:
         table_lookup, field_lookup = self.build_metadata_lookups(database_id, schema)
 
         for model in models:
-            self.export_model(model, table_lookup, field_lookup)
+            self.export_model(model, table_lookup, field_lookup, aliases)
 
     def export_model(
-        self, model: MetabaseModel, table_lookup: dict, field_lookup: dict
+        self,
+        model: MetabaseModel,
+        table_lookup: dict,
+        field_lookup: dict,
+        aliases: dict,
     ):
         """Exports one dbt model to Metabase database schema.
 
@@ -159,17 +164,17 @@ class MetabaseClient:
             model {dict} -- One dbt model read from project.
             table_lookup {dict} -- Dictionary of Metabase tables indexed by name.
             field_lookup {dict} -- Dictionary of Metabase fields indexed by name, indexed by table name.
+            aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
 
-        # TODO: Meta fields are now in a field and not at the root level
         schema_name = model.schema.upper()
         model_name = model.name.upper()
 
-        lookup_key = f"{schema_name}.{model_name}"
+        lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
 
         api_table = table_lookup.get(lookup_key)
         if not api_table:
-            logging.error("Table %s does not exist in Metabase", model_name)
+            logging.error("Table %s does not exist in Metabase", lookup_key)
             return
 
         table_id = api_table["id"]
@@ -185,7 +190,7 @@ class MetabaseClient:
             logging.info("Table %s is up-to-date", lookup_key)
 
         for column in model.columns:
-            self.export_column(schema_name, model_name, column, field_lookup)
+            self.export_column(schema_name, model_name, column, field_lookup, aliases)
 
     def export_column(
         self,
@@ -193,6 +198,7 @@ class MetabaseClient:
         model_name: str,
         column: MetabaseColumn,
         field_lookup: dict,
+        aliases: dict,
     ):
         """Exports one dbt column to Metabase database schema.
 
@@ -200,6 +206,7 @@ class MetabaseClient:
             model_name {str} -- One dbt model name read from project.
             column {dict} -- One dbt column read from project.
             field_lookup {dict} -- Dictionary of Metabase fields indexed by name, indexed by table name.
+            aliases {dict} -- Provided by reader class. Used to resolve FK refs against relations to aliased source tables
         """
 
         table_lookup_key = f"{schema_name}.{model_name}"
@@ -223,8 +230,28 @@ class MetabaseClient:
 
         fk_target_field_id = None
         if column.semantic_type == "type/FK":
-            target_table = column.fk_target_table
-            target_field = column.fk_target_field
+            # Target table could be aliased if we parse_ref() on a source, so we caught aliases during model parsing
+            # This way we can unpack any alias mapped to fk_target_table when using yml folder parser
+            target_table = (
+                column.fk_target_table.upper()
+                if column.fk_target_table is not None
+                else None
+            )
+            target_field = (
+                column.fk_target_field.upper()
+                if column.fk_target_field is not None
+                else None
+            )
+
+            # Now we can trust our parse_ref even if it is pointing to something like source("salesforce", "my_cool_table_alias")
+            # just as easily as a simple ref("stg_salesforce_cool_table") -> the dict is empty if parsing from manifest.json
+            was_aliased = (
+                aliases.get(target_table.split(".", 1)[-1]) if target_table else None
+            )
+            if was_aliased:
+                target_table = ".".join([target_table.split(".", 1)[0], was_aliased])
+
+            logging.info("Looking for field %s in table %s", target_field, target_table)
             fk_target_field_id = (
                 field_lookup.get(target_table, {}).get(target_field, {}).get("id")
             )
