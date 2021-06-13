@@ -6,6 +6,8 @@ from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
+from typing import Mapping, Iterable
+
 __version__ = "0.8.0"
 
 
@@ -13,18 +15,18 @@ def export(
     mb_host: str,
     mb_user: str,
     mb_password: str,
-    mb_database: str,
+    database: str,
     dbt_database: str,
     dbt_manifest_path: str = None,
     dbt_path: str = None,
     schema: str = "public",
-    schemas_excludes: list = [],
+    schemas_excludes: Iterable = [],
     mb_https: bool = True,
     mb_verify: str = None,
     sync: bool = True,
     sync_timeout: int = None,
-    includes: list = [],
-    excludes: list = [],
+    includes: Iterable = [],
+    excludes: Iterable = [],
     include_tags: bool = True,
     dbt_docs_url: str = None,
 ):
@@ -34,22 +36,22 @@ def export(
         mb_host {str} -- Metabase hostname.
         mb_user {str} -- Metabase username.
         mb_password {str} -- Metabase password.
-        mb_database {str} -- Target mb_database name. Database in Metabase is aliased.
+        database {str} -- Target Metabase database name. Database in Metabase is aliased.
         dbt_database {str} -- Source database name.
         dbt_manifest_path {str} -- Path to dbt project manifest.json [Primary]
         dbt_path {str} -- Path to dbt project. [Alternative]
 
     Keyword Arguments:
         schema {str} -- Target schema name. (default: {"public"})
-        schemas_excludes -- Alternative to target schema, specify schema exclusions. (default: {None})
+        schemas_excludes -- Alternative to target schema, specify schema exclusions. Only works for manifest parsing. (default: {None})
         mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
         mb_verify {str} -- Supply path to certificate or disable verification. (default: {None})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
         sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
         includes {list} -- Model names to limit processing to. (default: {[]})
         excludes {list} -- Model names to exclude. (default: {[]})
-        include_tags {bool} -- Append the dbt tags to the end of the table description (default: {True})
-        dbt_docs_url {str} -- URL to your dbt docs hosted catalog. A link will be appended to the model description (default: {None})
+        include_tags {bool} -- Append the dbt tags to the end of the table description. (default: {True})
+        dbt_docs_url {str} -- URL to your dbt docs hosted catalog. A link will be appended to the model description. Only works for manifest parsing. (default: {None})
     """
 
     # Assertions
@@ -91,14 +93,14 @@ def export(
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
     if sync:
         if (
-            not mbc.sync_and_wait(mb_database, schema, models, sync_timeout)
+            not mbc.sync_and_wait(database, schema, models, sync_timeout)
             and sync_timeout is not None
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
 
     # Process Metabase stuff
-    mbc.export_models(mb_database, schema, models, reader.catch_aliases)
+    mbc.export_models(database, schema, models, reader.catch_aliases)
 
 
 def main(args: list = None):
@@ -141,7 +143,7 @@ def main(args: list = None):
         help="Path to certificate bundle used by Metabase client",
     )
     parser.add_argument(
-        "--mb_database",
+        "--database",
         metavar="ALIAS",
         required=True,
         help="Target database name as set in Metabase (typically aliased)",
@@ -221,7 +223,7 @@ def main(args: list = None):
             mb_password=parsed.mb_password,
             mb_https=parsed.mb_https,
             mb_verify=parsed.mb_verify,
-            mb_database=parsed.mb_database,
+            database=parsed.database,
             schema=parsed.schema,
             schemas_excludes=parsed.schema_excludes,
             sync=parsed.sync,
