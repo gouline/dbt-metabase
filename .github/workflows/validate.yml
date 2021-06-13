@@ -4,9 +4,9 @@ on:
       - master
 
 jobs:
-  run:
+  validate:
     runs-on: ubuntu-latest
-    name: run
+    name: validate
     steps:
       - uses: actions/checkout@v2
 
