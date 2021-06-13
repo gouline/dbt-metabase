@@ -230,7 +230,7 @@ class MetabaseClient:
             )
 
             if fk_target_field_id:
-                logging.debug(
+                logging.info(
                     "Setting target field %s to PK in order to facilitate FK ref for %s column",
                     fk_target_field_id,
                     column_name,
