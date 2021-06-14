@@ -17,8 +17,8 @@ def export(
     mb_password: str,
     database: str,
     dbt_database: str,
-    dbt_manifest_path: str = None,
-    dbt_path: str = None,
+    dbt_manifest_path: str = "",
+    dbt_path: str = "",
     schema: str = "public",
     schemas_excludes: Iterable = None,
     mb_https: bool = True,
@@ -78,11 +78,9 @@ def export(
 
     # Resolve dbt reader being either YAML or manifest.json based
     if dbt_path:
-        dbt_path = os.path.expandvars(dbt_path)
-        reader = DbtFolderReader(dbt_path)
+        reader = DbtFolderReader(os.path.expandvars(dbt_path))
     else:
-        dbt_manifest_path = os.path.expandvars(dbt_manifest_path)
-        reader = DbtManifestReader(dbt_manifest_path)
+        reader = DbtManifestReader(os.path.expandvars(dbt_manifest_path))
 
     # Process dbt stuff
     models = reader.read_models(

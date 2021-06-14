@@ -9,7 +9,7 @@ METABASE_META_FIELDS = ["special_type", "semantic_type", "visibility_type"]
 @dataclass
 class MetabaseColumn:
     name: str
-    description: str = None
+    description: str = ""
 
     meta_fields: MutableMapping = field(default_factory=dict)
 
@@ -24,6 +24,6 @@ class MetabaseColumn:
 class MetabaseModel:
     name: str
     schema: str
-    description: str = None
+    description: str = ""
 
     columns: Sequence[MetabaseColumn] = field(default_factory=list)
