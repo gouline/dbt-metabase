@@ -20,8 +20,8 @@ class DbtManifestReader:
         """
 
         self.manifest_path = os.path.expanduser(manifest_path)
-        self.manifest = None
-        self.catch_aliases = {}
+        self.manifest: Mapping = {}
+        self.catch_aliases: Mapping = {}
 
     def read_models(
         self,
@@ -31,7 +31,7 @@ class DbtManifestReader:
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        dbt_docs_url: bool = None,
+        dbt_docs_url: str = None,
     ) -> List[MetabaseModel]:
 
         if schemas_excludes is None:
@@ -134,7 +134,7 @@ class DbtManifestReader:
                 self._read_column(column, relationship_tests.get(column["name"]))
             )
 
-        description = model.get("description")
+        description = model.get("description", "")
 
         if include_tags:
             tags = model.get("tags")
@@ -157,7 +157,7 @@ class DbtManifestReader:
             columns=mb_columns,
         )
 
-    def _read_column(self, column: Mapping, relationship: dict) -> MetabaseColumn:
+    def _read_column(self, column: Mapping, relationship: Mapping) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:

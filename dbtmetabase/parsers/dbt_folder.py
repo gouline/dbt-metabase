@@ -117,13 +117,13 @@ class DbtFolderReader:
         for column in model.get("columns", []):
             mb_columns.append(self._read_column(column, schema))
 
-        description = model.get("description")
+        description = model.get("description", "")
 
         if include_tags:
             tags = model.get("tags")
             if tags:
                 tags = ", ".join(tags)
-                if description != "":
+                if description:
                     description += "\n\n"
                 description += f"Tags: {tags}"
 
@@ -168,6 +168,12 @@ class DbtFolderReader:
                         )
                         .strip('"')
                     )
+                    if not mb_column.fk_target_table:
+                        logging.warning(
+                            "Could not resolve foreign key target for column %s",
+                            mb_column.name,
+                        )
+                        continue
                     # Lets be lenient and try to infer target schema if it was not provided when specified in metabase.fk_ref
                     # Because parse_ref guarantees schema.table format, we can assume this was derived through fk_ref
                     if not "." in mb_column.fk_target_table:

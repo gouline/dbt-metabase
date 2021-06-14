@@ -189,7 +189,7 @@ class MetabaseClient:
             return
 
         table_id = api_table["id"]
-        if api_table["description"] != model.description:
+        if api_table["description"] != model.description and model.description != "":
             # Update with new values
             self.api(
                 "put",
@@ -197,6 +197,8 @@ class MetabaseClient:
                 json={"description": model.description},
             )
             logging.info("Updated table %s successfully", lookup_key)
+        elif model.description == "":
+            logging.info("No model description provided for table %s", lookup_key)
         else:
             logging.info("Table %s is up-to-date", lookup_key)
 
@@ -254,36 +256,50 @@ class MetabaseClient:
                 else None
             )
 
-            # Now we can trust our parse_ref even if it is pointing to something like source("salesforce", "my_cool_table_alias")
-            # just as easily as a simple ref("stg_salesforce_cool_table") -> the dict is empty if parsing from manifest.json
-            was_aliased = (
-                aliases.get(target_table.split(".", 1)[-1]) if target_table else None
-            )
-            if was_aliased:
-                target_table = ".".join([target_table.split(".", 1)[0], was_aliased])
-
-            logging.info("Looking for field %s in table %s", target_field, target_table)
-            fk_target_field_id = (
-                field_lookup.get(target_table, {}).get(target_field, {}).get("id")
-            )
-
-            if fk_target_field_id:
+            if not target_table or not target_field:
                 logging.info(
-                    "Setting target field %s to PK in order to facilitate FK ref for %s column",
-                    fk_target_field_id,
-                    column_name,
-                )
-                self.api(
-                    "put",
-                    f"/api/field/{fk_target_field_id}",
-                    json={semantic_type: "type/PK"},
-                )
-            else:
-                logging.error(
-                    "Unable to find foreign key target %s.%s",
-                    target_table,
+                    "Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
+                    table_lookup_key,
                     target_field,
                 )
+
+            else:
+                # Now we can trust our parse_ref even if it is pointing to something like source("salesforce", "my_cool_table_alias")
+                # just as easily as a simple ref("stg_salesforce_cool_table") -> the dict is empty if parsing from manifest.json
+                was_aliased = (
+                    aliases.get(target_table.split(".", 1)[-1])
+                    if target_table
+                    else None
+                )
+                if was_aliased:
+                    target_table = ".".join(
+                        [target_table.split(".", 1)[0], was_aliased]
+                    )
+
+                logging.info(
+                    "Looking for field %s in table %s", target_field, target_table
+                )
+                fk_target_field_id = (
+                    field_lookup.get(target_table, {}).get(target_field, {}).get("id")
+                )
+
+                if fk_target_field_id:
+                    logging.info(
+                        "Setting target field %s to PK in order to facilitate FK ref for %s column",
+                        fk_target_field_id,
+                        column_name,
+                    )
+                    self.api(
+                        "put",
+                        f"/api/field/{fk_target_field_id}",
+                        json={semantic_type: "type/PK"},
+                    )
+                else:
+                    logging.error(
+                        "Unable to find foreign key target %s.%s",
+                        target_table,
+                        target_field,
+                    )
 
         # Nones are not accepted, default to normal
         if not column.visibility_type:
@@ -300,7 +316,9 @@ class MetabaseClient:
                 "put",
                 f"/api/field/{field_id}",
                 json={
-                    "description": column.description,
+                    "description": column.description
+                    if column.description != ""
+                    else None,
                     semantic_type: column.semantic_type,
                     "visibility_type": column.visibility_type,
                     "fk_target_field_id": fk_target_field_id,
