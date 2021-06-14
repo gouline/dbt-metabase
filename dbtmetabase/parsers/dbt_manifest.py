@@ -12,14 +12,14 @@ class DbtManifestReader:
     Reader for dbt manifest artifact.
     """
 
-    def __init__(self, manifest_path: str):
+    def __init__(self, project_path: str):
         """Constructor.
 
         Arguments:
             manifest_path {str} -- Path to dbt manifest.json.
         """
 
-        self.manifest_path = os.path.expanduser(manifest_path)
+        self.manifest_path = os.path.expanduser(project_path)
         self.manifest: Mapping = {}
         self.catch_aliases: MutableMapping = {}
 
