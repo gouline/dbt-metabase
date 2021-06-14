@@ -1,6 +1,6 @@
 import unittest
 
-from dbtmetabase.parsers.dbt_folder import DbtManifestReader
+from dbtmetabase.parsers.dbt_manifest import DbtManifestReader
 
 
 class MockDbtManifestReader(DbtManifestReader):
