@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Iterable, Mapping, Optional
+from typing import List, Iterable, Mapping, Optional, MutableMapping
 import logging
 
 from dbtmetabase.models.metabase import METABASE_META_FIELDS
@@ -21,7 +21,7 @@ class DbtManifestReader:
 
         self.manifest_path = os.path.expanduser(manifest_path)
         self.manifest: Mapping = {}
-        self.catch_aliases: Mapping = {}
+        self.catch_aliases: MutableMapping = {}
 
     def read_models(
         self,

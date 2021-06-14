@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Sequence, Optional, Tuple, Iterable, Mapping
+from typing import Any, Sequence, Optional, Tuple, Iterable, MutableMapping
 
 import requests
 import time
@@ -430,7 +430,7 @@ class MetabaseClient:
             Any -- JSON payload of the endpoint.
         """
 
-        headers: Mapping = {}
+        headers: MutableMapping = {}
         if "headers" not in kwargs:
             kwargs["headers"] = headers
         else:

@@ -3,7 +3,7 @@ import os
 import logging
 
 from pathlib import Path
-from typing import List, Iterable, Mapping
+from typing import List, Iterable, Mapping, MutableMapping
 
 import yaml
 
@@ -24,7 +24,7 @@ class DbtFolderReader:
         """
 
         self.project_path = os.path.expanduser(project_path)
-        self.catch_aliases = {}
+        self.catch_aliases: MutableMapping = {}
 
     def read_models(
         self,
@@ -147,7 +147,7 @@ class DbtFolderReader:
 
         mb_column = MetabaseColumn(
             name=column.get("name", "").upper().strip('"'),
-            description=column.get("description"),
+            description=column.get("description", ""),
         )
 
         for test in column.get("tests", []):
@@ -194,7 +194,7 @@ class DbtFolderReader:
                     )
 
         if "meta" in column:
-            meta = column.get("meta")
+            meta = column.get("meta", [])
             for field in METABASE_META_FIELDS:
                 if f"metabase.{field}" in meta:
                     setattr(mb_column, field, meta[f"metabase.{field}"])
