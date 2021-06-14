@@ -6,7 +6,7 @@ from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
-from typing import Mapping, Iterable, List
+from typing import Mapping, Iterable, List, Union
 
 __version__ = "0.8.0"
 
@@ -75,6 +75,7 @@ def export(
 
     # Instantiate Metabase client
     mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https, verify=mb_verify)
+    reader: Union[DbtFolderReader, DbtManifestReader]
 
     # Resolve dbt reader being either YAML or manifest.json based
     if dbt_path:
