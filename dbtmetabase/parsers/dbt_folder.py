@@ -94,7 +94,7 @@ class DbtFolderReader:
                         ):
                             mb_models.append(
                                 self._read_model(
-                                    model, schema, include_tags=include_tags
+                                    model, schema.upper(), include_tags=include_tags
                                 )
                             )
 

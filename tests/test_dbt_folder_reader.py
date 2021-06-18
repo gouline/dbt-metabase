@@ -28,7 +28,7 @@ class TestDbtFolderReader(unittest.TestCase):
         expectation = [
             MetabaseModel(
                 name="CUSTOMERS",
-                schema="public",
+                schema="PUBLIC",
                 description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
                 columns=[
                     MetabaseColumn(
@@ -98,7 +98,7 @@ class TestDbtFolderReader(unittest.TestCase):
             ),
             MetabaseModel(
                 name="ORDERS",
-                schema="public",
+                schema="PUBLIC",
                 description="This table has basic information about orders, as well as some derived facts based on payments",
                 columns=[
                     MetabaseColumn(
@@ -186,7 +186,7 @@ class TestDbtFolderReader(unittest.TestCase):
             ),
             MetabaseModel(
                 name="STG_CUSTOMERS",
-                schema="public",
+                schema="PUBLIC",
                 description="",
                 columns=[
                     MetabaseColumn(
@@ -202,7 +202,7 @@ class TestDbtFolderReader(unittest.TestCase):
             ),
             MetabaseModel(
                 name="STG_ORDERS",
-                schema="public",
+                schema="PUBLIC",
                 description="",
                 columns=[
                     MetabaseColumn(
@@ -227,7 +227,7 @@ class TestDbtFolderReader(unittest.TestCase):
             ),
             MetabaseModel(
                 name="STG_PAYMENTS",
-                schema="public",
+                schema="PUBLIC",
                 description="",
                 columns=[
                     MetabaseColumn(
