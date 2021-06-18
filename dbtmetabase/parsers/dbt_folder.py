@@ -81,7 +81,9 @@ class DbtFolderReader:
                     logging.info("Model: %s", name)
                     if (not includes or name in includes) and (name not in excludes):
                         mb_models.append(
-                            self._read_model(model, schema, include_tags=include_tags)
+                            self._read_model(
+                                model, schema.upper(), include_tags=include_tags
+                            )
                         )
                 for source in schema_file.get("sources", []):
                     for model in source.get("tables", []):
