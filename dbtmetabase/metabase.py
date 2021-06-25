@@ -155,6 +155,10 @@ class MetabaseClient:
             logging.error("Table %s does not exist in Metabase", model_name)
             return
 
+        # Empty strings not accepted by Metabase
+        if model["description"] == '':
+            model["description"] = None
+
         table_id = api_table["id"]
         if api_table["description"] != model["description"]:
             # Update with new values
@@ -219,6 +223,10 @@ class MetabaseClient:
         # Nones are not accepted, default to normal
         if not column.get("visibility_type"):
             column["visibility_type"] = "normal"
+
+        # Empty strings not accepted by Metabase
+        if column.get("description") == '':
+            column["description"] = None
 
         if (
             api_field["description"] != column.get("description")
