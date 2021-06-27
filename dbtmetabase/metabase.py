@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Sequence, Optional, Tuple, Iterable, MutableMapping, Union
+from typing import Any, Sequence, Optional, Tuple, Iterable, MutableMapping, Union, Optional
 
 import requests
 import time
@@ -19,7 +19,7 @@ class MetabaseClient:
         user: str,
         password: str,
         https: bool = True,
-        verify: Union[str|bool] = None,
+        verify: Union[str, bool] = None,
     ):
         """Constructor.
 
@@ -57,7 +57,7 @@ class MetabaseClient:
         )["id"]
 
     def sync_and_wait(
-        self, database: str, schema: str, models: Sequence, timeout: int = 30
+        self, database: str, schema: str, models: Sequence, timeout: Optional[int] = 30
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 

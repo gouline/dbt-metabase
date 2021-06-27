@@ -22,7 +22,7 @@ def export(
     schema: str = "public",
     schemas_excludes: Iterable = None,
     mb_https: bool = True,
-    mb_verify: str = None,
+    mb_verify: Union[str, bool] = True,
     sync: bool = True,
     sync_timeout: int = None,
     includes: Iterable = None,
