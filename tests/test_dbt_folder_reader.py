@@ -15,7 +15,7 @@ class MockDbtFolderReader(DbtFolderReader):
 class TestDbtFolderReader(unittest.TestCase):
     def setUp(self):
         """Must specify dbt root dir"""
-        self.reader = DbtFolderReader(project_path="fixtures/sample_project/tests/")
+        self.reader = DbtFolderReader(project_path="tests/fixtures/sample_project/")
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
 
