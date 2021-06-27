@@ -1,5 +1,4 @@
 
-target/
 dbt_modules/
 logs/
 **/.DS_Store

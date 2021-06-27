@@ -14,7 +14,7 @@ class MockDbtManifestReader(DbtManifestReader):
 
 class TestDbtManifestReader(unittest.TestCase):
     def setUp(self):
-        self.reader = DbtManifestReader(project_path="tests/target/manifest.json")
+        self.reader = DbtManifestReader(project_path="fixtures/sample_project/tests/target/manifest.json")
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
 
@@ -252,6 +252,3 @@ class TestDbtManifestReader(unittest.TestCase):
         ]
         self.assertEqual(models, expectation)
         logging.info("Done")
-
-    def test_dummy(self):
-        self.assertTrue(True)
