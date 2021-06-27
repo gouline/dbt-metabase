@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Sequence, Optional, Tuple, Iterable, MutableMapping, Union, Optional
+from typing import Any, Sequence, Optional, Tuple, Iterable, MutableMapping, Union
 
 import requests
 import time
