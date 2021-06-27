@@ -139,9 +139,10 @@ def main(args: List = None):
     )
     parser.add_argument(
         "--mb_https",
-        action="store_true",
-        default=False,
-        help="Use HTTPS to connect to Metabase instead of HTTP",
+        metavar="HTTPS",
+        type=bool,
+        default=True,
+        help="use HTTPS to connect to Metabase instead of HTTP",
     )
     parser.add_argument(
         "--mb_verify",
@@ -163,23 +164,24 @@ def main(args: List = None):
     parser.add_argument(
         "--schema",
         metavar="SCHEMA",
-        help="Target schema name. Cannot be specified with --schema_excludes.",
+        help="Target schema name. Cannot be specified with --schema_excludes",
     )
     parser.add_argument(
         "--schema_excludes",
-        help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded.",
+        help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
     )
     parser.add_argument(
         "--sync",
-        action="store_true",
-        default=False,
-        help="Synchronize Metabase database before export. Useful for CI/CD deployment after dbt run.",
+        metavar="ENABLE",
+        type=bool,
+        default=True,
+        help="Synchronize Metabase database before export",
     )
     parser.add_argument(
         "--sync_timeout",
         metavar="SECS",
         type=int,
-        help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success.",
+        help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success",
     )
     parser.add_argument(
         "--includes",
@@ -199,18 +201,18 @@ def main(args: List = None):
         "--include_tags",
         action="store_true",
         default=False,
-        help="Append tags to Table descriptions in Metabase.",
+        help="Append tags to Table descriptions in Metabase",
     )
     parser.add_argument(
         "--docs",
         metavar="DOCS URL",
-        help="Pass in url to dbt docs site. Appends dbt docs url for each model to Metabase table description.",
+        help="Pass in url to dbt docs site. Appends dbt docs url for each model to Metabase table description",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
-        help="Verbose output.",
+        help="Verbose output",
     )
     parsed = parser.parse_args(args=args)
 
