@@ -57,7 +57,7 @@ class MetabaseClient:
         )["id"]
 
     def sync_and_wait(
-        self, database: str, schema: str, models: Sequence, timeout: Optional[int] = 30
+        self, database: str, schema: str, models: Sequence, timeout: Optional[int]
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
@@ -72,6 +72,8 @@ class MetabaseClient:
         Returns:
             bool -- True if schema compatible with models, false if still incompatible.
         """
+        if timeout is None:
+            timeout = 30
 
         if timeout < self._SYNC_PERIOD_SECS:
             logging.critical(
