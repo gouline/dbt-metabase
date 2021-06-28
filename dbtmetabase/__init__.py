@@ -83,13 +83,14 @@ def export(
     else:
         reader = DbtManifestReader(os.path.expandvars(dbt_manifest_path))
 
+    if schemas_excludes:
+        schemas_excludes = {schema.upper() for schema in schemas_excludes}
+
     # Process dbt stuff
     models = reader.read_models(
         database=dbt_database,
         schema=schema,
-        schemas_excludes={schema.upper() for schema in schemas_excludes}
-        if schemas_excludes
-        else None,
+        schemas_excludes=schemas_excludes,
         includes=includes,
         excludes=excludes,
         include_tags=include_tags,
