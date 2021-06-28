@@ -178,21 +178,22 @@ class DbtFolderReader:
                         continue
                     # Lets be lenient and try to infer target schema if it was not provided when specified in metabase.fk_ref
                     # Because parse_ref guarantees schema.table format, we can assume this was derived through fk_ref
-                    if not "." in mb_column.fk_target_table:
+                    if "." not in mb_column.fk_target_table:
                         logging.warning(
                             "Target table %s has fk ref declared through metabase.fk_ref missing schema (Format should be schema.table), inferring from target",
                             mb_column.fk_target_table,
                         )
                         mb_column.fk_target_table = (
-                            schema + "." + mb_column.fk_target_table
+                            f"{schema}.{mb_column.fk_target_table}"
                         )
                     mb_column.fk_target_table = mb_column.fk_target_table.upper()
+                    # Account for (example) '"Id"' relationship: to: fields used as a workaround for current tests not quoting consistently
                     mb_column.fk_target_field = (
                         relationships["field"]
                         .upper()
                         .strip(
                             '"'
-                        )  # Account for (example) '"Id"' relationship: to: fields used as a workaround for current tests not quoting consistently
+                        )
                     )
 
         if "meta" in column:
@@ -219,5 +220,5 @@ class DbtFolderReader:
         # We can and should identify a way to handle indentifier specs, but as is this will add compatibility with many sources
         matches = re.findall(r"['\"]([\w\_\-\ ]+)['\"].*\)", text)
         if matches:
-            return schema + "." + matches[0]
-        return schema + "." + text
+            return f"{schema}.{matches[0]}"
+        return f"{schema}.{text}"
