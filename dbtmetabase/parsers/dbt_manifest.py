@@ -105,8 +105,8 @@ class DbtManifestReader:
             child = self.manifest["nodes"][child_id]
 
             if (
-                child.get("resource_type", "") == "test"
-                and child.get("test_metadata", {}).get("name", "") == "relationships"
+                child.get("resource_type") == "test"
+                and child.get("test_metadata", {}).get("name") == "relationships"
             ):
                 # Only proceed if we are seeing an explicitly declared relationship test
 
