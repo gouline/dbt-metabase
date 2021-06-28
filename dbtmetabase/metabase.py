@@ -156,7 +156,7 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
-        if model["description"] == '':
+        if model["description"] == "":
             model["description"] = None
 
         table_id = api_table["id"]
@@ -225,7 +225,7 @@ class MetabaseClient:
             column["visibility_type"] = "normal"
 
         # Empty strings not accepted by Metabase
-        if column.get("description") == '':
+        if column.get("description") == "":
             column["description"] = None
 
         if (
