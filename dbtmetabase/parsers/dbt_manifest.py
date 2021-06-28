@@ -41,7 +41,7 @@ class DbtManifestReader:
         if excludes is None:
             excludes = []
 
-        path = os.path.join(self.manifest_path)
+        path = self.manifest_path
         mb_models: List[MetabaseModel] = []
 
         with open(path, "r") as manifest_file:
