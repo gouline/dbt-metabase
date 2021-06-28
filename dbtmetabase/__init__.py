@@ -122,11 +122,11 @@ def main(args: List = None):
     parser.add_argument("command", choices=["export"], help="command to execute")
     parser.add_argument(
         "--dbt_path",
-        help="Path to dbt project. Cannot be specified with --dbt_manifest_path.",
+        help="Path to dbt project. Cannot be specified with --dbt_manifest_path",
     )
     parser.add_argument(
         "--dbt_manifest_path",
-        help="Path to dbt manifest.json typically located in the /target/ directory of the dbt project directory. Cannot be specified with --dbt_path.",
+        help="Path to dbt manifest.json typically located in the /target/ directory of the dbt project directory. Cannot be specified with --dbt_path",
     )
     parser.add_argument(
         "--mb_host", metavar="HOST", required=True, help="Metabase hostname"
