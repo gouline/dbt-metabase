@@ -11,7 +11,7 @@ from dbtmetabase import __version__
 with open("requirements.txt", "r") as f:
     requires = [x.strip() for x in f if x.strip()]
 
-with open("test-requirements.txt", "r") as f:
+with open("requirements-test.txt", "r") as f:
     test_requires = [x.strip() for x in f if x.strip()]
 
 with open("README.rst", "r") as f:
