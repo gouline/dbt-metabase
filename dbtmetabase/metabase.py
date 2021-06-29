@@ -191,19 +191,21 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
-        if model.description == "":
-            model.description = None
+        if not model.description:
+            model_description = None
+        else:
+            model_description = model.description
 
         table_id = api_table["id"]
-        if api_table["description"] != model.description and model.description != "":
+        if api_table["description"] != model_description and model_description:
             # Update with new values
             self.api(
                 "put",
                 f"/api/table/{table_id}",
-                json={"description": model.description},
+                json={"description": model_description},
             )
             logging.info("Updated table %s successfully", lookup_key)
-        elif model.description == "":
+        elif not model_description:
             logging.info("No model description provided for table %s", lookup_key)
         else:
             logging.info("Table %s is up-to-date", lookup_key)
@@ -312,11 +314,13 @@ class MetabaseClient:
             column.visibility_type = "normal"
 
         # Empty strings not accepted by Metabase
-        if column.description == "":
-            column.description = None
+        if not column.description:
+            column_description = None
+        else:
+            column_description = column.description
 
         if (
-            api_field["description"] != column.description
+            api_field["description"] != column_description
             or api_field[semantic_type] != column.semantic_type
             or api_field["visibility_type"] != column.visibility_type
             or api_field["fk_target_field_id"] != fk_target_field_id
@@ -326,9 +330,7 @@ class MetabaseClient:
                 "put",
                 f"/api/field/{field_id}",
                 json={
-                    "description": column.description
-                    if column.description != ""
-                    else None,
+                    "description": column_description,
                     semantic_type: column.semantic_type,
                     "visibility_type": column.visibility_type,
                     "fk_target_field_id": fk_target_field_id,
