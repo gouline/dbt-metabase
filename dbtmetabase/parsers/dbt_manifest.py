@@ -58,22 +58,41 @@ class DbtManifestReader:
 
             if node["database"].upper() != database.upper():
                 # Skip model not associated with target database
+                logging.debug(
+                    "Skipping %s not in target database %s", model_name, database
+                )
                 continue
 
             if node["resource_type"] != "model":
                 # Target only model nodes
+                logging.debug("Skipping %s not of resource type model", model_name)
                 continue
 
             if schema and node["schema"].upper() != schema.upper():
                 # Skip any models not in target schema
+                logging.debug(
+                    "Skipping %s in schema %s not in target schema %s",
+                    model_name,
+                    node["schema"],
+                    schema,
+                )
                 continue
 
             if schemas_excludes and node["schema"].upper() in schemas_excludes:
                 # Skip any model in a schema marked for exclusion
+                logging.debug(
+                    "Skipping %s in schema %s marked for exclusion",
+                    model_name,
+                    node["schema"],
+                )
                 continue
 
             if (includes and model_name not in includes) or (model_name in excludes):
                 # Process only intersect of includes and excludes
+                logging.debug(
+                    "Skipping %s not included in includes or excluded by excludes",
+                    model_name,
+                )
                 continue
 
             mb_models.append(
@@ -102,8 +121,9 @@ class DbtManifestReader:
         relationship_tests = {}
 
         for child_id in children:
-            child = self.manifest["nodes"][child_id]
-
+            child = {}
+            if self.manifest["nodes"]:
+                child = self.manifest["nodes"].get(child_id, {})
             if (
                 child.get("resource_type") == "test"
                 and child.get("test_metadata", {}).get("name") == "relationships"
