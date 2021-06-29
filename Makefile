@@ -10,7 +10,7 @@ clean:
 
 requirements:
 	pip3 install -r requirements.txt 
-	pip3 install -r requirements-dev.txt
+	pip3 install -r requirements-test.txt
 
 lint:
 	pylint --disable=R,C dbtmetabase
