@@ -101,10 +101,65 @@ class DbtManifestReader:
                 )
             )
 
+        for _, node in self.manifest["sources"].items():
+            model_name = node.get("identifier", node.get("name")).upper()
+
+            if node["database"].upper() != database.upper():
+                # Skip model not associated with target database
+                logging.debug(
+                    "Skipping %s not in target database %s", model_name, database
+                )
+                continue
+
+            if node["resource_type"] != "source":
+                # Target only source nodes
+                logging.debug("Skipping %s not of resource type source", model_name)
+                continue
+
+            if schema and node["schema"].upper() != schema.upper():
+                # Skip any models not in target schema
+                logging.debug(
+                    "Skipping %s in schema %s not in target schema %s",
+                    model_name,
+                    node["schema"],
+                    schema,
+                )
+                continue
+
+            if schemas_excludes and node["schema"].upper() in schemas_excludes:
+                # Skip any model in a schema marked for exclusion
+                logging.debug(
+                    "Skipping %s in schema %s marked for exclusion",
+                    model_name,
+                    node["schema"],
+                )
+                continue
+
+            if (includes and model_name not in includes) or (model_name in excludes):
+                # Process only intersect of includes and excludes
+                logging.debug(
+                    "Skipping %s not included in includes or excluded by excludes",
+                    model_name,
+                )
+                continue
+
+            mb_models.append(
+                self._read_model(
+                    node,
+                    include_tags=include_tags,
+                    dbt_docs_url=dbt_docs_url,
+                    manifest_key="sources",
+                )
+            )
+
         return mb_models
 
     def _read_model(
-        self, model: dict, include_tags: bool = True, dbt_docs_url: str = None
+        self,
+        model: dict,
+        include_tags: bool = True,
+        dbt_docs_url: str = None,
+        manifest_key: str = "nodes",
     ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
@@ -122,8 +177,8 @@ class DbtManifestReader:
 
         for child_id in children:
             child = {}
-            if self.manifest["nodes"]:
-                child = self.manifest["nodes"].get(child_id, {})
+            if self.manifest[manifest_key]:
+                child = self.manifest[manifest_key].get(child_id, {})
             if (
                 child.get("resource_type") == "test"
                 and child.get("test_metadata", {}).get("name") == "relationships"
@@ -135,11 +190,13 @@ class DbtManifestReader:
                 # It is better to use child['depends_on']['nodes'] and exclude the current model
 
                 depends_on_id = list(
-                    set(child["depends_on"]["nodes"]) - {model["unique_id"]}
+                    set(child["depends_on"][manifest_key]) - {model["unique_id"]}
                 )[0]
 
-                fk_target_table_alias = self.manifest["nodes"][depends_on_id]["alias"]
-                fk_target_schema = self.manifest["nodes"][depends_on_id].get(
+                fk_target_table_alias = self.manifest[manifest_key][depends_on_id][
+                    "alias"
+                ]
+                fk_target_schema = self.manifest[manifest_key][depends_on_id].get(
                     "schema", "public"
                 )
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
@@ -171,7 +228,7 @@ class DbtManifestReader:
             description += f"dbt docs link: {full_path}"
 
         return MetabaseModel(
-            name=model["alias"].upper(),
+            name=model.get("alias", model.get("identifier", model.get("name"))).upper(),
             schema=model["schema"].upper(),
             description=description,
             columns=mb_columns,
