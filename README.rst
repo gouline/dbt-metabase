@@ -16,6 +16,19 @@ Requirements
 
 Requires Python 3.6 or above.
 
+Main features
+=============
+
+The main features provided by dbt-metabase are:
+
+* Parsing your dbt project (either through the ``manifest.json`` or directly through the YAML files)
+* Triggering a Metabase schema sync before propagating the metadata
+* Propagating table descriptions to Metabase
+* Propagating columns description to Metabase
+* Propagating columns semantic types and visibility types to Metabase through the use of dbt meta fields
+* Propagating table relationships represented as dbt ``relationships`` column tests
+
+
 Usage
 =====
 
@@ -52,6 +65,7 @@ Let's start by defining a short sample ``schema.yml`` as below.
               - relationships:
                   to: ref('groups')
                   field: id
+
       - name: stg_groups
         description: User groups.
         columns:
@@ -79,6 +93,38 @@ descriptions to Metabase by executing the below command.
 Check your Metabase instance by going into Settings > Admin > Data Model, you
 will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
 ``GROUP_ID`` is marked as "Foreign Key" pointing to ``ID`` in ``STG_GROUPS``.
+
+Reading your dbt project
+------------------------
+
+There are two approaches provided by this library to read your dbt project:
+
+1. Artifacts
+^^^^^^^^^^^^
+
+The recommended approach is to instruct dbt-metabase to read your ``manifest.json``, a
+`dbt artifact`_ containing the full representation of your dbt project's resources. If
+your dbt project uses multiple schemas, multiple databases or model aliases, you must use
+this approach.
+
+Note that you you have to run ``dbt compile --target prod`` or any of the other dbt commands
+listed in the dbt documentation above to get a fresh copy of your ``manifest.json``. Remember
+to run it against your production target.
+
+When using the ``dbt-metabase`` CLI, you must provide a ``--dbt_manifest_path`` argument
+pointing to your ``manifest.json`` file (usually in the ``target/`` folder of your dbt
+project).
+
+.. _`dbt artifact`: https://docs.getdbt.com/reference/artifacts/dbt-artifacts
+
+2. Direct parsing
+^^^^^^^^^^^^^^^^^
+
+The second alternative is to provide the path to your dbt project root folder
+using the argument ``--dbt_path``. dbt-metabase will then look for all .yml files
+and parse your documentation and tests directly from there. It will not support
+dbt projects with custom schemas.
+
 
 Semantic Types
 --------------
