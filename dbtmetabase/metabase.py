@@ -357,13 +357,12 @@ class MetabaseClient:
         return None
 
     def build_metadata_lookups(
-        self, database_id: str, schema: str, schemas_to_exclude: Iterable = None
+        self, database_id: str, schemas_to_exclude: Iterable = None
     ) -> Tuple[dict, dict]:
         """Builds table and field lookups.
 
         Arguments:
             database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
 
         Returns:
             dict -- Dictionary of tables indexed by name.
@@ -384,16 +383,6 @@ class MetabaseClient:
         for table in metadata.get("tables", []):
             table_schema = table.get("schema", "public").upper()
             table_name = table["name"].upper()
-
-            if schema:
-                if table_schema != schema.upper():
-                    logging.debug(
-                        "Ignoring Metabase table %s in schema %s. It does not belong to selected schema %s",
-                        table_name,
-                        table_schema,
-                        schema,
-                    )
-                    continue
 
             if schemas_to_exclude:
                 schemas_to_exclude = {
