@@ -1,11 +1,25 @@
 import json
 import logging
-from typing import Any, Sequence, Optional, Tuple, Iterable, MutableMapping, Union
+from typing import (
+    Any,
+    Sequence,
+    Optional,
+    Tuple,
+    Iterable,
+    MutableMapping,
+    Union,
+    List,
+    Mapping,
+)
 
 import requests
 import time
 
 from .models.metabase import MetabaseModel, MetabaseColumn
+
+import re
+import yaml
+import os
 
 
 class MetabaseClient:
@@ -36,6 +50,7 @@ class MetabaseClient:
         self.protocol = "https" if https else "http"
         self.verify = verify
         self.session_id = self.get_session_id(user, password)
+        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
         logging.info("Session established successfully")
 
     def get_session_id(self, user: str, password: str) -> str:
@@ -57,7 +72,12 @@ class MetabaseClient:
         )["id"]
 
     def sync_and_wait(
-        self, database: str, schema: str, models: Sequence, timeout: Optional[int]
+        self,
+        database: str,
+        schema: str,
+        models: Sequence,
+        timeout: Optional[int],
+        schemas_to_exclude: Iterable = None,
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
@@ -93,7 +113,9 @@ class MetabaseClient:
         deadline = int(time.time()) + timeout
         sync_successful = False
         while True:
-            sync_successful = self.models_compatible(database_id, schema, models)
+            sync_successful = self.models_compatible(
+                database_id, schema, models, schemas_to_exclude
+            )
             time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
             if not sync_successful and time_after_wait <= deadline:
                 time.sleep(self._SYNC_PERIOD_SECS)
@@ -102,7 +124,11 @@ class MetabaseClient:
         return sync_successful
 
     def models_compatible(
-        self, database_id: str, schema: str, models: Sequence
+        self,
+        database_id: str,
+        schema: str,
+        models: Sequence,
+        schemas_to_exclude: Iterable = None,
     ) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
@@ -115,7 +141,9 @@ class MetabaseClient:
             bool -- True if schema compatible with models, false otherwise.
         """
 
-        _, field_lookup = self.build_metadata_lookups(database_id, schema)
+        _, field_lookup = self.build_metadata_lookups(
+            database_id, schema, schemas_to_exclude
+        )
 
         are_models_compatible = True
         for model in models:
@@ -143,7 +171,13 @@ class MetabaseClient:
         return are_models_compatible
 
     def export_models(
-        self, database: str, schema: str, models: Sequence[MetabaseModel], aliases
+        self,
+        database: str,
+        schema: str,
+        models: Sequence[MetabaseModel],
+        aliases,
+        schemas_excludes: Optional[Iterable] = None,
+        **kwargs,
     ):
         """Exports dbt models to Metabase database schema.
 
@@ -159,7 +193,12 @@ class MetabaseClient:
             logging.critical("Cannot find database by name %s", database)
             return
 
-        table_lookup, field_lookup = self.build_metadata_lookups(database_id, schema)
+        if schemas_excludes is None:
+            schemas_excludes = []
+
+        table_lookup, field_lookup = self.build_metadata_lookups(
+            database_id, schema, schemas_excludes
+        )
 
         for model in models:
             self.export_model(model, table_lookup, field_lookup, aliases)
@@ -420,6 +459,147 @@ class MetabaseClient:
 
         return table_lookup, field_lookup
 
+    def extract_exposures(
+        self,
+        output_path: str,
+        output_name: str,
+        models: List[MetabaseModel],
+        include_personal_collections: bool = True,
+        exclude_collections: Iterable = None,
+        **kwargs,
+    ):
+
+        if exclude_collections is None:
+            exclude_collections = []
+
+        refable_models = {node.name: node.ref for node in models}
+
+        self.collections = self.api("get", "/api/collection")
+        self.tables = self.api("get", "/api/table")
+        self.table_map = {table["id"]: table["name"] for table in self.tables}
+
+        duplicate_name_check = []
+        captured_exposures = []
+
+        for collection in self.collections:
+            if collection["name"] in exclude_collections:
+                continue
+            if not include_personal_collections and collection["name"].endswith(
+                "'s Personal Collection"
+            ):
+                continue
+            logging.info("Exploring collection %s" % collection["name"])
+            for item in self.api("get", f"/api/collection/{collection['id']}/items"):
+                self.models_exposed = []
+                if item["model"] == "card":
+                    model = self.api("get", f"/api/{item['model']}/{item['id']}")
+                    name = model.get("name")
+                    logging.info("Introspecting card: %s", name)
+                    description = model.get("description")
+                    creator_email = model.get("creator", {}).get("email")
+                    creator_name = model.get("creator", {}).get("common_name")
+                    created_at = model.get("created_at")
+                    self._extract_card_exposures(model["id"], model)
+                elif item["model"] == "dashboard":
+                    dashboard = self.api("get", f"/api/{item['model']}/{item['id']}")
+                    if "ordered_cards" not in dashboard:
+                        continue
+                    name = dashboard.get("name")
+                    logging.info("Introspecting dashboard: %s", name)
+                    description = dashboard.get("description")
+                    creator = self.api("get", f"/api/user/{dashboard['creator_id']}")
+                    creator_email = creator["email"]
+                    creator_name = creator["common_name"]
+                    created_at = model.get("created_at")
+                    for dashboard_model in dashboard["ordered_cards"]:
+                        dashboard_model_ref = dashboard_model.get("card", {})
+                        if not "id" in dashboard_model_ref:
+                            continue
+                        self._extract_card_exposures(dashboard_model_ref["id"])
+                else:
+                    continue
+
+                # No spaces allowed in model names in dbt docs DAG / No duplicate model names
+                name = name.replace(" ", "_")
+                enumer = 1
+                while name in duplicate_name_check:
+                    name = f"{name}_{enumer}"
+                    enumer += 1
+                duplicate_name_check.append(name)
+
+                # Construct Exposure
+                captured_exposure = {
+                    "name": name,
+                    "description": f"{description} \n\nMetabase Id: {item['id']} \n\nCreated At: {created_at}"
+                    if description
+                    else "No description provided in Metabase",
+                    "type": "analysis" if item["model"] == "card" else "dashboard",
+                    "url": f"{self.protocol}://{self.host}/{item['model']}/{item['id']}",
+                    "maturity": "medium",
+                    "owner": {
+                        "name": creator_name,
+                        "email": creator_email,
+                    },
+                    "depends_on": [
+                        refable_models[exposure.upper()]
+                        for exposure in list({m for m in self.models_exposed})
+                        if exposure.upper() in refable_models
+                    ],
+                }
+                captured_exposures.append(captured_exposure)
+
+        # Output dbt YAML
+        with open(
+            os.path.expanduser(os.path.join(output_path, f"{output_name}.yml")), "w"
+        ) as docs:
+            yaml.dump(
+                {"version": 2, "exposures": captured_exposures},
+                docs,
+                allow_unicode=True,
+            )
+
+    def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
+        if not model:
+            model = self.api("get", f"/api/card/{card_id}")
+        query = model.get("dataset_query", {})
+        if query.get("type") == "query":
+            if (
+                query.get("query", {}).get("source-table", model.get("table_id", -1))
+                in self.table_map
+            ):
+                logging.info(
+                    "Model extracted from Metabase question: %s",
+                    self.table_map[
+                        query.get("query", {}).get(
+                            "source-table", model.get("table_id")
+                        )
+                    ],
+                )
+                self.models_exposed.append(
+                    self.table_map[
+                        query.get("query", {}).get(
+                            "source-table", model.get("table_id")
+                        )
+                    ]
+                )
+                for query_join in query.get("query", {}).get("joins", []):
+                    logging.info(
+                        "Model extracted from Metabase question join: %s",
+                        self.table_map[query_join.get("source-table")],
+                    )
+                    self.models_exposed.append(
+                        self.table_map[query_join.get("source-table")]
+                    )
+        elif query.get("type") == "native":
+            for exposed in re.findall(
+                self.exposure_parser, query.get("native").get("query")
+            ):
+                logging.info(
+                    "Model extracted from native query: %s",
+                    exposed.split(".")[-1].strip('"'),
+                )
+                self.models_exposed.append(exposed.split(".")[-1].strip('"'))
+
     def api(
         self,
         method: str,
@@ -454,6 +634,7 @@ class MetabaseClient:
         response = requests.request(
             method, f"{self.protocol}://{self.host}{path}", verify=self.verify, **kwargs
         )
+
         if critical:
             try:
                 response.raise_for_status()
