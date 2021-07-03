@@ -7,6 +7,7 @@ from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
+
 from typing import Mapping, Iterable, List, Union, Literal
 
 __version__ = "0.9.0"
@@ -57,8 +58,8 @@ def export(
         dbt_path {str} -- Path to dbt project. [Alternative]
 
     Keyword Arguments:
-        schema {str} -- Target schema in Metabase. (default: {None})
-        schemas_excludes -- Alternative to target schema, specify schema exclusions. (default: {["__include_all_schemas"]})
+        schema {str} -- Target schema name. (default: {"public"})
+        schemas_excludes -- Alternative to target schema, specify schema exclusions. Only works for manifest parsing. (default: {None})
         mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
         mb_verify {str} -- Supply path to certificate or disable verification. (default: {None})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
