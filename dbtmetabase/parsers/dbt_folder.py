@@ -3,7 +3,7 @@ import os
 import logging
 
 from pathlib import Path
-from typing import List, Iterable, Mapping, MutableMapping
+from typing import List, Iterable, Mapping, MutableMapping, Literal
 
 import yaml
 
@@ -82,7 +82,10 @@ class DbtFolderReader:
                     if (not includes or name in includes) and (name not in excludes):
                         mb_models.append(
                             self._read_model(
-                                model, schema.upper(), include_tags=include_tags
+                                model,
+                                schema.upper(),
+                                include_tags=include_tags,
+                                model_key="nodes",
                             )
                         )
                 for source in schema_file.get("sources", []):
@@ -96,14 +99,23 @@ class DbtFolderReader:
                         ):
                             mb_models.append(
                                 self._read_model(
-                                    model, schema.upper(), include_tags=include_tags
+                                    model,
+                                    schema.upper(),
+                                    include_tags=include_tags,
+                                    model_key="sources",
+                                    source=source["name"],
                                 )
                             )
 
         return mb_models
 
     def _read_model(
-        self, model: dict, schema: str, include_tags: bool = True
+        self,
+        model: dict,
+        schema: str,
+        include_tags: bool = True,
+        model_key: Literal["nodes", "sources"] = "nodes",
+        source: str = None,
     ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
@@ -129,12 +141,21 @@ class DbtFolderReader:
                     description += "\n\n"
                 description += f"Tags: {tags}"
 
+        if model_key == "nodes":
+            ref = f"ref('{model.get('identifier', model['name'])}')"
+        elif model_key == "sources":
+            ref = f"source('{source}', '{model['name']}')"
+        else:
+            ref = None
+
         return MetabaseModel(
             # We are implicitly complying with aliases by doing this
             name=model.get("identifier", model["name"]).upper(),
             schema=schema,
             description=description,
             columns=mb_columns,
+            model_key=model_key,
+            ref=ref,
         )
 
     def _read_column(self, column: Mapping, schema: str) -> MetabaseColumn:
@@ -189,11 +210,7 @@ class DbtFolderReader:
                     mb_column.fk_target_table = mb_column.fk_target_table.upper()
                     # Account for (example) '"Id"' relationship: to: fields used as a workaround for current tests not quoting consistently
                     mb_column.fk_target_field = (
-                        relationships["field"]
-                        .upper()
-                        .strip(
-                            '"'
-                        )
+                        relationships["field"].upper().strip('"')
                     )
 
         if "meta" in column:
