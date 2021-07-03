@@ -1,34 +1,49 @@
 import logging
 import sys
 import os
+import re
 
 from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
-from typing import Mapping, Iterable, List, Union
+from typing import Mapping, Iterable, List, Union, Literal
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 
 def export(
+    # Metabase Client
     mb_host: str,
     mb_user: str,
     mb_password: str,
     database: str,
+    # dbt Reader
     dbt_database: str,
     dbt_manifest_path: str = "",
     dbt_path: str = "",
-    schema: str = "public",
+    # Target Metabase / dbt Schema
+    schema: str = None,
     schemas_excludes: Iterable = None,
+    # Metabase HTTPS
     mb_https: bool = True,
     mb_verify: Union[str, bool] = True,
+    # Sync
     sync: bool = True,
     sync_timeout: int = None,
+    # Target dbt Models
     includes: Iterable = None,
     excludes: Iterable = None,
+    # Invocation Command
+    method: Literal["export_models", "extract_exposures"] = "export_models",
+    # Documentation Propagation Opts
     include_tags: bool = True,
     dbt_docs_url: str = None,
+    # Exposure Parsing Opts
+    output_path: str = None,
+    output_name: str = None,
+    include_personal_collections: bool = True,
+    exclude_collections: Iterable = None,
 ):
     """Exports models from dbt to Metabase.
 
@@ -42,8 +57,8 @@ def export(
         dbt_path {str} -- Path to dbt project. [Alternative]
 
     Keyword Arguments:
-        schema {str} -- Target schema name. (default: {"public"})
-        schemas_excludes -- Alternative to target schema, specify schema exclusions. Only works for manifest parsing. (default: {None})
+        schema {str} -- Target schema in Metabase. (default: {None})
+        schemas_excludes -- Alternative to target schema, specify schema exclusions. (default: {["__include_all_schemas"]})
         mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
         mb_verify {str} -- Supply path to certificate or disable verification. (default: {None})
         sync {bool} -- Synchronize Metabase database before export. (default: {True})
@@ -69,9 +84,6 @@ def export(
         assert (
             schema and not schemas_excludes
         ), "Must target a single schema if using yaml parser, multiple schemas not supported."
-    assert bool(schema) != bool(
-        schemas_excludes
-    ), "Bad arguments. schema and schema_excludes cannot be provide at the same time. One option must be specified."
 
     # Instantiate Metabase client
     mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https, verify=mb_verify)
@@ -100,14 +112,26 @@ def export(
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
     if sync:
         if (
-            not mbc.sync_and_wait(database, schema, models, sync_timeout)
+            not mbc.sync_and_wait(
+                database, schema, models, sync_timeout, schemas_excludes
+            )
             and sync_timeout is not None
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
 
     # Process Metabase stuff
-    mbc.export_models(database, schema, models, reader.catch_aliases)
+    getattr(mbc, method)(
+        database=database,
+        schema=schema,
+        aliases=reader.catch_aliases,
+        schemas_excludes=schemas_excludes,
+        output_path=output_path,
+        output_name=output_name,
+        models=models,
+        include_personal_collections=include_personal_collections,
+        exclude_collections=exclude_collections,
+    )
 
 
 def main(args: List = None):
@@ -120,7 +144,9 @@ def main(args: List = None):
     parser = argparse.ArgumentParser(
         description="Model synchronization from dbt to Metabase."
     )
-    parser.add_argument("command", choices=["export"], help="command to execute")
+    parser.add_argument(
+        "command", choices=["export", "exposures"], help="command to execute"
+    )
     parser.add_argument(
         "--dbt_path",
         help="Path to dbt project. Cannot be specified with --dbt_manifest_path",
@@ -165,10 +191,10 @@ def main(args: List = None):
     parser.add_argument(
         "--schema",
         metavar="SCHEMA",
-        help="Target schema name. Cannot be specified with --schema_excludes",
+        help="Target schema name. Cannot be specified with --schemas_excludes",
     )
     parser.add_argument(
-        "--schema_excludes",
+        "--schemas_excludes",
         help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
     )
     parser.add_argument(
@@ -222,23 +248,42 @@ def main(args: List = None):
         logger.addHandler(logging.StreamHandler(sys.stdout))
         logger.setLevel(logging.DEBUG)
 
+    # These args drive loading the Metabase client and dbt models and are prerequisites to any functionality of dbt-metabase
+    primary_args = {
+        "dbt_path": parsed.dbt_path,
+        "dbt_manifest_path": parsed.dbt_manifest_path,
+        "dbt_database": parsed.dbt_database,
+        "mb_host": parsed.mb_host,
+        "mb_user": parsed.mb_user,
+        "mb_password": parsed.mb_password,
+        "mb_https": parsed.mb_https,
+        "mb_verify": parsed.mb_verify,
+        "database": parsed.database,
+        "schema": parsed.schema,
+        "schemas_excludes": parsed.schemas_excludes,
+        "sync": parsed.sync,
+        "sync_timeout": parsed.sync_timeout,
+        "includes": parsed.includes,
+        "excludes": parsed.excludes,
+    }
+
     if parsed.command == "export":
         export(
-            dbt_path=parsed.dbt_path,
-            dbt_manifest_path=parsed.dbt_manifest_path,
-            dbt_database=parsed.dbt_database,
-            mb_host=parsed.mb_host,
-            mb_user=parsed.mb_user,
-            mb_password=parsed.mb_password,
-            mb_https=parsed.mb_https,
-            mb_verify=parsed.mb_verify,
-            database=parsed.database,
-            schema=parsed.schema,
-            schemas_excludes=parsed.schema_excludes,
-            sync=parsed.sync,
-            sync_timeout=parsed.sync_timeout,
-            includes=parsed.includes,
-            excludes=parsed.excludes,
+            **primary_args,
             include_tags=parsed.include_tags,
             dbt_docs_url=parsed.docs,
+            method="export_models"
+        )
+    elif parsed.command == "exposures":
+        export(
+            **primary_args,
+            output_path=parsed.output_path,
+            output_name=parsed.output_name,
+            include_personal_collections=parsed.include_personal_collections,
+            exclude_collections=parsed.exclude_collections,
+            method="extract_exposures"
+        )
+    else:
+        logging.warning(
+            "Invalid command. Must be one of either 'export' or 'exposures'."
         )
