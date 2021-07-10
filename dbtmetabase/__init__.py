@@ -147,9 +147,9 @@ def main(args: List = None):
     )
     parser.add_argument(
         "--mb_http",
-        dest='mb_https',
-        action='store_false',
-        help="use this option to use HTTP from the command line"
+        dest="mb_https",
+        action="store_false",
+        help="use this option to use HTTP from the command line",
     )
     parser.add_argument(
         "--mb_verify",
