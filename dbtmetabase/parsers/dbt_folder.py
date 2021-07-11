@@ -30,11 +30,11 @@ class DbtFolderReader:
         self,
         database: str,
         schema: str,
-        schemas_excludes: Iterable = None,
+        schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        dbt_docs_url: str = None,
+        docs_url: str = None,
     ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
@@ -46,8 +46,8 @@ class DbtFolderReader:
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        if schemas_excludes is None:
-            schemas_excludes = []
+        if schema_excludes is None:
+            schema_excludes = []
         if includes is None:
             includes = []
         if excludes is None:
@@ -59,10 +59,10 @@ class DbtFolderReader:
                 database,
             )
 
-        if dbt_docs_url:
+        if docs_url:
             logging.info(
-                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
-                dbt_docs_url,
+                "Argument --docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                docs_url,
             )
 
         mb_models: List[MetabaseModel] = []
@@ -189,11 +189,7 @@ class DbtFolderReader:
                     mb_column.fk_target_table = mb_column.fk_target_table.upper()
                     # Account for (example) '"Id"' relationship: to: fields used as a workaround for current tests not quoting consistently
                     mb_column.fk_target_field = (
-                        relationships["field"]
-                        .upper()
-                        .strip(
-                            '"'
-                        )
+                        relationships["field"].upper().strip('"')
                     )
 
         if "meta" in column:
