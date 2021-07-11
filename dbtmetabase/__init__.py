@@ -21,10 +21,10 @@ def export(
     dbt_path: str = "",
     schema: str = "public",
     schemas_excludes: Iterable = None,
-    mb_https: bool = True,
+    mb_use_http: bool = False,
     mb_verify: Union[str, bool] = True,
-    sync: bool = True,
-    sync_timeout: int = None,
+    mb_sync_skip: bool = False,
+    mb_sync_timeout: int = None,
     includes: Iterable = None,
     excludes: Iterable = None,
     include_tags: bool = True,
@@ -44,10 +44,10 @@ def export(
     Keyword Arguments:
         schema {str} -- Target schema name. (default: {"public"})
         schemas_excludes -- Alternative to target schema, specify schema exclusions. Only works for manifest parsing. (default: {None})
-        mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
+        mb_use_http {bool} -- Use HTTP to connect to Metabase instead of the default HTTPS. (default: {False})
         mb_verify {str} -- Supply path to certificate or disable verification. (default: {None})
-        sync {bool} -- Synchronize Metabase database before export. (default: {True})
-        sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
+        mb_sync_skip {bool} -- Skip synchronizing Metabase database before export. (default: {False})
+        mb_sync_timeout {int} -- Metabase synchronization timeout in seconds. (default: {30})
         includes {list} -- Model names to limit processing to. (default: {None})
         excludes {list} -- Model names to exclude. (default: {None})
         include_tags {bool} -- Append the dbt tags to the end of the table description. (default: {True})
@@ -74,7 +74,7 @@ def export(
     ), "Bad arguments. schema and schema_excludes cannot be provide at the same time. One option must be specified."
 
     # Instantiate Metabase client
-    mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https, verify=mb_verify)
+    mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_use_http, verify=mb_verify)
     reader: Union[DbtFolderReader, DbtManifestReader]
 
     # Resolve dbt reader being either YAML or manifest.json based
@@ -98,10 +98,9 @@ def export(
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
-    if sync:
-        if (
-            not mbc.sync_and_wait(database, schema, models, sync_timeout)
-            and sync_timeout is not None
+    if not mb_sync_skip:
+        if mb_sync_timeout is not None and not mbc.sync_and_wait(
+            database, schema, models, mb_sync_timeout
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
@@ -139,17 +138,10 @@ def main(args: List = None):
         "--mb_password", metavar="PASS", required=True, help="Metabase password"
     )
     parser.add_argument(
-        "--mb_https",
-        metavar="HTTPS",
-        type=bool,
-        default=True,
-        help="use HTTPS to connect to Metabase instead of HTTP",
-    )
-    parser.add_argument(
         "--mb_http",
-        dest="mb_https",
-        action="store_false",
-        help="use this option to use HTTP from the command line",
+        dest="mb_http",
+        action="store_true",
+        help="use HTTP to connect to Metabase instead of HTTPS",
     )
     parser.add_argument(
         "--mb_verify",
@@ -178,14 +170,13 @@ def main(args: List = None):
         help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
     )
     parser.add_argument(
-        "--sync",
-        metavar="ENABLE",
-        type=bool,
-        default=True,
-        help="Synchronize Metabase database before export",
+        "--mb_sync_skip",
+        dest="mb_sync_skip",
+        action="store_true",
+        help="Skip synchronizing Metabase database before export",
     )
     parser.add_argument(
-        "--sync_timeout",
+        "--mb_sync_timeout",
         metavar="SECS",
         type=int,
         help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success",
@@ -236,13 +227,13 @@ def main(args: List = None):
             mb_host=parsed.mb_host,
             mb_user=parsed.mb_user,
             mb_password=parsed.mb_password,
-            mb_https=parsed.mb_https,
+            mb_use_http=parsed.mb_use_http,
             mb_verify=parsed.mb_verify,
             database=parsed.database,
             schema=parsed.schema,
             schemas_excludes=parsed.schema_excludes,
-            sync=parsed.sync,
-            sync_timeout=parsed.sync_timeout,
+            mb_sync_skip=parsed.mb_sync_skip,
+            mb_sync_timeout=parsed.mb_sync_timeout,
             includes=parsed.includes,
             excludes=parsed.excludes,
             include_tags=parsed.include_tags,

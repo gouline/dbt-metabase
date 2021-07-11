@@ -18,7 +18,7 @@ class MetabaseClient:
         host: str,
         user: str,
         password: str,
-        https: bool = True,
+        use_http: bool = False,
         verify: Union[str, bool] = None,
     ):
         """Constructor.
@@ -29,11 +29,12 @@ class MetabaseClient:
             password {str} -- Metabase password.
 
         Keyword Arguments:
-            https {bool} -- Use HTTPS instead of HTTP. (default: {True})
+            use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
+            verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
         """
 
         self.host = host
-        self.protocol = "https" if https else "http"
+        self.protocol = "http" if use_http else "https"
         self.verify = verify
         self.session_id = self.get_session_id(user, password)
         logging.info("Session established successfully")
