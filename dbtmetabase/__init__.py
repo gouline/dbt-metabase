@@ -146,6 +146,12 @@ def main(args: List = None):
         help="use HTTPS to connect to Metabase instead of HTTP",
     )
     parser.add_argument(
+        "--mb_http",
+        dest="mb_https",
+        action="store_false",
+        help="use this option to use HTTP from the command line",
+    )
+    parser.add_argument(
         "--mb_verify",
         metavar="CERT",
         help="Path to certificate bundle used by Metabase client",
