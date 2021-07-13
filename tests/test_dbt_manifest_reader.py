@@ -14,7 +14,9 @@ class MockDbtManifestReader(DbtManifestReader):
 
 class TestDbtManifestReader(unittest.TestCase):
     def setUp(self):
-        self.reader = DbtManifestReader(project_path="tests/fixtures/sample_project/target/manifest.json")
+        self.reader = DbtManifestReader(
+            project_path="tests/fixtures/sample_project/target/manifest.json"
+        )
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
 

@@ -160,7 +160,7 @@ class MetabaseClient:
             logging.critical("Cannot find database by name %s", database)
             return
 
-        table_lookup, field_lookup = self.build_metadata_lookups(database_id, schema)
+        table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
             self.export_model(model, table_lookup, field_lookup, aliases)
