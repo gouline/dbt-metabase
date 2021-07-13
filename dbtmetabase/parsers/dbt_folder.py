@@ -87,6 +87,9 @@ class DbtFolderReader:
                         )
                 for source in schema_file.get("sources", []):
                     source_schema_name = source.get("schema", source["name"])
+                    if "{{" in source_schema_name  and "}}" in source_schema_name:
+                        logging.warning("dbt Folder Reader cannot resolve jinja expressions- use the Manifest Reader instead.")
+
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
                         if "identifier" in model:

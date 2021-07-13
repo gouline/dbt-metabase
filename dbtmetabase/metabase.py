@@ -116,7 +116,7 @@ class MetabaseClient:
             bool -- True if schema compatible with models, false otherwise.
         """
 
-        _, field_lookup = self.build_metadata_lookups(database_id, schema)
+        _, field_lookup = self.build_metadata_lookups(database_id)
 
         are_models_compatible = True
         for model in models:
