@@ -1,61 +1,60 @@
 import logging
 import sys
 import os
+import argparse
 
 from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
-from typing import Mapping, Iterable, List, Union
+from typing import Iterable, List, Union
 
 __version__ = "0.8.0"
 
 
 def export(
-    mb_host: str,
-    mb_user: str,
-    mb_password: str,
-    database: str,
     dbt_database: str,
+    metabase_database: str,
+    metabase_host: str,
+    metabase_user: str,
+    metabase_password: str,
     dbt_manifest_path: str = "",
     dbt_path: str = "",
+    dbt_docs_url: str = None,
+    metabase_use_http: bool = False,
+    metabase_verify: Union[str, bool] = True,
+    metabase_sync_skip: bool = False,
+    metabase_sync_timeout: int = None,
     schema: str = "public",
-    schemas_excludes: Iterable = None,
-    mb_https: bool = True,
-    mb_verify: Union[str, bool] = True,
-    sync: bool = True,
-    sync_timeout: int = None,
+    schema_excludes: Iterable = None,
     includes: Iterable = None,
     excludes: Iterable = None,
     include_tags: bool = True,
-    dbt_docs_url: str = None,
 ):
     """Exports models from dbt to Metabase.
 
-    Arguments:
-        mb_host {str} -- Metabase hostname.
-        mb_user {str} -- Metabase username.
-        mb_password {str} -- Metabase password.
-        database {str} -- Target Metabase database name. Database in Metabase is aliased.
-        dbt_database {str} -- Source database name.
-        dbt_manifest_path {str} -- Path to dbt project manifest.json [Primary]
-        dbt_path {str} -- Path to dbt project. [Alternative]
-
-    Keyword Arguments:
-        schema {str} -- Target schema name. (default: {"public"})
-        schemas_excludes -- Alternative to target schema, specify schema exclusions. Only works for manifest parsing. (default: {None})
-        mb_https {bool} -- Use HTTPS to connect to Metabase instead of HTTP. (default: {True})
-        mb_verify {str} -- Supply path to certificate or disable verification. (default: {None})
-        sync {bool} -- Synchronize Metabase database before export. (default: {True})
-        sync_timeout {int} -- Synchronization timeout in seconds. (default: {30})
-        includes {list} -- Model names to limit processing to. (default: {None})
-        excludes {list} -- Model names to exclude. (default: {None})
-        include_tags {bool} -- Append the dbt tags to the end of the table description. (default: {True})
-        dbt_docs_url {str} -- URL to your dbt docs hosted catalog. A link will be appended to the model description. Only works for manifest parsing. (default: {None})
+    Args:
+        dbt_database (str): Source database name.
+        metabase_database (str): Target Metabase database name. Database in Metabase is aliased.
+        metabase_host (str): Metabase hostname.
+        metabase_user (str): Metabase username.
+        metabase_password (str): Metabase password.
+        dbt_manifest_path (str, optional): Path to dbt project manifest.json [Primary]. Defaults to "".
+        dbt_path (str, optional): Path to dbt project. [Alternative]. Defaults to "".
+        dbt_docs_url (str, optional): URL to your dbt docs hosted catalog, a link will be appended to the model description (only works for manifest parsing). Defaults to None.
+        metabase_use_http (bool, optional): Use HTTP to connect to Metabase instead of the default HTTPS. Defaults to False.
+        metabase_verify (Union[str, bool], optional): Supply path to certificate or disable verification. Defaults to True.
+        metabase_sync_skip (bool, optional): Skip synchronizing Metabase database before export. Defaults to False.
+        metabase_sync_timeout (int, optional): Metabase synchronization timeout in seconds. Defaults to None.
+        schema (str, optional): Target schema name. Defaults to "public".
+        schema_excludes (Iterable, optional): Alternative to target schema, specify schema exclusions (only works for manifest parsing). Defaults to None.
+        includes (Iterable, optional): Model names to limit processing to. Defaults to None.
+        excludes (Iterable, optional): Model names to exclude. Defaults to None.
+        include_tags (bool, optional): Append the dbt tags to the end of the table description. Defaults to True.
     """
 
-    if schemas_excludes is None:
-        schemas_excludes = []
+    if schema_excludes is None:
+        schema_excludes = []
     if includes is None:
         includes = []
     if excludes is None:
@@ -67,14 +66,20 @@ def export(
     ), "Bad arguments. dbt_path and dbt_manifest_path cannot be provide at the same time. One option must be specified."
     if dbt_path:
         assert (
-            schema and not schemas_excludes
+            schema and not schema_excludes
         ), "Must target a single schema if using yaml parser, multiple schemas not supported."
     assert bool(schema) != bool(
-        schemas_excludes
+        schema_excludes
     ), "Bad arguments. schema and schema_excludes cannot be provide at the same time. One option must be specified."
 
     # Instantiate Metabase client
-    mbc = MetabaseClient(mb_host, mb_user, mb_password, mb_https, verify=mb_verify)
+    mbc = MetabaseClient(
+        host=metabase_host,
+        user=metabase_user,
+        password=metabase_password,
+        use_http=metabase_use_http,
+        verify=metabase_verify,
+    )
     reader: Union[DbtFolderReader, DbtManifestReader]
 
     # Resolve dbt reader being either YAML or manifest.json based
@@ -83,36 +88,33 @@ def export(
     else:
         reader = DbtManifestReader(os.path.expandvars(dbt_manifest_path))
 
-    if schemas_excludes:
-        schemas_excludes = {schema.upper() for schema in schemas_excludes}
+    if schema_excludes:
+        schema_excludes = {schema.upper() for schema in schema_excludes}
 
     # Process dbt stuff
     models = reader.read_models(
         database=dbt_database,
         schema=schema,
-        schemas_excludes=schemas_excludes,
+        schema_excludes=schema_excludes,
         includes=includes,
         excludes=excludes,
         include_tags=include_tags,
-        dbt_docs_url=dbt_docs_url,
+        docs_url=dbt_docs_url,
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
-    if sync:
-        if (
-            not mbc.sync_and_wait(database, schema, models, sync_timeout)
-            and sync_timeout is not None
+    if not metabase_sync_skip:
+        if metabase_sync_timeout is not None and not mbc.sync_and_wait(
+            metabase_database, schema, models, metabase_sync_timeout
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
 
     # Process Metabase stuff
-    mbc.export_models(database, schema, models, reader.catch_aliases)
+    mbc.export_models(metabase_database, schema, models, reader.catch_aliases)
 
 
 def main(args: List = None):
-    import argparse
-
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
     )
@@ -121,53 +123,67 @@ def main(args: List = None):
         description="Model synchronization from dbt to Metabase."
     )
     parser.add_argument("command", choices=["export"], help="command to execute")
-    parser.add_argument(
-        "--dbt_path",
-        help="Path to dbt project. Cannot be specified with --dbt_manifest_path",
-    )
-    parser.add_argument(
-        "--dbt_manifest_path",
-        help="Path to dbt manifest.json typically located in the /target/ directory of the dbt project directory. Cannot be specified with --dbt_path",
-    )
-    parser.add_argument(
-        "--mb_host", metavar="HOST", required=True, help="Metabase hostname"
-    )
-    parser.add_argument(
-        "--mb_user", metavar="USER", required=True, help="Metabase username"
-    )
-    parser.add_argument(
-        "--mb_password", metavar="PASS", required=True, help="Metabase password"
-    )
-    parser.add_argument(
-        "--mb_https",
-        metavar="HTTPS",
-        type=bool,
-        default=True,
-        help="use HTTPS to connect to Metabase instead of HTTP",
-    )
-    parser.add_argument(
-        "--mb_http",
-        dest="mb_https",
-        action="store_false",
-        help="use this option to use HTTP from the command line",
-    )
-    parser.add_argument(
-        "--mb_verify",
-        metavar="CERT",
-        help="Path to certificate bundle used by Metabase client",
-    )
-    parser.add_argument(
-        "--database",
-        metavar="ALIAS",
-        required=True,
-        help="Target database name as set in Metabase (typically aliased)",
-    )
+
+    # dbt arguments
     parser.add_argument(
         "--dbt_database",
         metavar="DB",
         required=True,
         help="Target database name as specified in dbt",
     )
+    parser.add_argument(
+        "--dbt_path",
+        help="Path to dbt project. Cannot be specified with --dbt_manifest_path",
+    )
+    parser.add_argument(
+        "--dbt_manifest_path",
+        help="Path to dbt manifest.json (typically located in the /target/ directory of the dbt project directory). Cannot be specified with --dbt_path",
+    )
+    parser.add_argument(
+        "--dbt_docs",
+        metavar="URL",
+        help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description",
+    )
+
+    # Metabase arguments
+    parser.add_argument(
+        "--metabase_database",
+        metavar="DB",
+        required=True,
+        help="Target database name as set in Metabase (typically aliased)",
+    )
+    parser.add_argument(
+        "--metabase_host", metavar="HOST", required=True, help="Metabase hostname"
+    )
+    parser.add_argument(
+        "--metabase_user", metavar="USER", required=True, help="Metabase username"
+    )
+    parser.add_argument(
+        "--metabase_password", metavar="PASS", required=True, help="Metabase password"
+    )
+    parser.add_argument(
+        "--metabase_use_http",
+        action="store_true",
+        help="use HTTP to connect to Metabase instead of HTTPS",
+    )
+    parser.add_argument(
+        "--metabase_verify",
+        metavar="CERT",
+        help="Path to certificate bundle used by Metabase client",
+    )
+    parser.add_argument(
+        "--metabase_sync_skip",
+        action="store_true",
+        help="Skip synchronizing Metabase database before export",
+    )
+    parser.add_argument(
+        "--metabase_sync_timeout",
+        metavar="SECS",
+        type=int,
+        help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success",
+    )
+
+    # Common/misc arguments
     parser.add_argument(
         "--schema",
         metavar="SCHEMA",
@@ -176,19 +192,6 @@ def main(args: List = None):
     parser.add_argument(
         "--schema_excludes",
         help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
-    )
-    parser.add_argument(
-        "--sync",
-        metavar="ENABLE",
-        type=bool,
-        default=True,
-        help="Synchronize Metabase database before export",
-    )
-    parser.add_argument(
-        "--sync_timeout",
-        metavar="SECS",
-        type=int,
-        help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success",
     )
     parser.add_argument(
         "--includes",
@@ -211,16 +214,12 @@ def main(args: List = None):
         help="Append tags to Table descriptions in Metabase",
     )
     parser.add_argument(
-        "--docs",
-        metavar="DOCS URL",
-        help="Pass in url to dbt docs site. Appends dbt docs url for each model to Metabase table description",
-    )
-    parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
         help="Verbose output",
     )
+
     parsed = parser.parse_args(args=args)
 
     if parsed.verbose:
@@ -230,21 +229,21 @@ def main(args: List = None):
 
     if parsed.command == "export":
         export(
-            dbt_path=parsed.dbt_path,
-            dbt_manifest_path=parsed.dbt_manifest_path,
             dbt_database=parsed.dbt_database,
-            mb_host=parsed.mb_host,
-            mb_user=parsed.mb_user,
-            mb_password=parsed.mb_password,
-            mb_https=parsed.mb_https,
-            mb_verify=parsed.mb_verify,
-            database=parsed.database,
+            dbt_manifest_path=parsed.dbt_manifest_path,
+            dbt_path=parsed.dbt_path,
+            dbt_docs_url=parsed.dbt_docs,
+            metabase_database=parsed.metabase_database,
+            metabase_host=parsed.metabase_host,
+            metabase_user=parsed.metabase_user,
+            metabase_password=parsed.metabase_password,
+            metabase_use_http=parsed.metabase_use_http,
+            metabase_verify=parsed.metabase_verify,
+            metabase_sync_skip=parsed.metabase_sync_skip,
+            metabase_sync_timeout=parsed.metabase_sync_timeout,
             schema=parsed.schema,
-            schemas_excludes=parsed.schema_excludes,
-            sync=parsed.sync,
-            sync_timeout=parsed.sync_timeout,
+            schema_excludes=parsed.schema_excludes,
             includes=parsed.includes,
             excludes=parsed.excludes,
             include_tags=parsed.include_tags,
-            dbt_docs_url=parsed.docs,
         )
