@@ -58,13 +58,12 @@ class MetabaseClient:
         )["id"]
 
     def sync_and_wait(
-        self, database: str, schema: str, models: Sequence, timeout: Optional[int]
+        self, database: str, models: Sequence, timeout: Optional[int]
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
         Arguments:
             database {str} -- Metabase database name.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
 
         Keyword Arguments:
@@ -94,7 +93,7 @@ class MetabaseClient:
         deadline = int(time.time()) + timeout
         sync_successful = False
         while True:
-            sync_successful = self.models_compatible(database_id, schema, models)
+            sync_successful = self.models_compatible(database_id, models)
             time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
             if not sync_successful and time_after_wait <= deadline:
                 time.sleep(self._SYNC_PERIOD_SECS)
@@ -102,14 +101,11 @@ class MetabaseClient:
                 break
         return sync_successful
 
-    def models_compatible(
-        self, database_id: str, schema: str, models: Sequence
-    ) -> bool:
+    def models_compatible(self, database_id: str, models: Sequence) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
             database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
 
         Returns:
@@ -143,14 +139,11 @@ class MetabaseClient:
 
         return are_models_compatible
 
-    def export_models(
-        self, database: str, schema: str, models: Sequence[MetabaseModel], aliases
-    ):
+    def export_models(self, database: str, models: Sequence[MetabaseModel], aliases):
         """Exports dbt models to Metabase database schema.
 
         Arguments:
             database {str} -- Metabase database name.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
