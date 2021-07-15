@@ -58,13 +58,12 @@ class MetabaseClient:
         )["id"]
 
     def sync_and_wait(
-        self, database: str, schema: str, models: Sequence, timeout: Optional[int]
+        self, database: str, models: Sequence, timeout: Optional[int]
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
         Arguments:
             database {str} -- Metabase database name.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
 
         Keyword Arguments:
@@ -94,7 +93,7 @@ class MetabaseClient:
         deadline = int(time.time()) + timeout
         sync_successful = False
         while True:
-            sync_successful = self.models_compatible(database_id, schema, models)
+            sync_successful = self.models_compatible(database_id, models)
             time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
             if not sync_successful and time_after_wait <= deadline:
                 time.sleep(self._SYNC_PERIOD_SECS)
@@ -102,21 +101,18 @@ class MetabaseClient:
                 break
         return sync_successful
 
-    def models_compatible(
-        self, database_id: str, schema: str, models: Sequence
-    ) -> bool:
+    def models_compatible(self, database_id: str, models: Sequence) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
             database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
 
         Returns:
             bool -- True if schema compatible with models, false otherwise.
         """
 
-        _, field_lookup = self.build_metadata_lookups(database_id, schema)
+        _, field_lookup = self.build_metadata_lookups(database_id)
 
         are_models_compatible = True
         for model in models:
@@ -143,14 +139,11 @@ class MetabaseClient:
 
         return are_models_compatible
 
-    def export_models(
-        self, database: str, schema: str, models: Sequence[MetabaseModel], aliases
-    ):
+    def export_models(self, database: str, models: Sequence[MetabaseModel], aliases):
         """Exports dbt models to Metabase database schema.
 
         Arguments:
             database {str} -- Metabase database name.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
@@ -160,7 +153,7 @@ class MetabaseClient:
             logging.critical("Cannot find database by name %s", database)
             return
 
-        table_lookup, field_lookup = self.build_metadata_lookups(database_id, schema)
+        table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
             self.export_model(model, table_lookup, field_lookup, aliases)
@@ -357,13 +350,12 @@ class MetabaseClient:
         return None
 
     def build_metadata_lookups(
-        self, database_id: str, schema: str, schemas_to_exclude: Iterable = None
+        self, database_id: str, schemas_to_exclude: Iterable = None
     ) -> Tuple[dict, dict]:
         """Builds table and field lookups.
 
         Arguments:
             database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
 
         Returns:
             dict -- Dictionary of tables indexed by name.
@@ -384,16 +376,6 @@ class MetabaseClient:
         for table in metadata.get("tables", []):
             table_schema = table.get("schema", "public").upper()
             table_name = table["name"].upper()
-
-            if schema:
-                if table_schema != schema.upper():
-                    logging.debug(
-                        "Ignoring Metabase table %s in schema %s. It does not belong to selected schema %s",
-                        table_name,
-                        table_schema,
-                        schema,
-                    )
-                    continue
 
             if schemas_to_exclude:
                 schemas_to_exclude = {

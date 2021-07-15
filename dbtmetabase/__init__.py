@@ -105,13 +105,13 @@ def export(
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
     if not metabase_sync_skip:
         if metabase_sync_timeout is not None and not mbc.sync_and_wait(
-            metabase_database, schema, models, metabase_sync_timeout
+            metabase_database, models, metabase_sync_timeout
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
 
     # Process Metabase stuff
-    mbc.export_models(metabase_database, schema, models, reader.catch_aliases)
+    mbc.export_models(metabase_database, models, reader.catch_aliases)
 
 
 def main(args: List = None):
