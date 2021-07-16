@@ -24,7 +24,7 @@ def execute(
     dbt_manifest_path: str = "",
     dbt_path: str = "",
     # Invocation Command
-    method: Literal["export_models", "extract_exposures"] = "export_models",
+    command: Literal["export_models", "extract_exposures"] = "export_models",
     # dbt Target Models
     schema: str = "public",
     schema_excludes: Iterable = None,
@@ -82,6 +82,10 @@ def execute(
         assert (
             schema and not schema_excludes
         ), "Must target a single schema if using yaml parser, multiple schemas not supported."
+    assert command in [
+        "export_models",
+        "extract_exposures",
+    ], f"Invalid command {command}, must be one of `export_models`, `extract_exposures`"
 
     # Instantiate Metabase client
     mbc = MetabaseClient(
@@ -110,7 +114,7 @@ def execute(
         includes=includes,
         excludes=excludes,
         include_tags=include_tags,
-        docs_url=dbt_docs_url,
+        dbt_docs_url=dbt_docs_url,
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
@@ -122,7 +126,7 @@ def execute(
             return
 
     # Process Metabase stuff
-    getattr(mbc, method, exit(f"Invalid command: {method}"))(
+    getattr(mbc, command)(
         database=metabase_database,
         aliases=reader.catch_aliases,
         schema_excludes=schema_excludes,
@@ -142,12 +146,12 @@ def main(args: List = None):
     parser = argparse.ArgumentParser(
         description="Model synchronization from dbt to Metabase."
     )
-    
+
     # Commands
     parser.add_argument(
         "command", choices=["export", "exposures"], help="command to execute"
     )
-    
+
     # dbt arguments
     parser.add_argument(
         "--dbt_database",
@@ -269,13 +273,13 @@ def main(args: List = None):
         "includes": parsed.includes,
         "excludes": parsed.excludes,
     }
-    
+
     if parsed.command == "export":
         execute(
             **primary_args,
             include_tags=parsed.include_tags,
             dbt_docs_url=parsed.dbt_docs,
-            method="export_models"
+            command="export_models",
         )
     elif parsed.command == "exposures":
         execute(
@@ -284,7 +288,7 @@ def main(args: List = None):
             output_name=parsed.output_name,
             include_personal_collections=parsed.include_personal_collections,
             exclude_collections=parsed.exclude_collections,
-            method="extract_exposures"
+            command="extract_exposures",
         )
     else:
         logging.warning(
