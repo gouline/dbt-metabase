@@ -31,7 +31,7 @@ class DbtManifestReader:
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        docs_url: str = None,
+        dbt_docs_url: str = None,
     ) -> List[MetabaseModel]:
 
         if schema_excludes is None:
@@ -96,7 +96,9 @@ class DbtManifestReader:
                 continue
 
             mb_models.append(
-                self._read_model(node, include_tags=include_tags, docs_url=docs_url)
+                self._read_model(
+                    node, include_tags=include_tags, dbt_docs_url=dbt_docs_url
+                )
             )
 
         for _, node in self.manifest["sources"].items():
@@ -145,7 +147,7 @@ class DbtManifestReader:
                 self._read_model(
                     node,
                     include_tags=include_tags,
-                    dbt_docs_url=docs_url,
+                    dbt_docs_url=dbt_docs_url,
                     model_key="sources",
                     source=node["source_name"],
                 )
@@ -219,8 +221,8 @@ class DbtManifestReader:
                     description += "\n\n"
                 description += f"Tags: {tags}"
 
-        if docs_url:
-            full_path = f"{docs_url}/#!/model/{model['unique_id']}"
+        if dbt_docs_url:
+            full_path = f"{dbt_docs_url}/#!/model/{model['unique_id']}"
             if description != "":
                 description += "\n\n"
             description += f"dbt docs link: {full_path}"

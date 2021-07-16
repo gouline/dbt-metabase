@@ -34,7 +34,7 @@ class DbtFolderReader:
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        docs_url: str = None,
+        dbt_docs_url: str = None,
     ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
@@ -59,10 +59,10 @@ class DbtFolderReader:
                 database,
             )
 
-        if docs_url:
+        if dbt_docs_url:
             logging.info(
-                "Argument --docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
-                docs_url,
+                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                dbt_docs_url,
             )
 
         mb_models: List[MetabaseModel] = []

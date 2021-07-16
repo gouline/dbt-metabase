@@ -168,7 +168,7 @@ def main(args: List = None):
         help="Path to dbt manifest.json (typically located in the /target/ directory of the dbt project directory). Cannot be specified with --dbt_path",
     )
     parser.add_argument(
-        "--dbt_docs",
+        "--dbt_docs_url",
         metavar="URL",
         help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description",
     )
@@ -278,7 +278,7 @@ def main(args: List = None):
         execute(
             **primary_args,
             include_tags=parsed.include_tags,
-            dbt_docs_url=parsed.dbt_docs,
+            dbt_docs_url=parsed.dbt_docs_url,
             command="export_models",
         )
     elif parsed.command == "exposures":
