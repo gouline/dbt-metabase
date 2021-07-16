@@ -52,6 +52,9 @@ class MetabaseClient:
         self.verify = verify
         self.session_id = self.get_session_id(user, password)
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
+        self.cte_parser = re.compile(
+            r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
+        )
         logging.info("Session established successfully")
 
     def get_session_id(self, user: str, password: str) -> str:
@@ -460,7 +463,9 @@ class MetabaseClient:
                 continue
             logging.info("Exploring collection %s" % collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
+                display = None
                 self.models_exposed = []
+                self.mb_native_query = None
                 if item["model"] == "card":
                     model = self.api("get", f"/api/{item['model']}/{item['id']}")
                     name = model.get("name")
@@ -469,6 +474,9 @@ class MetabaseClient:
                     creator_email = model.get("creator", {}).get("email")
                     creator_name = model.get("creator", {}).get("common_name")
                     created_at = model.get("created_at")
+                    header = "### Visualization: {}\n\n".format(
+                        model.get("display").title()
+                    )
                     self._extract_card_exposures(model["id"], model)
                 elif item["model"] == "dashboard":
                     dashboard = self.api("get", f"/api/{item['model']}/{item['id']}")
@@ -481,6 +489,9 @@ class MetabaseClient:
                     creator_email = creator["email"]
                     creator_name = creator["common_name"]
                     created_at = model.get("created_at")
+                    header = "### Dashboard Cards: {}\n\n".format(
+                        str(len(dashboard["ordered_cards"]))
+                    )
                     for dashboard_model in dashboard["ordered_cards"]:
                         dashboard_model_ref = dashboard_model.get("card", {})
                         if not "id" in dashboard_model_ref:
@@ -498,11 +509,31 @@ class MetabaseClient:
                 duplicate_name_check.append(name)
 
                 # Construct Exposure
+                description = (
+                    header
+                    + (
+                        "{}\n\n".format(description.strip())
+                        if description
+                        else "No description provided in Metabase\n\n"
+                    )
+                    + (
+                        "#### Query\n\n```\n{}\n```\n\n".format(
+                            "\n".join(
+                                line
+                                for line in self.mb_native_query.strip().split("\n")
+                                if line.strip() != ""
+                            )
+                        )
+                        if self.mb_native_query
+                        else ""
+                    )
+                    + "#### Metadata\n\n"
+                    + ("Metabase Id: __{}__\n\n".format(item["id"]))
+                    + ("Created At: __{}__".format(created_at))
+                )
                 captured_exposure = {
                     "name": name,
-                    "description": f"{description} \n\nMetabase Id: {item['id']} \n\nCreated At: {created_at}"
-                    if description
-                    else "No description provided in Metabase",
+                    "description": description,
                     "type": "analysis" if item["model"] == "card" else "dashboard",
                     "url": f"{self.protocol}://{self.host}/{item['model']}/{item['id']}",
                     "maturity": "medium",
@@ -565,15 +596,20 @@ class MetabaseClient:
                     )
                     self.models_exposed.append(joined_table)
         elif query.get("type") == "native":
-            for exposed in re.findall(
-                self.exposure_parser, query.get("native").get("query")
-            ):
-                clean_exposure = exposed.split(".")[-1].strip('"')
+            native_query = query.get("native").get("query")
+            ctes = []
+            for cte in re.findall(self.cte_parser, native_query):
+                ctes.extend(cte)
+            for exposure in re.findall(self.exposure_parser, native_query):
+                clean_exposure = exposure.split(".")[-1].strip('"')
+                if clean_exposure in ctes:
+                    continue
                 logging.info(
                     "Model extracted from native query: %s",
                     clean_exposure,
                 )
                 self.models_exposed.append(clean_exposure)
+                self.mb_native_query = native_query
 
     def api(
         self,
