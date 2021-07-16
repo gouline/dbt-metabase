@@ -533,42 +533,47 @@ class MetabaseClient:
             model = self.api("get", f"/api/card/{card_id}")
         query = model.get("dataset_query", {})
         if query.get("type") == "query":
-            if (
-                query.get("query", {}).get("source-table", model.get("table_id", -1))
-                in self.table_map
-            ):
-                logging.info(
-                    "Model extracted from Metabase question: %s",
-                    self.table_map[
-                        query.get("query", {}).get(
-                            "source-table", model.get("table_id")
-                        )
-                    ],
-                )
-                self.models_exposed.append(
-                    self.table_map[
-                        query.get("query", {}).get(
-                            "source-table", model.get("table_id")
-                        )
-                    ]
-                )
+            source_table_id = query.get("query", {}).get(
+                "source-table", model.get("table_id")
+            )
+            if source_table_id in self.table_map:
+                if isinstance(source_table_id, str) and source_table_id.startswith(
+                    "card__"
+                ):
+                    self._extract_card_exposures(
+                        int(source_table_id.split("card__")[-1])
+                    )
+                else:
+                    source_table = self.table_map[source_table_id]
+                    logging.info(
+                        "Model extracted from Metabase question: %s",
+                        source_table,
+                    )
+                self.models_exposed.append(source_table)
                 for query_join in query.get("query", {}).get("joins", []):
+                    if isinstance(
+                        query_join.get("source-table"), str
+                    ) and query_join.get("source-table").startswith("card__"):
+                        self._extract_card_exposures(
+                            int(query_join.get("source-table").split("card__")[-1])
+                        )
+                        continue
+                    joined_table = self.table_map[query_join.get("source-table")]
                     logging.info(
                         "Model extracted from Metabase question join: %s",
-                        self.table_map[query_join.get("source-table")],
+                        joined_table,
                     )
-                    self.models_exposed.append(
-                        self.table_map[query_join.get("source-table")]
-                    )
+                    self.models_exposed.append(joined_table)
         elif query.get("type") == "native":
             for exposed in re.findall(
                 self.exposure_parser, query.get("native").get("query")
             ):
+                clean_exposure = exposed.split(".")[-1].strip('"')
                 logging.info(
                     "Model extracted from native query: %s",
-                    exposed.split(".")[-1].strip('"'),
+                    clean_exposure,
                 )
-                self.models_exposed.append(exposed.split(".")[-1].strip('"'))
+                self.models_exposed.append(clean_exposure)
 
     def api(
         self,
