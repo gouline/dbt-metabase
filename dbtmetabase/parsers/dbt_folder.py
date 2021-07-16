@@ -30,11 +30,11 @@ class DbtFolderReader:
         self,
         database: str,
         schema: str,
-        schemas_excludes: Iterable = None,
+        schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        dbt_docs_url: str = None,
+        docs_url: str = None,
     ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
@@ -46,8 +46,8 @@ class DbtFolderReader:
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        if schemas_excludes is None:
-            schemas_excludes = []
+        if schema_excludes is None:
+            schema_excludes = []
         if includes is None:
             includes = []
         if excludes is None:
@@ -59,10 +59,10 @@ class DbtFolderReader:
                 database,
             )
 
-        if dbt_docs_url:
+        if docs_url:
             logging.info(
-                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
-                dbt_docs_url,
+                "Argument --docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                docs_url,
             )
 
         mb_models: List[MetabaseModel] = []
@@ -89,6 +89,12 @@ class DbtFolderReader:
                             )
                         )
                 for source in schema_file.get("sources", []):
+                    source_schema_name = source.get("schema", source["name"])
+                    if "{{" in source_schema_name and "}}" in source_schema_name:
+                        logging.warning(
+                            "dbt Folder Reader cannot resolve jinja expressions- use the Manifest Reader instead."
+                        )
+
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
                         if "identifier" in model:
@@ -100,7 +106,7 @@ class DbtFolderReader:
                             mb_models.append(
                                 self._read_model(
                                     model,
-                                    schema.upper(),
+                                    source_schema_name.upper(),
                                     include_tags=include_tags,
                                     model_key="sources",
                                     source=source["name"],
@@ -183,7 +189,7 @@ class DbtFolderReader:
                     mb_column.fk_target_table = (
                         column.get("meta", {})
                         .get(
-                            # Prioritize explicitly set FK in yml file which should have format schema.table unaliased
+                            # Prioritize explicitly set FK in YAML file which should have format schema.table unaliased
                             "metabase.fk_ref",
                             # If metabase.fk_ref not present in YAML, infer FK relation to table in target schema and parse ref/source
                             # We will be translating any potentially aliased source() calls later during FK parsing since we do not have all possible aliases yet and thus cannot unalias

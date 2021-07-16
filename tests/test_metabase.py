@@ -14,7 +14,7 @@ class TestMetabaseClient(unittest.TestCase):
             host="localhost",
             user="dummy",
             password="dummy",
-            https=False,
+            use_http=True,
         )
 
     def test_dummy(self):

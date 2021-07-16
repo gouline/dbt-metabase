@@ -27,15 +27,15 @@ class DbtManifestReader:
         self,
         database: str,
         schema: str,
-        schemas_excludes: Iterable = ["__include_all_schemas"],
+        schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        dbt_docs_url: str = None,
+        docs_url: str = None,
     ) -> List[MetabaseModel]:
 
-        if schemas_excludes is None:
-            schemas_excludes = []
+        if schema_excludes is None:
+            schema_excludes = []
         if includes is None:
             includes = []
         if excludes is None:
@@ -78,7 +78,7 @@ class DbtManifestReader:
                 )
                 continue
 
-            if schemas_excludes and node["schema"].upper() in schemas_excludes:
+            if schema_excludes and node["schema"].upper() in schema_excludes:
                 # Skip any model in a schema marked for exclusion
                 logging.debug(
                     "Skipping %s in schema %s marked for exclusion",
@@ -96,9 +96,7 @@ class DbtManifestReader:
                 continue
 
             mb_models.append(
-                self._read_model(
-                    node, include_tags=include_tags, dbt_docs_url=dbt_docs_url
-                )
+                self._read_model(node, include_tags=include_tags, docs_url=docs_url)
             )
 
         for _, node in self.manifest["sources"].items():
@@ -126,7 +124,7 @@ class DbtManifestReader:
                 )
                 continue
 
-            if schemas_excludes and node["schema"].upper() in schemas_excludes:
+            if schema_excludes and node["schema"].upper() in schema_excludes:
                 # Skip any model in a schema marked for exclusion
                 logging.debug(
                     "Skipping %s in schema %s marked for exclusion",
@@ -147,7 +145,7 @@ class DbtManifestReader:
                 self._read_model(
                     node,
                     include_tags=include_tags,
-                    dbt_docs_url=dbt_docs_url,
+                    dbt_docs_url=docs_url,
                     model_key="sources",
                     source=node["source_name"],
                 )
@@ -221,8 +219,8 @@ class DbtManifestReader:
                     description += "\n\n"
                 description += f"Tags: {tags}"
 
-        if dbt_docs_url:
-            full_path = f"{dbt_docs_url}/#!/model/{model['unique_id']}"
+        if docs_url:
+            full_path = f"{docs_url}/#!/model/{model['unique_id']}"
             if description != "":
                 description += "\n\n"
             description += f"dbt docs link: {full_path}"

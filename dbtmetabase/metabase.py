@@ -32,7 +32,7 @@ class MetabaseClient:
         host: str,
         user: str,
         password: str,
-        https: bool = True,
+        use_http: bool = False,
         verify: Union[str, bool] = None,
     ):
         """Constructor.
@@ -43,11 +43,12 @@ class MetabaseClient:
             password {str} -- Metabase password.
 
         Keyword Arguments:
-            https {bool} -- Use HTTPS instead of HTTP. (default: {True})
+            use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
+            verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
         """
 
         self.host = host
-        self.protocol = "https" if https else "http"
+        self.protocol = "http" if use_http else "https"
         self.verify = verify
         self.session_id = self.get_session_id(user, password)
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
@@ -74,16 +75,13 @@ class MetabaseClient:
     def sync_and_wait(
         self,
         database: str,
-        schema: str,
         models: Sequence,
         timeout: Optional[int],
-        schemas_to_exclude: Iterable = None,
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
         Arguments:
             database {str} -- Metabase database name.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
 
         Keyword Arguments:
@@ -113,9 +111,7 @@ class MetabaseClient:
         deadline = int(time.time()) + timeout
         sync_successful = False
         while True:
-            sync_successful = self.models_compatible(
-                database_id, schema, models, schemas_to_exclude
-            )
+            sync_successful = self.models_compatible(database_id, models)
             time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
             if not sync_successful and time_after_wait <= deadline:
                 time.sleep(self._SYNC_PERIOD_SECS)
@@ -123,27 +119,18 @@ class MetabaseClient:
                 break
         return sync_successful
 
-    def models_compatible(
-        self,
-        database_id: str,
-        schema: str,
-        models: Sequence,
-        schemas_to_exclude: Iterable = None,
-    ) -> bool:
+    def models_compatible(self, database_id: str, models: Sequence) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
             database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
 
         Returns:
             bool -- True if schema compatible with models, false otherwise.
         """
 
-        _, field_lookup = self.build_metadata_lookups(
-            database_id, schema, schemas_to_exclude
-        )
+        _, field_lookup = self.build_metadata_lookups(database_id)
 
         are_models_compatible = True
         for model in models:
@@ -173,17 +160,14 @@ class MetabaseClient:
     def export_models(
         self,
         database: str,
-        schema: str,
         models: Sequence[MetabaseModel],
         aliases,
-        schemas_excludes: Optional[Iterable] = None,
         **kwargs,
     ):
         """Exports dbt models to Metabase database schema.
 
         Arguments:
             database {str} -- Metabase database name.
-            schema {str} -- Metabase schema name.
             models {list} -- List of dbt models read from project.
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
@@ -193,12 +177,7 @@ class MetabaseClient:
             logging.critical("Cannot find database by name %s", database)
             return
 
-        if schemas_excludes is None:
-            schemas_excludes = []
-
-        table_lookup, field_lookup = self.build_metadata_lookups(
-            database_id, schema, schemas_excludes
-        )
+        table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
             self.export_model(model, table_lookup, field_lookup, aliases)
@@ -395,13 +374,12 @@ class MetabaseClient:
         return None
 
     def build_metadata_lookups(
-        self, database_id: str, schema: str, schemas_to_exclude: Iterable = None
+        self, database_id: str, schemas_to_exclude: Iterable = None
     ) -> Tuple[dict, dict]:
         """Builds table and field lookups.
 
         Arguments:
             database_id {str} -- Metabase database ID.
-            schema {str} -- Metabase schema name.
 
         Returns:
             dict -- Dictionary of tables indexed by name.
@@ -422,16 +400,6 @@ class MetabaseClient:
         for table in metadata.get("tables", []):
             table_schema = table.get("schema", "public").upper()
             table_name = table["name"].upper()
-
-            if schema:
-                if table_schema != schema.upper():
-                    logging.debug(
-                        "Ignoring Metabase table %s in schema %s. It does not belong to selected schema %s",
-                        table_name,
-                        table_schema,
-                        schema,
-                    )
-                    continue
 
             if schemas_to_exclude:
                 schemas_to_exclude = {
@@ -652,4 +620,10 @@ class MetabaseClient:
                 raise
         elif not response.ok:
             return False
-        return json.loads(response.text)
+
+        response_json = json.loads(response.text)
+
+        # Since X.40.0 responses are encapsulated in "data" with pagination parameters
+        if "data" in response_json:
+            return response_json["data"]
+        return response_json
