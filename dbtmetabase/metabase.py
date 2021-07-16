@@ -481,6 +481,8 @@ class MetabaseClient:
         duplicate_name_check = []
         captured_exposures = []
 
+        # {"dataset_query":{"type":"native","native":{"query":"select * from dim_core_site_detail","template-tags":{}},"database":2},"display":"table","visualization_settings":{}}
+
         for collection in self.collections:
             if collection["name"] in exclude_collections:
                 continue
