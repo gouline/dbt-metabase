@@ -330,4 +330,10 @@ class MetabaseClient:
             response.raise_for_status()
         elif not response.ok:
             return False
-        return json.loads(response.text)
+        
+        response_json = json.loads(response.text)
+
+        # Since X.40.0 responses are encapsulated in "data" with pagination parameters
+        if "data" in response_json:
+            return response_json["data"]
+        return response_json
