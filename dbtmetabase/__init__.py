@@ -213,11 +213,6 @@ def main(args: List = None):
 
     # Common/misc arguments
     parser.add_argument(
-        "--schema",
-        metavar="SCHEMA",
-        help="Target schema name. Cannot be specified with --schemas_excludes",
-    )
-    parser.add_argument(
         "--schema_excludes",
         help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
     )
@@ -266,7 +261,6 @@ def main(args: List = None):
         "metabase_use_http": parsed.metabase_use_http,
         "metabase_verify": parsed.metabase_verify,
         "metabase_database": parsed.metabase_database,
-        "schema": parsed.schema,
         "schema_excludes": parsed.schema_excludes,
         "metabase_sync_skip": parsed.metabase_sync_skip,
         "metabase_sync_timeout": parsed.metabase_sync_timeout,
