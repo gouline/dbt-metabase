@@ -1,0 +1,37 @@
+name: master
+
+on:
+  push:
+    branches:
+      - master
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Requirements
+        run: make requirements
+
+      - name: Build
+        run: make build
+
+      - name: Lint check
+        run: make lint
+
+      - name: Type check
+        run: make type
+
+      - name: Test
+        run: make test
+
+      - name: Publish a Python distribution to PyPI
+        if: github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}

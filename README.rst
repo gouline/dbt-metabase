@@ -1,8 +1,8 @@
 dbt-metabase
 ############
 
-.. image:: https://github.com/gouline/dbt-metabase/actions/workflows/main.yml/badge.svg
-    :target: https://github.com/gouline/dbt-metabase/actions/workflows/main.yml
+.. image:: https://github.com/gouline/dbt-metabase/actions/workflows/master.yml/badge.svg
+    :target: https://github.com/gouline/dbt-metabase/actions/workflows/master.yml
     :alt: GitHub Actions
 .. image:: https://img.shields.io/pypi/v/dbt-metabase
     :target: https://pypi.org/project/dbt-metabase/
@@ -11,7 +11,7 @@ dbt-metabase
     :target: https://pepy.tech/project/dbt-metabase
     :alt: Downloads
 .. image:: https://black.readthedocs.io/en/stable/_static/license.svg
-    :target: https://github.com/gouline/dbt-metabase/blob/main/LICENSE
+    :target: https://github.com/gouline/dbt-metabase/blob/master/LICENSE
     :alt: License: MIT
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
