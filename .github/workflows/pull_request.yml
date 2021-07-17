@@ -1,15 +1,12 @@
-name: Main
+name: pull_request
 
 on:
   pull_request:
     branches:
       - master
-  release:
-    types: [created]
 
 jobs:
-  build:
-    name: Build and validate
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -35,10 +32,3 @@ jobs:
 
       - name: Test
         run: make test
-
-      - name: Publish a Python distribution to PyPI
-        if: github.event_name == 'release'
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_TOKEN }}
