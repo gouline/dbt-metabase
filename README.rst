@@ -1,6 +1,22 @@
 dbt-metabase
 ############
 
+.. image:: https://github.com/gouline/dbt-metabase/actions/workflows/validate.yml/badge.svg
+    :target: https://github.com/gouline/dbt-metabase/actions/workflows/validate.yml
+    :alt: GitHub Actions
+.. image:: https://img.shields.io/pypi/v/dbt-metabase
+    :target: https://pypi.org/project/dbt-metabase/
+    :alt: PyPI
+.. image:: https://pepy.tech/badge/dbt-metabase
+    :target: https://pepy.tech/project/dbt-metabase
+    :alt: Downloads
+.. image:: https://black.readthedocs.io/en/stable/_static/license.svg
+    :target: https://github.com/gouline/dbt-metabase/blob/main/LICENSE
+    :alt: License: MIT
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+    :alt: Code style: black
+
 Model synchronization from `dbt`_ to `Metabase`_.
 
 .. _`dbt`: https://www.getdbt.com/
@@ -27,7 +43,6 @@ The main features provided by dbt-metabase are:
 * Propagating columns description to Metabase
 * Propagating columns semantic types and visibility types to Metabase through the use of dbt meta fields
 * Propagating table relationships represented as dbt ``relationships`` column tests
-
 
 Usage
 =====
@@ -84,10 +99,11 @@ descriptions to Metabase by executing the below command.
 
     dbt-metabase export \
         --dbt_path . \
-        --mb_host metabase.example.com \
-        --mb_user user@example.com \
-        --mb_password Password123 \
-        --database business \
+        --dbt_database business \
+        --metabase_host metabase.example.com \
+        --metabase_user user@example.com \
+        --metabase_password Password123 \
+        --metabase_database business \
         --schema public
 
 Check your Metabase instance by going into Settings > Admin > Data Model, you
@@ -124,7 +140,6 @@ The second alternative is to provide the path to your dbt project root folder
 using the argument ``--dbt_path``. dbt-metabase will then look for all .yml files
 and parse your documentation and tests directly from there. It will not support
 dbt projects with custom schemas.
-
 
 Semantic Types
 --------------
@@ -231,8 +246,8 @@ project.
 
 You can control this behavior with two arguments:
 
-* ``--sync`` - boolean to enable or disable pre-synchronization
-* ``--sync_timeout`` - number of seconds to wait and re-check data model before
+* ``--metabase_sync_skip`` - boolean to optionally disable pre-synchronization
+* ``--metabase_sync_timeout`` - number of seconds to wait and re-check data model before
   giving up
 
 Programmatic Invocation
@@ -245,7 +260,25 @@ line. But if you prefer to call it from your code, here's how to do it:
 
     import dbtmetabase
 
-    dbtmetabase.export(dbt_path, mb_host, mb_user, mb_password, database, schema)
+    dbtmetabase.export(
+      dbt_database=dbt_database,
+      dbt_manifest_path=dbt_manifest_path,
+      dbt_path=dbt_path,
+      dbt_docs_url=dbt_docs,
+      metabase_database=metabase_database,
+      metabase_host=metabase_host,
+      metabase_user=metabase_user,
+      metabase_password=metabase_password,
+      metabase_use_http=metabase_use_http,
+      metabase_verify=metabase_verify,
+      metabase_sync_skip=metabase_sync_skip,
+      metabase_sync_timeout=metabase_sync_timeout,
+      schema=schema,
+      schema_excludes=schema_excludes,
+      includes=includes,
+      excludes=excludes,
+      include_tags=include_tags,
+    )
 
 Code of Conduct
 ===============
