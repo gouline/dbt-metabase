@@ -23,6 +23,9 @@ jobs:
       - name: Requirements
         run: make requirements
 
+      - name: Build
+        run: make build
+
       - name: Lint
         run: make lint
 
