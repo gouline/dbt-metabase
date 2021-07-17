@@ -1,8 +1,8 @@
 dbt-metabase
 ############
 
-.. image:: https://github.com/gouline/dbt-metabase/actions/workflows/validate.yml/badge.svg
-    :target: https://github.com/gouline/dbt-metabase/actions/workflows/validate.yml
+.. image:: https://github.com/gouline/dbt-metabase/actions/workflows/main.yml/badge.svg
+    :target: https://github.com/gouline/dbt-metabase/actions/workflows/main.yml
     :alt: GitHub Actions
 .. image:: https://img.shields.io/pypi/v/dbt-metabase
     :target: https://pypi.org/project/dbt-metabase/
