@@ -1,14 +1,16 @@
-name: Build and Validate
+name: Main
 
 on:
   pull_request:
     branches:
       - master
+  release:
+    types: [created]
 
 jobs:
-  validate:
+  build:
+    name: Build and validate
     runs-on: ubuntu-latest
-    name: validate
     steps:
       - uses: actions/checkout@v2
 
@@ -18,7 +20,6 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      - uses: nanasess/setup-chromedriver@master
 
       - name: Requirements
         run: make requirements
@@ -26,7 +27,7 @@ jobs:
       - name: Build
         run: make build
 
-      - name: Lint
+      - name: Lint check
         run: make lint
 
       - name: Type check
@@ -34,3 +35,10 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Publish a Python distribution to PyPI
+        if: github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
