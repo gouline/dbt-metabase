@@ -43,6 +43,8 @@ The main features provided by dbt-metabase are:
 * Propagating columns description to Metabase
 * Propagating columns semantic types and visibility types to Metabase through the use of dbt meta fields
 * Propagating table relationships represented as dbt ``relationships`` column tests
+* Extracting dbt model exposures from Metabase and generating YAML files to be included and revisioned with your dbt deployment
+
 
 Usage
 =====
