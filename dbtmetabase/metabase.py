@@ -438,9 +438,9 @@ class MetabaseClient:
 
     def extract_exposures(
         self,
-        output_path: str,
-        output_name: str,
         models: List[MetabaseModel],
+        output_path: str = "./",
+        output_name: str = "metabase_exposures",
         include_personal_collections: bool = True,
         exclude_collections: Iterable = None,
         **kwargs,
@@ -495,7 +495,7 @@ class MetabaseClient:
                     creator = self.api("get", f"/api/user/{dashboard['creator_id']}")
                     creator_email = creator["email"]
                     creator_name = creator["common_name"]
-                    created_at = model.get("created_at")
+                    created_at = dashboard.get("created_at")
                     header = "### Dashboard Cards: {}\n\n".format(
                         str(len(dashboard["ordered_cards"]))
                     )

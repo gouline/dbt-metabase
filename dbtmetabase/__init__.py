@@ -79,9 +79,9 @@ def execute(
         dbt_manifest_path
     ), "Bad arguments. dbt_path and dbt_manifest_path cannot be provide at the same time. One option must be specified."
     if dbt_path:
-        assert (
-            schema and not schema_excludes
-        ), "Must target a single schema if using yaml parser, multiple schemas not supported."
+        assert bool(
+            schema
+        ), "Must supply a schema if using yaml parser, it is used to resolve fk relations."
     assert command in [
         "export_models",
         "extract_exposures",
@@ -214,6 +214,7 @@ def main(args: List = None):
     # Common/misc arguments
     parser.add_argument(
         "--schema_excludes",
+        nargs="*",
         help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
     )
     parser.add_argument(
@@ -235,6 +236,29 @@ def main(args: List = None):
         action="store_true",
         default=False,
         help="Append tags to Table descriptions in Metabase",
+    )
+    parser.add_argument(
+        "--output_path",
+        default="./",
+        help="Used in Exposure extractor, path where generated YAML will be output",
+    )
+    parser.add_argument(
+        "--output_name",
+        default="metabase_exposures",
+        help="Used in Exposure extractor, name of generated YAML file",
+    )
+    parser.add_argument(
+        "--include_personal_collections",
+        action="store_true",
+        default=False,
+        help="Used in Exposure extractor, include personal collections in exposure extraction",
+    )
+    parser.add_argument(
+        "--collection_excludes",
+        nargs="*",
+        default=[],
+        dest="exclude_collections",
+        help="Used in Exposure extractor, exclude a list of collections from exposure parsing",
     )
     parser.add_argument(
         "--verbose",

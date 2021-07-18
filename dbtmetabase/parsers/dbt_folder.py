@@ -94,7 +94,8 @@ class DbtFolderReader:
                         logging.warning(
                             "dbt Folder Reader cannot resolve jinja expressions- use the Manifest Reader instead."
                         )
-
+                    if source_schema_name.upper() != schema.upper():
+                        continue
                     for model in source.get("tables", []):
                         name = model.get("identifier", model["name"])
                         if "identifier" in model:
