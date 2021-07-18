@@ -20,11 +20,14 @@ jobs:
       - name: Build
         run: make build
 
-      - name: Lint check
-        run: make lint
+      - name: Formatting check (black)
+        run: make check-fmt
 
-      - name: Type check
-        run: make type
+      - name: Lint check (pylint)
+        run: make check-lint
+
+      - name: Type check (mypy)
+        run: make check-type
 
       - name: Test
         run: make test

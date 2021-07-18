@@ -9,25 +9,32 @@ requirements:
 	pip3 install -r requirements-test.txt
 .PHONY: requirements
 
-lint:
-	pylint dbtmetabase
-.PHONY: lint
+fmt:
+	black .
 
-type:
+check-fmt:
+	black --check .
+.PHONY: check-fmt
+
+check-lint:
+	pylint dbtmetabase
+.PHONY: check-lint
+
+check-type:
 	mypy dbtmetabase
-.PHONY: type
+.PHONY: check-type
 
 test:
 	python3 -m unittest tests
 .PHONY: test
 
-check: build
+dist-check: build
 	twine check dist/*
-.PHONY: check
+.PHONY: dist-check
 
-upload: check
+dist-upload: check
 	twine upload dist/*
-.PHONY: upload
+.PHONY: dist-upload
 
 dev-install: build
 	pip3 uninstall -y dbt-metabase && pip3 install dist/dbt_metabase-*-py3-none-any.whl

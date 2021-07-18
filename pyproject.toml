@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 write_to = "dbtmetabase/_version.py"
 
 [tool.black]
-line-length = 100
-target-version = ['py36', 'py37', 'py38', 'py39']
+line-length = 88
+target-version = ['py36', 'py37', 'py38']
 include = '\.pyi?$'
 
 [tool.mypy]
