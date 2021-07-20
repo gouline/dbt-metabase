@@ -621,11 +621,17 @@ class MetabaseClient:
                 self.models_exposed.append(clean_exposure)
                 self.mb_native_query = native_query
 
-    def sync_metrics(self, models: List[MetabaseModel], database, aliases={}, **kwargs):
+    def sync_metrics(
+        self,
+        models: List[MetabaseModel],
+        database,
+        aliases={},
+        revision_message="Metric has been updated. ",
+        **kwargs,
+    ):
         from pprint import pprint
 
-        # metabase_metrics = self.api("get", "/api/metric")
-        # pprint(metabase_metrics)
+        metabase_metrics = self.api("get", "/api/metric")
 
         database_id = self.find_database_id(database)
 
@@ -684,7 +690,43 @@ class MetabaseClient:
                         ],
                     },
                 }
-                pprint(compiled)
+                this_metric = None
+                for existing_metric in metabase_metrics:
+                    if metric_name == existing_metric["name"]:
+                        if this_metric is not None:
+                            print("Duplicate metric names")
+                        print("Existing metric found!")
+                        this_metric = existing_metric
+                if this_metric:
+                    # Revise
+                    agglomerate_changes = ""
+                    # Check Name, Description, Table Id, and Definition
+                    if this_metric["name"] != compiled["name"]:
+                        agglomerate_changes += f'Name changed from {this_metric["name"]} to {compiled["name"]}. '
+                    if this_metric["description"] != compiled["description"]:
+                        agglomerate_changes += f'Description changed from {this_metric["description"]} to {compiled["description"]}. '
+                    if this_metric["table_id"] != compiled["table_id"]:
+                        agglomerate_changes += f'Table Id changed from {this_metric["table_id"]} to {compiled["table_id"]}. '
+                    if this_metric["definition"] != compiled["definition"]:
+                        agglomerate_changes += (
+                            f'Formula definiton updated to {metric["metric"]}'
+                        )
+                    if agglomerate_changes:
+                        compiled["revision_message"] = (
+                            revision_message + agglomerate_changes
+                        )
+                        output_metric = self.api(
+                            "put", f"/api/metric/{this_metric['id']}", json=compiled
+                        )
+                        print(f"Metric {metric_name} updated!")
+                        print(output_metric)
+                    else:
+                        print(f"No changes to {metric_name}")
+                else:
+                    # Create
+                    output_metric = self.api("post", f"/api/metric/", json=compiled)
+                    print(f"Metric {metric_name} created!")
+                    print(output_metric)
 
     def api(
         self,
