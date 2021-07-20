@@ -26,7 +26,7 @@ def execute(
     # Invocation Command
     command: Literal["export_models", "extract_exposures"] = "export_models",
     # dbt Target Models
-    schema: str = "public",
+    schema: str = None,
     schema_excludes: Iterable = None,
     # Metabase additional connection opts
     metabase_use_http: bool = False,
@@ -60,7 +60,7 @@ def execute(
         metabase_verify (Union[str, bool], optional): Supply path to certificate or disable verification. Defaults to True.
         metabase_sync_skip (bool, optional): Skip synchronizing Metabase database before export. Defaults to False.
         metabase_sync_timeout (int, optional): Metabase synchronization timeout in seconds. Defaults to None.
-        schema (str, optional): Target schema name. Defaults to "public".
+        schema (str, optional): Target schema name. Defaults to "public" in folder reader.
         schema_excludes (Iterable, optional): Alternative to target schema, specify schema exclusions (only works for manifest parsing). Defaults to None.
         includes (Iterable, optional): Model names to limit processing to. Defaults to None.
         excludes (Iterable, optional): Model names to exclude. Defaults to None.
@@ -100,6 +100,10 @@ def execute(
     # Resolve dbt reader being either YAML or manifest.json based
     if dbt_path:
         reader = DbtFolderReader(os.path.expandvars(dbt_path))
+        if not schema:
+            logging.warning(
+                "Schema defaulting to public- folder parser requires separate invocations for each schema"
+            )
     else:
         reader = DbtManifestReader(os.path.expandvars(dbt_manifest_path))
 
