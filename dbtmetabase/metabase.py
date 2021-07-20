@@ -536,7 +536,7 @@ class MetabaseClient:
                     )
                     + "#### Metadata\n\n"
                     + ("Metabase Id: __{}__\n\n".format(item["id"]))
-                    + ("Created At: __{}__".format(created_at))
+                    + ("Created On: __{}__".format(created_at))
                 )
                 captured_exposure = {
                     "name": name,
@@ -564,6 +564,7 @@ class MetabaseClient:
                 {"version": 2, "exposures": captured_exposures},
                 docs,
                 allow_unicode=True,
+                sort_keys=False,
             )
 
     def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
