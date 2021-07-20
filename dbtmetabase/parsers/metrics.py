@@ -11,9 +11,9 @@ from pyparsing import (
     infixNotation,
     opAssoc,
     Suppress,
-    dblQuotedString,
     alphas,
     alphanums,
+    dblQuotedString,
     pyparsing_common,
     ParserElement,
 )
@@ -359,7 +359,6 @@ class MetabaseMetricCompiler:
     def to_field(self, y):
         # y[0]
         print(str(y[0]).upper())
-        print(self.field_lookup.get(self.current_target, {}).keys())
         id = (
             self.field_lookup.get(self.current_target, {})
             .get(str(y[0]).upper(), {})
@@ -422,7 +421,7 @@ class MetabaseMetricCompiler:
         )
 
         # STRINGS
-        string = dblQuotedString("string")
+        string = dblQuotedString.setParseAction(lambda x: x[0].strip('"'))("string")
 
         # OPERATORS
         eq_op = oneOf("= > < >= <= !=")("comparison")
