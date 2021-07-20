@@ -26,7 +26,7 @@ class DbtManifestReader:
     def read_models(
         self,
         database: str,
-        schema: str,
+        schema: str = None,
         schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
