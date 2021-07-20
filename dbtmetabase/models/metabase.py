@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Sequence, Optional, MutableMapping, Literal
+from typing import Sequence, Optional, MutableMapping, Literal, Dict
 
 # Allowed metabase.* fields
 # Should be covered by attributes in the MetabaseColumn class
@@ -27,5 +27,6 @@ class MetabaseModel:
     description: str = ""
     model_key: Literal["nodes", "sources"] = "nodes"
     ref: Optional[str] = None
+    meta: MutableMapping = field(default_factory=dict)
 
     columns: Sequence[MetabaseColumn] = field(default_factory=list)

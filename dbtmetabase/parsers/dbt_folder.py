@@ -163,6 +163,7 @@ class DbtFolderReader:
             columns=mb_columns,
             model_key=model_key,
             ref=ref,
+            meta=model.get("meta", {}),
         )
 
     def _read_column(self, column: Mapping, schema: str) -> MetabaseColumn:

@@ -24,7 +24,9 @@ def execute(
     dbt_manifest_path: str = "",
     dbt_path: str = "",
     # Invocation Command
-    command: Literal["export_models", "extract_exposures"] = "export_models",
+    command: Literal[
+        "export_models", "extract_exposures", "sync_metrics"
+    ] = "export_models",
     # dbt Target Models
     schema: str = None,
     schema_excludes: Iterable = None,
@@ -85,7 +87,8 @@ def execute(
     assert command in [
         "export_models",
         "extract_exposures",
-    ], f"Invalid command {command}, must be one of `export_models`, `extract_exposures`"
+        "sync_metrics",
+    ], f"Invalid command {command}, must be one of `export_models`, `extract_exposures`, `sync_metrics`"
 
     # Instantiate Metabase client
     mbc = MetabaseClient(

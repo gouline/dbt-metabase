@@ -1,5 +1,6 @@
 import json
 import logging
+
 from typing import (
     Sequence,
     Optional,
@@ -15,6 +16,7 @@ import requests
 import time
 
 from .models.metabase import MetabaseModel, MetabaseColumn
+from .parsers.metrics import MetabaseMetricCompiler
 
 import re
 import yaml
@@ -618,6 +620,71 @@ class MetabaseClient:
                 )
                 self.models_exposed.append(clean_exposure)
                 self.mb_native_query = native_query
+
+    def sync_metrics(self, models: List[MetabaseModel], database, aliases={}, **kwargs):
+        from pprint import pprint
+
+        # metabase_metrics = self.api("get", "/api/metric")
+        # pprint(metabase_metrics)
+
+        database_id = self.find_database_id(database)
+
+        if not database_id:
+            logging.critical("Cannot find database by name %s", database)
+            return
+
+        table_lookup, field_lookup = self.build_metadata_lookups(database_id)
+
+        metabase_compiler = MetabaseMetricCompiler(field_lookup)
+
+        for model in models:
+
+            if "metabase.metrics" not in model.meta:
+                continue
+
+            schema_name = model.schema.upper()
+            model_name = model.name.upper()
+
+            lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
+            metabase_compiler.current_target = lookup_key
+
+            api_table = table_lookup.get(lookup_key)
+
+            if not api_table:
+                logging.error("Table %s does not exist in Metabase", lookup_key)
+                continue
+
+            table_id = api_table["id"]
+
+            for metric in model.meta["metabase.metrics"]:
+                if "name" not in metric or "metric" not in metric:
+                    print("Invalid metric")
+                    continue
+                print(metric["metric"])
+                metric_name = metric["name"]
+                metric_compiled = metabase_compiler.transpile_expression(
+                    metric["metric"]
+                )
+                print(metric_compiled)
+                metric_description = metric.get(
+                    "description", "No description provided"
+                )
+                compiled = {
+                    "name": metric_name,
+                    "description": metric_description,
+                    "table_id": table_id,
+                    "definition": {
+                        "source-table": table_id,
+                        "aggregation": [
+                            [
+                                "aggregation-options",
+                                metric_compiled,
+                                {"display-name": metric_name},
+                            ]
+                        ],
+                    },
+                }
+                pprint(compiled)
 
     def api(
         self,

@@ -97,7 +97,9 @@ class DbtManifestReader:
 
             mb_models.append(
                 self._read_model(
-                    node, include_tags=include_tags, dbt_docs_url=dbt_docs_url
+                    node,
+                    include_tags=include_tags,
+                    dbt_docs_url=dbt_docs_url,
                 )
             )
 
@@ -241,6 +243,7 @@ class DbtManifestReader:
             columns=mb_columns,
             model_key=model_key,
             ref=ref,
+            meta=model.get("meta", {}),
         )
 
     def _read_column(
