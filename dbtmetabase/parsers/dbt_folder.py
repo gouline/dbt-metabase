@@ -29,7 +29,7 @@ class DbtFolderReader:
     def read_models(
         self,
         database: str,
-        schema: str,
+        schema: str = "public",
         schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
