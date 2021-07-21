@@ -289,7 +289,6 @@ class TestMetabaseClient(unittest.TestCase):
         sample = yaml.safe_load(
             open("tests/fixtures/exposure/unittest_exposures.yml", "r")
         )
-        os.path.remove("tests/fixtures/exposure/unittest_exposures.yml")
 
         baseline_exposures = sorted(baseline["exposures"], key=lambda ele: ele["name"])
         sample_exposures = sorted(sample["exposures"], key=lambda ele: ele["name"])
