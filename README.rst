@@ -112,6 +112,59 @@ Check your Metabase instance by going into Settings > Admin > Data Model, you
 will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
 ``GROUP_ID`` is marked as "Foreign Key" pointing to ``ID`` in ``STG_GROUPS``.
 
+Exposure Extraction
+-------------------
+
+That's already enough to propagate the primary keys, foreign keys and
+descriptions to Metabase by executing the below command.
+
+.. code-block:: shell
+
+    dbt-metabase exposures \
+        --dbt_manifest_path ./target/manifest.json \
+        --dbt_database business \
+        --metabase_host metabase.example.com \
+        --metabase_user user@example.com \
+        --metabase_password Password123 \
+        --metabase_database business \
+        --dbt_docs_url https://your.metabase/ \
+        --output_path ./models/
+        --output_name metabase_exposures
+
+Once execution completes, a look at the output ``metabase_exposures.yml`` will 
+reveal all metabase exposures documented with the documentation, descriptions, creator
+emails & names, links to exposures, and even native SQL propagated over from Metabase.
+
+.. code-block:: yaml
+
+    exposures:
+      - name: Number_of_orders_over_time
+        description: '
+          ### Visualization: Line
+      
+          A line chart depicting how order volume changes over time
+      
+          #### Metadata
+      
+          Metabase Id: __8__
+      
+          Created On: __2021-07-21T08:01:38.016244Z__'
+        type: analysis
+        url: http://your.metabase/card/8
+        maturity: medium
+        owner:
+          name: Jeff Bezos
+          email: human@earth.world
+        depends_on:
+        - ref('orders')
+
+Questions which are Native queries will have the SQL propagate to a code block in the documentation
+description for full visibility. This YAML, like the rest of your dbt project can be committed to source
+control to understand how exposures change over time. In a production environment, one can trigger 
+``dbt docs generate`` after ``dbt-metabase exposures`` (or alternatively run the exposure extraction job
+on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes dbt docs a
+useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
+
 Reading your dbt project
 ------------------------
 
@@ -262,10 +315,10 @@ line. But if you prefer to call it from your code, here's how to do it:
 
     import dbtmetabase
 
-    dbtmetabase.export(
+    dbtmetabase.execute(
+      command="export_models",
       dbt_database=dbt_database,
       dbt_manifest_path=dbt_manifest_path,
-      dbt_path=dbt_path,
       dbt_docs_url=dbt_docs,
       metabase_database=metabase_database,
       metabase_host=metabase_host,
