@@ -254,7 +254,7 @@ class MockMetabaseClient(MetabaseClient):
     def get_session_id(self, user: str, password: str) -> str:
         return "dummy"
 
-    def api(self, method: str, path: str):
+    def api(self, method: str, path: str, **kwargs):
         BASE_PATH = "tests/fixtures/mock_api/"
         if method == "get":
             if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
@@ -294,3 +294,56 @@ class TestMetabaseClient(unittest.TestCase):
         sample_exposures = sorted(sample["exposures"], key=lambda ele: ele["name"])
 
         self.assertEqual(baseline_exposures, sample_exposures)
+
+    def test_build_lookups(self):
+        mbc = self.client
+        baseline_tables = [
+            "PUBLIC.CUSTOMERS",
+            "PUBLIC.ORDERS",
+            "PUBLIC.RAW_CUSTOMERS",
+            "PUBLIC.RAW_ORDERS",
+            "PUBLIC.RAW_PAYMENTS",
+            "PUBLIC.STG_CUSTOMERS",
+            "PUBLIC.STG_ORDERS",
+            "PUBLIC.STG_PAYMENTS",
+        ]
+        table_lookups, field_lookups = mbc.build_metadata_lookups(database_id=2)
+        self.assertEqual(baseline_tables, list(table_lookups.keys()))
+        baseline_columns = [
+            [
+                "CUSTOMER_ID",
+                "FIRST_NAME",
+                "LAST_NAME",
+                "FIRST_ORDER",
+                "MOST_RECENT_ORDER",
+                "NUMBER_OF_ORDERS",
+                "CUSTOMER_LIFETIME_VALUE",
+            ],
+            [
+                "ORDER_ID",
+                "CUSTOMER_ID",
+                "ORDER_DATE",
+                "STATUS",
+                "CREDIT_CARD_AMOUNT",
+                "COUPON_AMOUNT",
+                "BANK_TRANSFER_AMOUNT",
+                "GIFT_CARD_AMOUNT",
+                "AMOUNT",
+            ],
+            ["ID", "FIRST_NAME", "LAST_NAME"],
+            ["ID", "USER_ID", "ORDER_DATE", "STATUS"],
+            ["ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
+            ["CUSTOMER_ID", "FIRST_NAME", "LAST_NAME"],
+            ["ORDER_ID", "CUSTOMER_ID", "ORDER_DATE", "STATUS"],
+            ["PAYMENT_ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
+        ]
+        for table, columns in zip(baseline_tables, baseline_columns):
+            self.assertEqual(columns, list(field_lookups[table].keys()))
+        baseline_table_lookups = json.load(
+            open(f"tests/fixtures/lookups/table_lookups.json")
+        )
+        baseline_field_lookups = json.load(
+            open(f"tests/fixtures/lookups/field_lookups.json")
+        )
+        self.assertEqual(baseline_table_lookups, table_lookups)
+        self.assertEqual(baseline_field_lookups, field_lookups)
