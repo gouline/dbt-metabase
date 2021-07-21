@@ -10,7 +10,7 @@ from .parsers.dbt_manifest import DbtManifestReader
 
 from typing import Mapping, Iterable, List, Union, Literal
 
-__version__ = "0.9.0"
+from ._version import version as __version__
 
 
 def execute(
