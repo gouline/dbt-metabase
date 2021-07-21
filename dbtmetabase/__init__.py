@@ -8,7 +8,7 @@ from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 
-from typing import Mapping, Iterable, List, Union, Literal
+from typing import Iterable, List, Union, Literal
 
 from ._version import version as __version__
 
