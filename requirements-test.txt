@@ -2,3 +2,4 @@ pylint
 mypy
 types-requests
 types-PyYAML
+black
