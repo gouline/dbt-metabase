@@ -3,7 +3,7 @@ import os
 import logging
 
 from pathlib import Path
-from typing import List, Iterable, Mapping, MutableMapping, Literal
+from typing import List, Iterable, Mapping, MutableMapping, Literal, Optional
 
 import yaml
 
@@ -29,7 +29,7 @@ class DbtFolderReader:
     def read_models(
         self,
         database: str,
-        schema: str = "public",
+        schema: Optional[str] = None,
         schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
@@ -52,6 +52,8 @@ class DbtFolderReader:
             includes = []
         if excludes is None:
             excludes = []
+        if schema is None:
+            schema = "public"
 
         if database:
             logging.info(
