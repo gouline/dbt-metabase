@@ -566,6 +566,7 @@ class MetabaseClient:
                 allow_unicode=True,
                 sort_keys=False,
             )
+        return {"version": 2, "exposures": captured_exposures}
 
     def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
         if not model:
