@@ -20,9 +20,8 @@ class TestDbtFolderReader(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_read_models(self):
-        """Ensure we read ymls and output expected schema"""
         models = self.reader.read_models(
-            database="dev",
+            database="test",
             schema="public",
         )
         expectation = [
