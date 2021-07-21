@@ -344,3 +344,22 @@ def rebuild_baseline_exposure_yaml():
         output_name="baseline_test_exposures",
         output_path="tests/fixtures/exposure",
     )
+
+
+def rebuild_lookup_artifacts():
+    tables, fields = mbc.build_metadata_lookups(database_id=2)
+    if not os.path.exists(f"/home/alexb/dbt-metabase/tests/fixtures/lookups"):
+        os.mkdir(f"/home/alexb/dbt-metabase/tests/fixtures/lookups")
+    with open(
+        f"/home/alexb/dbt-metabase/tests/fixtures/lookups/table_lookups.json",
+        "w",
+    ) as f:
+        f.write(json.dumps(tables))
+    with open(
+        f"/home/alexb/dbt-metabase/tests/fixtures/lookups/field_lookups.json",
+        "w",
+    ) as f:
+        f.write(json.dumps(fields))
+
+
+rebuild_lookup_artifacts()
