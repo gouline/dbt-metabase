@@ -425,9 +425,9 @@ class MetabaseMetricCompiler:
 
         # OPERATORS
         eq_op = oneOf("= > < >= <= !=")("comparison")
-        and_op = Literal("and")("comparison")
-        or_op = Literal("or")("comparison")
-        not_op = Literal("not")("comparison")
+        and_op = CaselessLiteral("and")("comparison")
+        or_op = CaselessLiteral("or")("comparison")
+        not_op = CaselessLiteral("not")("comparison")
         sign_op = oneOf("+ -")("operator")
         mult_op = oneOf("* /")("operator")
         plus_op = oneOf("+ -")("operator")
