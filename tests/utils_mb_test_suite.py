@@ -360,6 +360,3 @@ def rebuild_lookup_artifacts():
         "w",
     ) as f:
         f.write(json.dumps(fields))
-
-
-rebuild_lookup_artifacts()
