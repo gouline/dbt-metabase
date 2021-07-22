@@ -94,7 +94,7 @@ def exposures(
     dbt_config: dbtConfig,
     output_path: str,
     output_name: str,
-    include_personal_collections: bool = None,
+    include_personal_collections: bool = False,
     exclude_collections: Optional[Iterable] = None,
 ):
     """Extracts and imports exposures from Metabase to dbt.
