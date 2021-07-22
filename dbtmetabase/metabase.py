@@ -54,7 +54,7 @@ class MetabaseClient:
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
-        self.mb_native_query: str = ""
+        self.native_query: str = ""
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
@@ -473,7 +473,7 @@ class MetabaseClient:
             logging.info("Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
                 self.models_exposed = []
-                self.mb_native_query = ""
+                self.native_query = ""
                 if item["model"] == "card":
                     model = self.api("get", f"/api/{item['model']}/{item['id']}")
                     name = model.get("name", "Indeterminate Card")
@@ -528,11 +528,11 @@ class MetabaseClient:
                         "#### Query\n\n```\n{}\n```\n\n".format(
                             "\n".join(
                                 line
-                                for line in self.mb_native_query.strip().split("\n")
+                                for line in self.native_query.strip().split("\n")
                                 if line.strip() != ""
                             )
                         )
-                        if self.mb_native_query
+                        if self.native_query
                         else ""
                     )
                     + "#### Metadata\n\n"
@@ -617,7 +617,7 @@ class MetabaseClient:
                     clean_exposure,
                 )
                 self.models_exposed.append(clean_exposure)
-                self.mb_native_query = native_query
+                self.native_query = native_query
 
     def api(
         self,
