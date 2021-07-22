@@ -205,6 +205,7 @@ def main(args: List = None):
     parser_dbt.add_argument(
         "--schema_excludes",
         nargs="*",
+        default=[],
         help="Target schemas to exclude. Cannot be specified with --schema. Will sync all schemas not excluded",
     )
     parser_dbt.add_argument(
