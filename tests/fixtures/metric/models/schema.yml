@@ -4,6 +4,16 @@ models:
   - name: customers
     description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
 
+    meta:
+      metabase.metrics:
+      - name: Number of Customers
+        description: Total number of customers
+        metric: count
+      - name: Number of Customers with Large Orders
+        description: Customers who are big spenders should be tracked independently of total,
+          any customer who orders over 100 AUD of jaffle is counted
+        metric: countif([customer_lifetime_value] > 100)
+
     columns:
       - name: customer_id
         description: This is a unique identifier for a customer
