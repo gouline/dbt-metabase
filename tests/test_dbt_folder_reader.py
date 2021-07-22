@@ -87,7 +87,7 @@ class TestDbtFolderReader(unittest.TestCase):
                         fk_target_field=None,
                     ),
                     MetabaseColumn(
-                        name="TOTAL_ORDER_AMOUNT",
+                        name="CUSTOMER_LIFETIME_VALUE",
                         description="Total value (AUD) of a customer's orders",
                         meta_fields={},
                         semantic_type=None,
