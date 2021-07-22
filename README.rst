@@ -127,7 +127,6 @@ descriptions to Metabase by executing the below command.
         --metabase_user user@example.com \
         --metabase_password Password123 \
         --metabase_database business \
-        --dbt_docs_url https://your.metabase/ \
         --output_path ./models/
         --output_name metabase_exposures
 
@@ -150,19 +149,19 @@ emails & names, links to exposures, and even native SQL propagated over from Met
       
           Created On: __2021-07-21T08:01:38.016244Z__'
         type: analysis
-        url: http://your.metabase/card/8
+        url: http://your.metabase.com/card/8
         maturity: medium
         owner:
-          name: Jeff Bezos
-          email: human@earth.world
+          name: Indiana Jones
+          email: user@example.com
         depends_on:
         - ref('orders')
 
-Questions which are Native queries will have the SQL propagate to a code block in the documentation
+Questions which are native queries will have the SQL propagated to a code block in the documentation's
 description for full visibility. This YAML, like the rest of your dbt project can be committed to source
 control to understand how exposures change over time. In a production environment, one can trigger 
 ``dbt docs generate`` after ``dbt-metabase exposures`` (or alternatively run the exposure extraction job
-on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes dbt docs a
+on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes ``dbt docs`` a
 useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
 
 Reading your dbt project
