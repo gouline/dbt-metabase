@@ -393,6 +393,9 @@ class MetabaseMetricCompiler:
             + RPAR
         )
 
+        # SPECIFIC GRAMMAR FOR COUNT
+        count_expression = Group(CaselessLiteral("count") + Optional(LPAR + RPAR))
+
         # SPECIFIC GRAMMAR FOR CASE
         case_expression = Group(
             CaselessLiteral("case")
@@ -408,11 +411,17 @@ class MetabaseMetricCompiler:
         )
 
         # SPECIFIC GRAMMAR FOR SUM-WHERE COUNT-WHERE
-        where_expression = Group(
-            oneOf("count-where sum-where SumIf CountIf", caseless=True)
+        sum_where_expression = Group(
+            oneOf("sum-where SumIf", caseless=True)
             + LPAR
             + Group(mb_expr)("value_if")
             + Suppress(",")
+            + Group(mb_expr)("conditional")
+            + RPAR
+        )
+        count_where_expression = Group(
+            oneOf("count-where CountIf", caseless=True)
+            + LPAR
             + Group(mb_expr)("conditional")
             + RPAR
         )
@@ -434,7 +443,9 @@ class MetabaseMetricCompiler:
             | string("string")
             | column("field")
             | case_expression("case")
-            | where_expression("where")
+            | sum_where_expression("where")
+            | count_where_expression("where")
+            | count_expression("count")
             | expression("expression")
             | Group(LPAR + mb_expr + RPAR)("args"),
             [
