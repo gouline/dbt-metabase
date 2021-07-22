@@ -615,16 +615,16 @@ class MetabaseClient:
 
     def sync_metrics(
         self,
+        database: str,
         models: List[MetabaseModel],
-        database,
-        aliases={},
-        revision_message="Metric has been updated. ",
-        **kwargs,
+        aliases: Optional[Mapping] = None,
+        revision_header: str = "Metric has been updated. ",
     ):
-        from pprint import pprint
+
+        if aliases is None:
+            aliases = {}
 
         metabase_metrics = self.api("get", "/api/metric")
-
         database_id = self.find_database_id(database)
 
         if not database_id:
@@ -656,14 +656,14 @@ class MetabaseClient:
 
             for metric in model.meta["metabase.metrics"]:
                 if "name" not in metric or "metric" not in metric:
-                    print("Invalid metric")
+                    logging.warning(
+                        "Invalid metric %s in model %s", metric["name"], lookup_key
+                    )
                     continue
-                print(metric["metric"])
                 metric_name = metric["name"]
                 metric_compiled = metabase_compiler.transpile_expression(
                     metric["metric"]
                 )
-                print(metric_compiled)
                 metric_description = metric.get(
                     "description", "No description provided"
                 )
@@ -684,10 +684,15 @@ class MetabaseClient:
                 }
                 this_metric = None
                 for existing_metric in metabase_metrics:
-                    if metric_name == existing_metric["name"]:
+                    if (
+                        metric_name == existing_metric["name"]
+                        and table_id == existing_metric["table_id"]
+                    ):
                         if this_metric is not None:
-                            print("Duplicate metric names")
-                        print("Existing metric found!")
+                            logging.error("Duplicate metric in model %s", lookup_key)
+                        logging.info(
+                            "Existing metric %s found for %s", metric_name, lookup_key
+                        )
                         this_metric = existing_metric
                 if this_metric:
                     # Revise
@@ -704,21 +709,21 @@ class MetabaseClient:
                             f'Formula definiton updated to {metric["metric"]}'
                         )
                     if agglomerate_changes:
-                        compiled["revision_message"] = (
-                            revision_message + agglomerate_changes
+                        compiled["revision_header"] = (
+                            revision_header + agglomerate_changes
                         )
                         output_metric = self.api(
                             "put", f"/api/metric/{this_metric['id']}", json=compiled
                         )
-                        print(f"Metric {metric_name} updated!")
-                        print(output_metric)
+                        logging.info("Metric %s updated!", metric_name)
+                        logging.info(output_metric)
                     else:
-                        print(f"No changes to {metric_name}")
+                        logging.info("No changes to %s", metric_name)
                 else:
                     # Create
-                    output_metric = self.api("post", f"/api/metric/", json=compiled)
-                    print(f"Metric {metric_name} created!")
-                    print(output_metric)
+                    output_metric = self.api("post", "/api/metric/", json=compiled)
+                    logging.info("Metric %s created!", metric_name)
+                    logging.info(output_metric)
 
     def api(
         self,

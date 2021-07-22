@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Sequence, Optional, MutableMapping, Literal, Dict
+from typing import Sequence, Optional, MutableMapping, Literal
 
 # Allowed metabase.* fields
 # Should be covered by attributes in the MetabaseColumn class

@@ -3,7 +3,6 @@ from pyparsing import (
     Word,
     Group,
     Optional,
-    Literal,
     Combine,
     CaselessLiteral,
     oneOf,
@@ -277,7 +276,7 @@ class MetabaseMetricCompiler:
         # EXPRESSION NAME [LITERAL]
         self.field_lookup = field_lookup
         self.current_target = None
-        self.mb_expr_map_to_api = {
+        self.expr_map_to_api = {
             term["displayName"].lower(): api_name
             for api_name, term in METABASE_EXPRESSIONS.items()
         }
@@ -316,7 +315,7 @@ class MetabaseMetricCompiler:
                 self.infix_to_prefix(y[ix])
             else:
                 # Translate base values to api values where applicable
-                y[ix] = self.mb_expr_map_to_api.get(
+                y[ix] = self.expr_map_to_api.get(
                     y[ix].lower() if isinstance(y[ix], str) else y[ix], y[ix]
                 )
 
@@ -326,8 +325,6 @@ class MetabaseMetricCompiler:
         if isinstance(y, list) and y[0] != "field" and "=" not in y:
 
             total_ops = self.sort_count_ops(y)
-            """Starting index of Operands"""
-
             const = []
 
             # Lets iterate through all ops
@@ -359,14 +356,14 @@ class MetabaseMetricCompiler:
     def to_field(self, y):
         # y[0]
         print(str(y[0]).upper())
-        id = (
+        _id = (
             self.field_lookup.get(self.current_target, {})
             .get(str(y[0]).upper(), {})
             .get("id", None)
         )
-        if id is None:
+        if _id is None:
             exit("No column found")
-        return [[["field", id, None]]]
+        return [[["field", _id, None]]]
 
     def build_parser(self) -> Forward:
         # BUILD EXPRESSION
@@ -432,27 +429,24 @@ class MetabaseMetricCompiler:
         mult_op = oneOf("* /")("operator")
         plus_op = oneOf("+ -")("operator")
 
-        (
-            mb_expr
-            << infixNotation(
-                number("constant")
-                | string("string")
-                | column("field")
-                | case_expression("case")
-                | where_expression("where")
-                | expression("expression")
-                | Group(LPAR + mb_expr + RPAR)("args"),
-                [
-                    (sign_op("operator"), 1, opAssoc.RIGHT),
-                    (mult_op("operator"), 2, opAssoc.LEFT),
-                    (plus_op("operator"), 2, opAssoc.LEFT),
-                    (eq_op("comparison"), 2, opAssoc.LEFT),
-                    (and_op("comparison"), 2, opAssoc.LEFT),
-                    (or_op("comparison"), 2, opAssoc.LEFT),
-                    (not_op("comparison"), 1, opAssoc.RIGHT),
-                ],
-            ).setParseAction(lambda x: x[0])
-        )
+        mb_expr <<= infixNotation(
+            number("constant")
+            | string("string")
+            | column("field")
+            | case_expression("case")
+            | where_expression("where")
+            | expression("expression")
+            | Group(LPAR + mb_expr + RPAR)("args"),
+            [
+                (sign_op("operator"), 1, opAssoc.RIGHT),
+                (mult_op("operator"), 2, opAssoc.LEFT),
+                (plus_op("operator"), 2, opAssoc.LEFT),
+                (eq_op("comparison"), 2, opAssoc.LEFT),
+                (and_op("comparison"), 2, opAssoc.LEFT),
+                (or_op("comparison"), 2, opAssoc.LEFT),
+                (not_op("comparison"), 1, opAssoc.RIGHT),
+            ],
+        ).setParseAction(lambda x: x[0])
 
         return mb_expr
 
