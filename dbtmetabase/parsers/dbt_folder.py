@@ -7,8 +7,8 @@ from typing import List, Iterable, Mapping, MutableMapping, Literal, Optional
 
 import yaml
 
-from dbtmetabase.models.metabase import METABASE_META_FIELDS
-from dbtmetabase.models.metabase import MetabaseModel, MetabaseColumn
+from ..models.metabase import METABASE_META_FIELDS
+from ..models.metabase import MetabaseModel, MetabaseColumn
 
 
 class DbtFolderReader:
