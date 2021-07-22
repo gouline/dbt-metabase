@@ -117,7 +117,7 @@ Exposure Extraction
 
 dbt-metabase also allows us to extract exposures from Metabase. The invocation is almost identical to
 our export function with the addition of output name and location args. `dbt exposures`_ let us understand
-how are dbt models are exposed in BI which closes the loop between ELT, modelling, and consumption.
+how our dbt models are exposed in BI which closes the loop between ELT, modelling, and consumption.
 
 
 .. _`dbt exposures`: https://docs.getdbt.com/docs/building-a-dbt-project/exposures
