@@ -19,7 +19,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Orders,_Count
@@ -41,7 +41,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('orders')
 - name: A_look_at_your_customers_table
@@ -63,7 +63,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Customer_lifetime_value_over_time
@@ -85,7 +85,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Customer_lifetime_value_over_time_1
@@ -107,7 +107,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Customers_added_in_the_last_30_days
@@ -129,7 +129,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Customers_added_in_the_last_30_days_1
@@ -151,7 +151,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Customers_by_customer_lifetime_value
@@ -173,7 +173,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Customers_by_number_of_orders
@@ -195,7 +195,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Number_of_orders_over_time
@@ -217,7 +217,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Number_of_orders_over_time_1
@@ -239,7 +239,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Timestamp_by_day_of_the_week
@@ -261,7 +261,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Timestamp_by_day_of_the_week_1
@@ -283,7 +283,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Timestamp_by_month_of_the_year
@@ -305,7 +305,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Timestamp_by_month_of_the_year_1
@@ -327,7 +327,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Timestamp_by_quarter_of_the_year
@@ -349,7 +349,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Timestamp_by_quarter_of_the_year_1
@@ -371,7 +371,7 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
 - name: Total_customers
@@ -393,6 +393,6 @@ exposures:
   maturity: medium
   owner:
     name: Alexander Butler
-    email: alex@source.co
+    email: user@example.com
   depends_on:
   - ref('customers')
