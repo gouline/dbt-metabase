@@ -61,7 +61,7 @@ def models(
         }
 
     # Process dbt stuff
-    models = reader.read_models(
+    dbt_models = reader.read_models(
         database=dbt_config.dbt_database,
         schema=dbt_config.schema,
         schema_excludes=dbt_config.schema_excludes,
@@ -75,7 +75,7 @@ def models(
     if not metabase_config.metabase_sync_skip:
         if metabase_config.metabase_sync_timeout is not None and not mbc.sync_and_wait(
             metabase_config.metabase_database,
-            models,
+            dbt_models,
             metabase_config.metabase_sync_timeout,
         ):
             logging.critical("Sync timeout reached, models still not compatible")
@@ -84,7 +84,7 @@ def models(
     # Process Metabase stuff
     mbc.export_models(
         database=metabase_config.metabase_database,
-        models=models,
+        models=dbt_models,
         aliases=reader.catch_aliases,
     )
 
@@ -139,7 +139,7 @@ def exposures(
         }
 
     # Process dbt stuff
-    models = reader.read_models(
+    dbt_models = reader.read_models(
         database=dbt_config.dbt_database,
         schema=dbt_config.schema,
         schema_excludes=dbt_config.schema_excludes,
@@ -151,7 +151,7 @@ def exposures(
     if not metabase_config.metabase_sync_skip:
         if metabase_config.metabase_sync_timeout is not None and not mbc.sync_and_wait(
             metabase_config.metabase_database,
-            models,
+            dbt_models,
             metabase_config.metabase_sync_timeout,
         ):
             logging.critical("Sync timeout reached, models still not compatible")
@@ -159,7 +159,7 @@ def exposures(
 
     # Process Metabase stuff
     mbc.extract_exposures(
-        models=models,
+        models=dbt_models,
         output_path=output_path,
         output_name=output_name,
         include_personal_collections=include_personal_collections,
