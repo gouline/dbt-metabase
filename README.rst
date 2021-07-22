@@ -115,8 +115,13 @@ will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
 Exposure Extraction
 -------------------
 
-That's already enough to propagate the primary keys, foreign keys and
-descriptions to Metabase by executing the below command.
+dbt-metabase also allows us to extract exposures from Metabase. The invocation is almost identical to
+our export function with the addition of output name and location args. `dbt exposures`_ let us understand
+how are dbt models are exposed in BI which closes the loop between ELT, modelling, and consumption.
+
+
+.. _`dbt exposures`: https://docs.getdbt.com/docs/building-a-dbt-project/exposures
+
 
 .. code-block:: shell
 
@@ -127,7 +132,7 @@ descriptions to Metabase by executing the below command.
         --metabase_user user@example.com \
         --metabase_password Password123 \
         --metabase_database business \
-        --output_path ./models/
+        --output_path ./models/ \
         --output_name metabase_exposures
 
 Once execution completes, a look at the output ``metabase_exposures.yml`` will 
@@ -314,25 +319,42 @@ line. But if you prefer to call it from your code, here's how to do it:
 
     import dbtmetabase
 
-    dbtmetabase.execute(
-      command="export_models",
-      dbt_database=dbt_database,
-      dbt_manifest_path=dbt_manifest_path,
+    # Collect Args the Build Configs #
+
+    metabase_config = MetabaseConfig(
+        metabase_host=metabase_host,
+        metabase_user=metabase_user,
+        metabase_password=metabase_password,
+        metabase_use_http=metabase_use_http,
+        metabase_verify=metabase_verify,
+        metabase_database=metabase_database,
+        metabase_sync_skip=metabase_sync_skip,
+        metabase_sync_timeout=metabase_sync_timeout,
+    )
+
+    dbt_config = dbtConfig(
+        dbt_path=dbt_path,
+        dbt_manifest_path=dbt_manifest_path,
+        dbt_database=dbt_database,
+        schema_excludes=schema_excludes,
+        includes=includes,
+        excludes=excludes,
+    )
+
+    dbtmetabase.models(
+      metabase_config=metabase_config,
+      dbt_config=dbt_config,
       dbt_docs_url=dbt_docs,
-      metabase_database=metabase_database,
-      metabase_host=metabase_host,
-      metabase_user=metabase_user,
-      metabase_password=metabase_password,
-      metabase_use_http=metabase_use_http,
-      metabase_verify=metabase_verify,
-      metabase_sync_skip=metabase_sync_skip,
-      metabase_sync_timeout=metabase_sync_timeout,
-      schema=schema,
-      schema_excludes=schema_excludes,
-      includes=includes,
-      excludes=excludes,
       include_tags=include_tags,
     )
+
+    dbtmetabase.exposures(
+      metabase_config=metabase_config,
+      dbt_config=dbt_config,
+      output_path=output_path,
+      output_name=output_name,
+    )
+
 
 Code of Conduct
 ===============
