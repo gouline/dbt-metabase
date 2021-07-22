@@ -86,7 +86,6 @@ def models(
         database=metabase_config.metabase_database,
         models=models,
         aliases=reader.catch_aliases,
-        schema_excludes=dbt_config.schema_excludes,
     )
 
 
@@ -323,7 +322,7 @@ def main(args: List = None):
         metabase_verify=parsed.metabase_verify,
         metabase_database=parsed.metabase_database,
         metabase_sync_skip=parsed.metabase_sync_skip,
-        metabase_sync_timeou=parsed.metabase_sync_timeout,
+        metabase_sync_timeout=parsed.metabase_sync_timeout,
     )
     dbt_config = dbtConfig(
         dbt_path=parsed.dbt_path,
