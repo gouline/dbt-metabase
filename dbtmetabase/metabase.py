@@ -169,7 +169,6 @@ class MetabaseClient:
         database: str,
         models: Sequence[MetabaseModel],
         aliases,
-        **kwargs,
     ):
         """Exports dbt models to Metabase database schema.
 
@@ -178,8 +177,6 @@ class MetabaseClient:
             models {list} -- List of dbt models read from project.
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
-
-        logging.debug("Additional args %s", kwargs)
 
         database_id = self.find_database_id(database)
         if not database_id:
@@ -443,13 +440,10 @@ class MetabaseClient:
         output_name: str = "metabase_exposures",
         include_personal_collections: bool = True,
         exclude_collections: Iterable = None,
-        **kwargs,
     ):
 
         if exclude_collections is None:
             exclude_collections = []
-
-        logging.debug("Additional args %s", kwargs)
 
         refable_models = {node.name: node.ref for node in models}
 
