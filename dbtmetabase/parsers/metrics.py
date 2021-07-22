@@ -1,3 +1,4 @@
+import pyparsing  # type: ignore
 from pyparsing import (
     Forward,
     Word,
@@ -14,10 +15,9 @@ from pyparsing import (
     alphanums,
     dblQuotedString,
     pyparsing_common,
-    ParserElement,
 )
 
-ParserElement.enablePackrat()
+pyparsing.ParserElement.enablePackrat()
 
 METABASE_EXPRESSIONS = {
     # aggregations
