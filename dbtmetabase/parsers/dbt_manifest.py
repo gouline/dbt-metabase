@@ -3,8 +3,8 @@ import os
 from typing import List, Iterable, Mapping, Optional, MutableMapping, Literal
 import logging
 
-from dbtmetabase.models.metabase import METABASE_META_FIELDS
-from dbtmetabase.models.metabase import MetabaseModel, MetabaseColumn
+from ..models.metabase import METABASE_META_FIELDS
+from ..models.metabase import MetabaseModel, MetabaseColumn
 
 
 class DbtManifestReader:

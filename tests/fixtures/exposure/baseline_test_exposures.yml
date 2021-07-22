@@ -1,0 +1,398 @@
+version: 2
+exposures:
+- name: Customers,_Sum_of_Number_Of_Orders_and_Average_of_Number_Of_Orders,_Grouped_by_Most_Recent_Order_(day)
+  description: '### Visualization: Line
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __1__
+
+
+    Created On: __2021-07-21T08:00:47.453351Z__'
+  type: analysis
+  url: http://localhost:3000/card/1
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Orders,_Count
+  description: '### Visualization: Scalar
+
+
+    Nice KPI
+
+
+    #### Metadata
+
+
+    Metabase Id: __2__
+
+
+    Created On: __2021-07-21T08:01:14.290572Z__'
+  type: analysis
+  url: http://localhost:3000/card/2
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('orders')
+- name: A_look_at_your_customers_table
+  description: '### Dashboard Cards: 18
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __1__
+
+
+    Created On: __2021-07-21T08:01:37.328519Z__'
+  type: dashboard
+  url: http://localhost:3000/dashboard/1
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Customer_lifetime_value_over_time
+  description: '### Visualization: Line
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __11__
+
+
+    Created On: __2021-07-21T08:01:38.52841Z__'
+  type: analysis
+  url: http://localhost:3000/card/11
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Customer_lifetime_value_over_time_1
+  description: '### Visualization: Line
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __9__
+
+
+    Created On: __2021-07-21T08:01:38.189846Z__'
+  type: analysis
+  url: http://localhost:3000/card/9
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Customers_added_in_the_last_30_days
+  description: '### Visualization: Scalar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __4__
+
+
+    Created On: __2021-07-21T08:01:37.535187Z__'
+  type: analysis
+  url: http://localhost:3000/card/4
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Customers_added_in_the_last_30_days_1
+  description: '### Visualization: Scalar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __5__
+
+
+    Created On: __2021-07-21T08:01:37.630969Z__'
+  type: analysis
+  url: http://localhost:3000/card/5
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Customers_by_customer_lifetime_value
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __7__
+
+
+    Created On: __2021-07-21T08:01:37.858387Z__'
+  type: analysis
+  url: http://localhost:3000/card/7
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Customers_by_number_of_orders
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __6__
+
+
+    Created On: __2021-07-21T08:01:37.754606Z__'
+  type: analysis
+  url: http://localhost:3000/card/6
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Number_of_orders_over_time
+  description: '### Visualization: Line
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __8__
+
+
+    Created On: __2021-07-21T08:01:38.016244Z__'
+  type: analysis
+  url: http://localhost:3000/card/8
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Number_of_orders_over_time_1
+  description: '### Visualization: Line
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __10__
+
+
+    Created On: __2021-07-21T08:01:38.347535Z__'
+  type: analysis
+  url: http://localhost:3000/card/10
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Timestamp_by_day_of_the_week
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __12__
+
+
+    Created On: __2021-07-21T08:01:38.662485Z__'
+  type: analysis
+  url: http://localhost:3000/card/12
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Timestamp_by_day_of_the_week_1
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __13__
+
+
+    Created On: __2021-07-21T08:01:38.808186Z__'
+  type: analysis
+  url: http://localhost:3000/card/13
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Timestamp_by_month_of_the_year
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __15__
+
+
+    Created On: __2021-07-21T08:01:39.084258Z__'
+  type: analysis
+  url: http://localhost:3000/card/15
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Timestamp_by_month_of_the_year_1
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __14__
+
+
+    Created On: __2021-07-21T08:01:38.938688Z__'
+  type: analysis
+  url: http://localhost:3000/card/14
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Timestamp_by_quarter_of_the_year
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __17__
+
+
+    Created On: __2021-07-21T08:01:39.371067Z__'
+  type: analysis
+  url: http://localhost:3000/card/17
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Timestamp_by_quarter_of_the_year_1
+  description: '### Visualization: Bar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __16__
+
+
+    Created On: __2021-07-21T08:01:39.228965Z__'
+  type: analysis
+  url: http://localhost:3000/card/16
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')
+- name: Total_customers
+  description: '### Visualization: Scalar
+
+
+    No description provided in Metabase
+
+
+    #### Metadata
+
+
+    Metabase Id: __3__
+
+
+    Created On: __2021-07-21T08:01:37.434243Z__'
+  type: analysis
+  url: http://localhost:3000/card/3
+  maturity: medium
+  owner:
+    name: Alexander Butler
+    email: user@example.com
+  depends_on:
+  - ref('customers')

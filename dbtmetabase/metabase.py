@@ -56,7 +56,7 @@ class MetabaseClient:
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
-        self.mb_native_query: str = ""
+        self.native_query: str = ""
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
@@ -171,7 +171,6 @@ class MetabaseClient:
         database: str,
         models: Sequence[MetabaseModel],
         aliases,
-        **kwargs,
     ):
         """Exports dbt models to Metabase database schema.
 
@@ -180,8 +179,6 @@ class MetabaseClient:
             models {list} -- List of dbt models read from project.
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
-
-        logging.debug("Additional args %s", kwargs)
 
         database_id = self.find_database_id(database)
         if not database_id:
@@ -445,13 +442,10 @@ class MetabaseClient:
         output_name: str = "metabase_exposures",
         include_personal_collections: bool = True,
         exclude_collections: Iterable = None,
-        **kwargs,
     ):
 
         if exclude_collections is None:
             exclude_collections = []
-
-        logging.debug("Additional args %s", kwargs)
 
         refable_models = {node.name: node.ref for node in models}
 
@@ -462,19 +456,18 @@ class MetabaseClient:
         duplicate_name_check = []
         captured_exposures = []
 
-        # {"dataset_query":{"type":"native","native":{"query":"select * from dim_core_site_detail","template-tags":{}},"database":2},"display":"table","visualization_settings":{}}
-
         for collection in self.collections:
             if collection["name"] in exclude_collections:
                 continue
-            if not include_personal_collections and collection["name"].endswith(
-                "'s Personal Collection"
+            if (
+                not include_personal_collections
+                and collection.get("personal_owner_id") is not None
             ):
                 continue
             logging.info("Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
                 self.models_exposed = []
-                self.mb_native_query = ""
+                self.native_query = ""
                 if item["model"] == "card":
                     model = self.api("get", f"/api/{item['model']}/{item['id']}")
                     name = model.get("name", "Indeterminate Card")
@@ -529,11 +522,11 @@ class MetabaseClient:
                         "#### Query\n\n```\n{}\n```\n\n".format(
                             "\n".join(
                                 line
-                                for line in self.mb_native_query.strip().split("\n")
+                                for line in self.native_query.strip().split("\n")
                                 if line.strip() != ""
                             )
                         )
-                        if self.mb_native_query
+                        if self.native_query
                         else ""
                     )
                     + "#### Metadata\n\n"
@@ -568,6 +561,7 @@ class MetabaseClient:
                 allow_unicode=True,
                 sort_keys=False,
             )
+        return {"version": 2, "exposures": captured_exposures}
 
     def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
         if not model:
@@ -581,9 +575,7 @@ class MetabaseClient:
                 if isinstance(source_table_id, str) and source_table_id.startswith(
                     "card__"
                 ):
-                    self._extract_card_exposures(
-                        int(source_table_id.split("card__")[-1])
-                    )
+                    self._extract_card_exposures(int(source_table_id.split("__")[-1]))
                 else:
                     source_table = self.table_map[source_table_id]
                     logging.info(
@@ -596,7 +588,7 @@ class MetabaseClient:
                         query_join.get("source-table"), str
                     ) and query_join.get("source-table").startswith("card__"):
                         self._extract_card_exposures(
-                            int(query_join.get("source-table").split("card__")[-1])
+                            int(query_join.get("source-table").split("__")[-1])
                         )
                         continue
                     joined_table = self.table_map[query_join.get("source-table")]
@@ -619,7 +611,7 @@ class MetabaseClient:
                     clean_exposure,
                 )
                 self.models_exposed.append(clean_exposure)
-                self.mb_native_query = native_query
+                self.native_query = native_query
 
     def sync_metrics(
         self,
