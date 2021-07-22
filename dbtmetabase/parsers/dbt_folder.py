@@ -56,14 +56,14 @@ class DbtFolderReader:
             schema = "public"
 
         if database:
-            logging.info(
-                "Argument --database %s is unused in dbt_project yml parser. Use manifest parser instead.",
+            logging.debug(
+                "Argument --dbt_database %s is unused in dbt YAML parser. Use manifest parser instead.",
                 database,
             )
 
         if dbt_docs_url:
-            logging.info(
-                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
+            logging.debug(
+                "Argument --dbt_docs_url %s is unused in dbt YAML parser. Use manifest parser instead.",
                 dbt_docs_url,
             )
 
