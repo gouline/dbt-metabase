@@ -645,6 +645,7 @@ class MetabaseClient:
 
             lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
             metabase_compiler.current_target = lookup_key
+            logging.debug("Target: %s", lookup_key)
 
             api_table = table_lookup.get(lookup_key)
 
@@ -660,10 +661,12 @@ class MetabaseClient:
                         "Invalid metric %s in model %s", metric["name"], lookup_key
                     )
                     continue
+                logging.debug("Constructing metric from %s", metric)
                 metric_name = metric["name"]
                 metric_compiled = metabase_compiler.transpile_expression(
                     metric["metric"]
                 )
+                logging.debug("Metric %s compiled to %s", metric_name, metric_compiled)
                 metric_description = metric.get(
                     "description", "No description provided"
                 )
@@ -709,21 +712,21 @@ class MetabaseClient:
                             f'Formula definiton updated to {metric["metric"]}'
                         )
                     if agglomerate_changes:
-                        compiled["revision_header"] = (
+                        compiled["revision_message"] = (
                             revision_header + agglomerate_changes
                         )
                         output_metric = self.api(
                             "put", f"/api/metric/{this_metric['id']}", json=compiled
                         )
                         logging.info("Metric %s updated!", metric_name)
-                        logging.info(output_metric)
+                        logging.debug(output_metric)
                     else:
                         logging.info("No changes to %s", metric_name)
                 else:
                     # Create
                     output_metric = self.api("post", "/api/metric/", json=compiled)
                     logging.info("Metric %s created!", metric_name)
-                    logging.info(output_metric)
+                    logging.debug(output_metric)
 
     def api(
         self,
