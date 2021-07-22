@@ -35,8 +35,8 @@ def models(
         logging.warning("Prioritizing manifest path arg")
         dbt_config.dbt_path = None
     if dbt_config.dbt_path and not dbt_config.schema:
-        logging.error(
-            "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
+        logging.warning(
+            "You should supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to. Will default to `public`"
         )
 
     # Instantiate Metabase client
@@ -113,8 +113,8 @@ def exposures(
         logging.warning("Prioritizing manifest path arg")
         dbt_config.dbt_path = None
     if dbt_config.dbt_path and not dbt_config.schema:
-        logging.error(
-            "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
+        logging.warning(
+            "You should supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to. Will default to `public`"
         )
 
     # Instantiate Metabase client
@@ -167,6 +167,74 @@ def exposures(
     )
 
 
+def metrics(
+    metabase_config: MetabaseConfig,
+    dbt_config: dbtConfig,
+):
+    """Exports models from dbt to Metabase.
+
+    Args:
+        metabase_config (str): Metabase config object
+        dbt_config (str): dbt config object
+    """
+
+    # Assertions
+    if dbt_config.dbt_path and dbt_config.dbt_manifest_path:
+        logging.warning("Prioritizing manifest path arg")
+        dbt_config.dbt_path = None
+    if dbt_config.dbt_path and not dbt_config.schema:
+        logging.warning(
+            "You should supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to. Will default to `public`"
+        )
+
+    # Instantiate Metabase client
+    mbc = MetabaseClient(
+        host=metabase_config.metabase_host,
+        user=metabase_config.metabase_user,
+        password=metabase_config.metabase_password,
+        use_http=metabase_config.metabase_use_http,
+        verify=metabase_config.metabase_verify,
+    )
+    reader: Union[DbtFolderReader, DbtManifestReader]
+
+    # Resolve dbt reader being either YAML or manifest.json based
+    if dbt_config.dbt_manifest_path:
+        reader = DbtManifestReader(os.path.expandvars(dbt_config.dbt_manifest_path))
+    elif dbt_config.dbt_path:
+        reader = DbtFolderReader(os.path.expandvars(dbt_config.dbt_path))
+
+    if dbt_config.schema_excludes:
+        dbt_config.schema_excludes = {
+            schema.upper() for schema in dbt_config.schema_excludes
+        }
+
+    # Process dbt stuff
+    dbt_models = reader.read_models(
+        database=dbt_config.dbt_database,
+        schema=dbt_config.schema,
+        schema_excludes=dbt_config.schema_excludes,
+        includes=dbt_config.includes,
+        excludes=dbt_config.excludes,
+    )
+
+    # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
+    if not metabase_config.metabase_sync_skip:
+        if metabase_config.metabase_sync_timeout is not None and not mbc.sync_and_wait(
+            metabase_config.metabase_database,
+            dbt_models,
+            metabase_config.metabase_sync_timeout,
+        ):
+            logging.critical("Sync timeout reached, models still not compatible")
+            return
+
+    # Process Metabase stuff
+    mbc.sync_metrics(
+        models=dbt_models,
+        database=metabase_config.metabase_database,
+        aliases=reader.catch_aliases,
+    )
+
+
 def main(args: List = None):
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -178,7 +246,7 @@ def main(args: List = None):
 
     # Commands
     parser.add_argument(
-        "command", choices=["models", "exposures"], help="Command to execute"
+        "command", choices=["models", "exposures", "metrics"], help="Command to execute"
     )
 
     parser_dbt = parser.add_argument_group("dbt Parser")
@@ -201,6 +269,10 @@ def main(args: List = None):
     group.add_argument(
         "--dbt_manifest_path",
         help="Path to dbt manifest.json (typically located in the /target/ directory of the dbt project directory). Cannot be specified with --dbt_path",
+    )
+    parser_dbt.add_argument(
+        "--schema",
+        help="Target schema if executing for a specific target",
     )
     parser_dbt.add_argument(
         "--schema_excludes",
@@ -329,6 +401,7 @@ def main(args: List = None):
         dbt_path=parsed.dbt_path,
         dbt_manifest_path=parsed.dbt_manifest_path,
         dbt_database=parsed.dbt_database,
+        schema=parsed.schema,
         schema_excludes=parsed.schema_excludes,
         includes=parsed.includes,
         excludes=parsed.excludes,
@@ -350,5 +423,12 @@ def main(args: List = None):
             include_personal_collections=parsed.include_personal_collections,
             exclude_collections=parsed.exclude_collections,
         )
+    elif parsed.command == "metrics":
+        metrics(
+            metabase_config,
+            dbt_config,
+        )
     else:
-        logging.error("Invalid command. Must be one of either 'export' or 'exposures'.")
+        logging.error(
+            "Invalid command. Must be one of either `export`, `exposures`, or `metrics`."
+        )
