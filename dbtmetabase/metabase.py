@@ -465,8 +465,9 @@ class MetabaseClient:
         for collection in self.collections:
             if collection["name"] in exclude_collections:
                 continue
-            if not include_personal_collections and collection["name"].endswith(
-                "'s Personal Collection"
+            if (
+                not include_personal_collections
+                and collection["personal_owner_id"] is not None
             ):
                 continue
             logging.info("Exploring collection %s", collection["name"])
@@ -580,9 +581,7 @@ class MetabaseClient:
                 if isinstance(source_table_id, str) and source_table_id.startswith(
                     "card__"
                 ):
-                    self._extract_card_exposures(
-                        int(source_table_id.split("card__")[-1])
-                    )
+                    self._extract_card_exposures(int(source_table_id.split("__")[-1]))
                 else:
                     source_table = self.table_map[source_table_id]
                     logging.info(
@@ -595,7 +594,7 @@ class MetabaseClient:
                         query_join.get("source-table"), str
                     ) and query_join.get("source-table").startswith("card__"):
                         self._extract_card_exposures(
-                            int(query_join.get("source-table").split("card__")[-1])
+                            int(query_join.get("source-table").split("__")[-1])
                         )
                         continue
                     joined_table = self.table_map[query_join.get("source-table")]
