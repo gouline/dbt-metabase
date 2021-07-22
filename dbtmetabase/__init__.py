@@ -183,8 +183,8 @@ def main(args: List = None):
 
     parser_dbt = parser.add_argument_group("dbt Parser")
     parser_metabase = parser.add_argument_group("Metabase Client")
-    parser_models = parser.add_argument_group("`models` arguments")
-    parser_exposures = parser.add_argument_group("`exposures` arguments")
+    parser_models = parser.add_argument_group("`models` optional arguments")
+    parser_exposures = parser.add_argument_group("`exposures` optional arguments")
 
     # dbt arguments
     parser_dbt.add_argument(
@@ -265,38 +265,38 @@ def main(args: List = None):
     parser_models.add_argument(
         "--dbt_docs_url",
         metavar="URL",
-        help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description",
+        help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description (default None)",
     )
     parser_models.add_argument(
         "--include_tags",
         action="store_true",
         default=False,
-        help="Append tags to Table descriptions in Metabase",
+        help="Append tags to Table descriptions in Metabase (default False)",
     )
 
     # Exposures specific args
     parser_exposures.add_argument(
         "--output_path",
         default="./",
-        help="Used in Exposure extractor, path where generated YAML will be output",
+        help="Path where generated YAML will be outputted (default local dir)",
     )
     parser_exposures.add_argument(
         "--output_name",
         default="metabase_exposures",
-        help="Used in Exposure extractor, name of generated YAML file",
+        help="Used in Exposure extractor, name of generated YAML file (default metabase_exposures)",
     )
     parser_exposures.add_argument(
         "--include_personal_collections",
         action="store_true",
         default=False,
-        help="Used in Exposure extractor, include personal collections in exposure extraction",
+        help="Include personal collections in exposure extraction (default False)",
     )
     parser_exposures.add_argument(
         "--collection_excludes",
         nargs="*",
         default=[],
         dest="exclude_collections",
-        help="Used in Exposure extractor, exclude a list of collections from exposure parsing",
+        help="Exclude a list of collections from exposure parsing (default [])",
     )
 
     # Common/misc arguments
