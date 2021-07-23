@@ -17,6 +17,8 @@ from pyparsing import (
     pyparsing_common,
 )
 
+import logging
+
 pyparsing.ParserElement.enablePackrat()
 
 METABASE_EXPRESSIONS = {
@@ -355,7 +357,7 @@ class MetabaseMetricCompiler:
     # PACKS FIELDS -> TO INCLUDE METABASE FIELD ID DETEMRINATION LOGIC
     def to_field(self, y):
         # y[0]
-        print(str(y[0]).upper())
+        logging.info("Translated column %s", str(y[0]).upper())
         _id = (
             self.field_lookup.get(self.current_target, {})
             .get(str(y[0]).upper(), {})
