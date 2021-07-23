@@ -394,6 +394,12 @@ class MetabaseMetricCompiler:
             + (Group(Optional(delimitedList(mb_expr))))("args")
             + RPAR
         )
+        bool_expression = Group(
+            oneOf("contains startswith endswith between interval")("boolean")
+            + LPAR
+            + (Optional(delimitedList(mb_expr)))("args")
+            + RPAR
+        )
 
         # SPECIFIC GRAMMAR FOR COUNT
         count_expression = Group(CaselessLiteral("count") + Optional(LPAR + RPAR))
@@ -448,10 +454,10 @@ class MetabaseMetricCompiler:
             | sum_where_expression("where")
             | count_where_expression("where")
             | count_expression("count")
+            | bool_expression("boolean")
             | expression("expression")
             | Group(LPAR + mb_expr + RPAR)("args"),
             [
-                (sign_op("operator"), 1, opAssoc.RIGHT),
                 (mult_op("operator"), 2, opAssoc.LEFT),
                 (plus_op("operator"), 2, opAssoc.LEFT),
                 (eq_op("comparison"), 2, opAssoc.LEFT),
