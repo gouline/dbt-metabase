@@ -16,6 +16,18 @@ models:
           any customer who orders over 20 AUD of jaffle is counted
         metric: countif([customer_lifetime_value] > 20)
 
+      - name: Number of Active Customers with Large Orders
+        description: Customers who are big spenders should be tracked independently of total,
+          any customer who orders over 20 AUD of jaffle is counted
+        metric: countif([customer_lifetime_value] > 20)
+        filter: '[most_recent_order] > "2020-01-01"'
+
+      - name: Number of Customers with Large Orders Prev 30 Days
+        description: Customers who are big spenders should be tracked independently of total,
+          any customer who orders over 20 AUD of jaffle is counted
+        metric: countif([customer_lifetime_value] > 20)
+        filter: 'interval([most_recent_order], -30, "day")'
+
     columns:
       - name: customer_id
         description: This is a unique identifier for a customer
