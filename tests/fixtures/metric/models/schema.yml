@@ -6,13 +6,15 @@ models:
 
     meta:
       metabase.metrics:
+        
       - name: Number of Customers
         description: Total number of customers
         metric: count
+
       - name: Number of Customers with Large Orders
         description: Customers who are big spenders should be tracked independently of total,
-          any customer who orders over 100 AUD of jaffle is counted
-        metric: countif([customer_lifetime_value] > 100)
+          any customer who orders over 20 AUD of jaffle is counted
+        metric: countif([customer_lifetime_value] > 20)
 
     columns:
       - name: customer_id
