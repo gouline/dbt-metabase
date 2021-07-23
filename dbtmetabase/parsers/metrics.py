@@ -395,7 +395,7 @@ class MetabaseMetricCompiler:
             + RPAR
         )
         bool_expression = Group(
-            oneOf("contains startswith endswith between interval")("boolean")
+            oneOf("contains startswith endswith between interval coalesce")("boolean")
             + LPAR
             + (Optional(delimitedList(mb_expr)))("args")
             + RPAR
