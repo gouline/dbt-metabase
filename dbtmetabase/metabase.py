@@ -685,6 +685,12 @@ class MetabaseClient:
                         ],
                     },
                 }
+                metric_filter = metric.get("filter")
+                if metric_filter:
+                    metric_filter = metabase_compiler.transpile_expression(
+                        metric_filter
+                    )
+                    compiled["definition"]["filter"] = metric_filter
                 this_metric = None
                 for existing_metric in metabase_metrics:
                     if (
