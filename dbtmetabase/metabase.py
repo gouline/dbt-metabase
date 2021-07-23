@@ -645,7 +645,7 @@ class MetabaseClient:
 
             lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
             metabase_compiler.current_target = lookup_key
-            logging.debug("Target: %s", lookup_key)
+            logging.info("Syncing metrics for %s", lookup_key)
 
             api_table = table_lookup.get(lookup_key)
 
