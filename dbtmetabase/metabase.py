@@ -692,7 +692,7 @@ class MetabaseClient:
                     )
                     compiled["definition"]["filter"] = metric_filter
                 this_metric = None
-                for existing_metric in metabase_metrics:
+                for j, existing_metric in enumerate(metabase_metrics):
                     if (
                         metric_name == existing_metric["name"]
                         and table_id == existing_metric["table_id"]
@@ -702,7 +702,7 @@ class MetabaseClient:
                         logging.info(
                             "Existing metric %s found for %s", metric_name, lookup_key
                         )
-                        this_metric = existing_metric
+                        this_metric = metabase_metrics.pop(j)
                 if this_metric:
                     # Revise
                     agglomerate_changes = ""
@@ -733,6 +733,8 @@ class MetabaseClient:
                     output_metric = self.api("post", "/api/metric/", json=compiled)
                     logging.info("Metric %s created!", metric_name)
                     logging.debug(output_metric)
+        logging.info("Orphaned Metrics: %s", metabase_metrics)
+        # {"archived":true,"revision_message":"(Archive)"} <- Retires Metrics [full sync or interactive retirement for orphans?]
 
     def api(
         self,
