@@ -7,10 +7,11 @@ from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
 from .models.config import MetabaseConfig, dbtConfig
+from .utils import get_version
 
 from typing import Iterable, List, Union, Optional
 
-from ._version import version as __version__
+__version__ = get_version()
 
 
 def models(
@@ -175,6 +176,13 @@ def main(args: List = None):
     parser = argparse.ArgumentParser(
         prog="PROG", description="Model synchronization from dbt to Metabase."
     )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+    parser.add_argument("command", choices=["export"], help="command to execute")
 
     # Commands
     parser.add_argument(

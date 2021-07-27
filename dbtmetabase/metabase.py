@@ -404,7 +404,8 @@ class MetabaseClient:
             params=dict(include_hidden=True),
         )
         for table in metadata.get("tables", []):
-            table_schema = table.get("schema", "public").upper()
+            table_schema = table.get("schema")
+            table_schema = table_schema.upper() if table_schema else "PUBLIC"
             table_name = table["name"].upper()
 
             if schemas_to_exclude:
