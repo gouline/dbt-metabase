@@ -203,20 +203,24 @@ def main(args: List = None):
         help="Path to dbt manifest.json (typically located in the /target/ directory of the dbt project directory). Cannot be specified with --dbt_path",
     )
     parser_dbt.add_argument(
-        "--schema_excludes",
+        "--dbt_schema",
+        help="Target schema. Should be passed if using folder parser",
+    )
+    parser_dbt.add_argument(
+        "--dbt_schema_excludes",
         nargs="*",
         default=[],
         help="Target schemas to exclude. Ignored in folder parser",
     )
     parser_dbt.add_argument(
-        "--includes",
+        "--dbt_includes",
         metavar="MODELS",
         nargs="*",
         default=[],
         help="Model names to limit processing to",
     )
     parser_dbt.add_argument(
-        "--excludes",
+        "--dbt_excludes",
         metavar="MODELS",
         nargs="*",
         default=[],
@@ -329,9 +333,10 @@ def main(args: List = None):
         dbt_path=parsed.dbt_path,
         dbt_manifest_path=parsed.dbt_manifest_path,
         dbt_database=parsed.dbt_database,
-        schema_excludes=parsed.schema_excludes,
-        includes=parsed.includes,
-        excludes=parsed.excludes,
+        schema=parsed.dbt_schema,
+        schema_excludes=parsed.dbt_schema_excludes,
+        includes=parsed.dbt_includes,
+        excludes=parsed.dbt_excludes,
     )
 
     if parsed.command == "models":
