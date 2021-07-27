@@ -58,7 +58,7 @@ def models(
 
     if dbt_config.schema_excludes:
         dbt_config.schema_excludes = {
-            schema.upper() for schema in dbt_config.schema_excludes
+            _schema.upper() for _schema in dbt_config.schema_excludes
         }
 
     # Process dbt stuff
@@ -136,7 +136,7 @@ def exposures(
 
     if dbt_config.schema_excludes:
         dbt_config.schema_excludes = {
-            schema.upper() for schema in dbt_config.schema_excludes
+            _schema.upper() for _schema in dbt_config.schema_excludes
         }
 
     # Process dbt stuff
