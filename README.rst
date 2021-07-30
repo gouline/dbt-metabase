@@ -320,6 +320,7 @@ line. But if you prefer to call it from your code, here's how to do it:
     import dbtmetabase
 
     # Collect Args the Build Configs #
+    ##################################
 
     metabase_config = MetabaseConfig(
         metabase_host=metabase_host,
@@ -336,17 +337,24 @@ line. But if you prefer to call it from your code, here's how to do it:
         dbt_path=dbt_path,
         dbt_manifest_path=dbt_manifest_path,
         dbt_database=dbt_database,
-        schema_excludes=schema_excludes,
-        includes=includes,
-        excludes=excludes,
+        dbt_schema=dbt_schema,
+        dbt_schema_excludes=dbt_schema_excludes,
+        dbt_includes=dbt_includes,
+        dbt_excludes=dbt_excludes,
     )
+
+    # Propagate models to Metabase #
+    ################################
 
     dbtmetabase.models(
       metabase_config=metabase_config,
       dbt_config=dbt_config,
       dbt_docs_url=dbt_docs,
-      include_tags=include_tags,
+      dbt_include_tags=include_tags,
     )
+
+    # Parse exposures from Metabase into dbt yml #
+    ##############################################
 
     dbtmetabase.exposures(
       metabase_config=metabase_config,
