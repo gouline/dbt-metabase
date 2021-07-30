@@ -24,7 +24,7 @@ class DbtConfig:
     dbt_manifest_path: Optional[str] = None
     dbt_path: Optional[str] = None
     # dbt Target Models
-    schema: Optional[str] = None
-    schema_excludes: Iterable = field(default_factory=list)
-    includes: Iterable = field(default_factory=list)
-    excludes: Iterable = field(default_factory=list)
+    dbt_schema: Optional[str] = None
+    dbt_schema_excludes: Iterable = field(default_factory=list)
+    dbt_includes: Iterable = field(default_factory=list)
+    dbt_excludes: Iterable = field(default_factory=list)

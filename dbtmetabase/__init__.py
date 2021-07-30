@@ -17,7 +17,7 @@ __version__ = get_version()
 def models(
     metabase_config: MetabaseConfig,
     dbt_config: DbtConfig,
-    include_tags: bool = True,
+    dbt_include_tags: bool = True,
     dbt_docs_url: Optional[str] = None,
 ):
     """Exports models from dbt to Metabase.
@@ -25,17 +25,17 @@ def models(
     Args:
         metabase_config (str): Source database name.
         dbt_config (str): Target Metabase database name. Database in Metabase is aliased.
-        include_tags (bool, optional): Append the dbt tags to the end of the table description. Defaults to True.
+        dbt_include_tags (bool, optional): Append the dbt tags to the end of the table description. Defaults to True.
         dbt_docs_url (str, optional): URL to your dbt docs hosted catalog, a link will be appended to the model description (only works for manifest parsing). Defaults to None.
-        includes (Iterable, optional): Model names to limit processing to. Defaults to None.
-        excludes (Iterable, optional): Model names to exclude. Defaults to None.
+        dbt_includes (Iterable, optional): Model names to limit processing to. Defaults to None.
+        dbt_excludes (Iterable, optional): Model names to exclude. Defaults to None.
     """
 
     # Assertions
     if dbt_config.dbt_path and dbt_config.dbt_manifest_path:
         logging.warning("Prioritizing manifest path arg")
         dbt_config.dbt_path = None
-    if dbt_config.dbt_path and not dbt_config.schema:
+    if dbt_config.dbt_path and not dbt_config.dbt_schema:
         logging.error(
             "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
         )
@@ -67,19 +67,19 @@ def models(
     elif dbt_config.dbt_path:
         reader = DbtFolderReader(os.path.expandvars(dbt_config.dbt_path))
 
-    if dbt_config.schema_excludes:
-        dbt_config.schema_excludes = {
-            _schema.upper() for _schema in dbt_config.schema_excludes
+    if dbt_config.dbt_schema_excludes:
+        dbt_config.dbt_schema_excludes = {
+            _schema.upper() for _schema in dbt_config.dbt_schema_excludes
         }
 
     # Process dbt stuff
     dbt_models = reader.read_models(
         database=dbt_config.dbt_database,
-        schema=dbt_config.schema,
-        schema_excludes=dbt_config.schema_excludes,
-        includes=dbt_config.includes,
-        excludes=dbt_config.excludes,
-        include_tags=include_tags,
+        schema=dbt_config.dbt_schema,
+        schema_excludes=dbt_config.dbt_schema_excludes,
+        includes=dbt_config.dbt_includes,
+        excludes=dbt_config.dbt_excludes,
+        include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
 
@@ -124,7 +124,7 @@ def exposures(
     if dbt_config.dbt_path and dbt_config.dbt_manifest_path:
         logging.warning("Prioritizing manifest path arg")
         dbt_config.dbt_path = None
-    if dbt_config.dbt_path and not dbt_config.schema:
+    if dbt_config.dbt_path and not dbt_config.dbt_schema:
         logging.error(
             "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
         )
@@ -145,18 +145,18 @@ def exposures(
     elif dbt_config.dbt_path:
         reader = DbtFolderReader(os.path.expandvars(dbt_config.dbt_path))
 
-    if dbt_config.schema_excludes:
-        dbt_config.schema_excludes = {
-            _schema.upper() for _schema in dbt_config.schema_excludes
+    if dbt_config.dbt_schema_excludes:
+        dbt_config.dbt_schema_excludes = {
+            _schema.upper() for _schema in dbt_config.dbt_schema_excludes
         }
 
     # Process dbt stuff
     dbt_models = reader.read_models(
         database=dbt_config.dbt_database,
-        schema=dbt_config.schema,
-        schema_excludes=dbt_config.schema_excludes,
-        includes=dbt_config.includes,
-        excludes=dbt_config.excludes,
+        schema=dbt_config.dbt_schema,
+        schema_excludes=dbt_config.dbt_schema_excludes,
+        includes=dbt_config.dbt_includes,
+        excludes=dbt_config.dbt_excludes,
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
@@ -291,7 +291,7 @@ def main(args: List = None):
         help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description (default None)",
     )
     parser_models.add_argument(
-        "--include_tags",
+        "--dbt_include_tags",
         action="store_true",
         default=False,
         help="Append tags to Table descriptions in Metabase (default False)",
@@ -352,10 +352,10 @@ def main(args: List = None):
         dbt_path=parsed.dbt_path,
         dbt_manifest_path=parsed.dbt_manifest_path,
         dbt_database=parsed.dbt_database,
-        schema=parsed.dbt_schema,
-        schema_excludes=parsed.dbt_schema_excludes,
-        includes=parsed.dbt_includes,
-        excludes=parsed.dbt_excludes,
+        dbt_schema=parsed.dbt_schema,
+        dbt_schema_excludes=parsed.dbt_schema_excludes,
+        dbt_includes=parsed.dbt_includes,
+        dbt_excludes=parsed.dbt_excludes,
     )
 
     if parsed.command == "models":
@@ -363,7 +363,7 @@ def main(args: List = None):
             metabase_config,
             dbt_config,
             dbt_docs_url=parsed.dbt_docs_url,
-            include_tags=parsed.include_tags,
+            dbt_include_tags=parsed.dbt_include_tags,
         )
     elif parsed.command == "exposures":
         exposures(
