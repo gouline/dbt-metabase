@@ -332,7 +332,7 @@ line. But if you prefer to call it from your code, here's how to do it:
         metabase_sync_timeout=metabase_sync_timeout,
     )
 
-    dbt_config = dbtConfig(
+    dbt_config = DbtConfig(
         dbt_path=dbt_path,
         dbt_manifest_path=dbt_manifest_path,
         dbt_database=dbt_database,

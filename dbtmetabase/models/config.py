@@ -18,7 +18,7 @@ class MetabaseConfig:
 
 
 @dataclass
-class dbtConfig:
+class DbtConfig:
     # dbt Reader
     dbt_database: str
     dbt_manifest_path: Optional[str] = None

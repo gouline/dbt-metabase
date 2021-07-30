@@ -6,7 +6,7 @@ import argparse
 from .metabase import MetabaseClient
 from .parsers.dbt_folder import DbtFolderReader
 from .parsers.dbt_manifest import DbtManifestReader
-from .models.config import MetabaseConfig, dbtConfig
+from .models.config import MetabaseConfig, DbtConfig
 from .utils import get_version
 
 from typing import Iterable, List, Union, Optional
@@ -16,7 +16,7 @@ __version__ = get_version()
 
 def models(
     metabase_config: MetabaseConfig,
-    dbt_config: dbtConfig,
+    dbt_config: DbtConfig,
     include_tags: bool = True,
     dbt_docs_url: Optional[str] = None,
 ):
@@ -39,6 +39,17 @@ def models(
         logging.error(
             "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
         )
+    if dbt_config.dbt_path:
+        if dbt_config.dbt_database:
+            logging.info(
+                "Argument --database %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                dbt_config.dbt_database,
+            )
+        if dbt_docs_url:
+            logging.info(
+                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
+                dbt_docs_url,
+            )
 
     # Instantiate Metabase client
     mbc = MetabaseClient(
@@ -69,7 +80,7 @@ def models(
         includes=dbt_config.includes,
         excludes=dbt_config.excludes,
         include_tags=include_tags,
-        dbt_docs_url=dbt_docs_url,
+        docs_url=dbt_docs_url,
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
@@ -92,7 +103,7 @@ def models(
 
 def exposures(
     metabase_config: MetabaseConfig,
-    dbt_config: dbtConfig,
+    dbt_config: DbtConfig,
     output_path: str,
     output_name: str,
     include_personal_collections: bool = False,
@@ -337,7 +348,7 @@ def main(args: List = None):
         metabase_sync_skip=parsed.metabase_sync_skip,
         metabase_sync_timeout=parsed.metabase_sync_timeout,
     )
-    dbt_config = dbtConfig(
+    dbt_config = DbtConfig(
         dbt_path=parsed.dbt_path,
         dbt_manifest_path=parsed.dbt_manifest_path,
         dbt_database=parsed.dbt_database,

@@ -258,7 +258,8 @@ class MockMetabaseClient(MetabaseClient):
         BASE_PATH = "tests/fixtures/mock_api/"
         if method == "get":
             if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
-                return json.load(open(f"{BASE_PATH}/{path.lstrip('/')}.json"))
+                with open(f"{BASE_PATH}/{path.lstrip('/')}.json") as f:
+                    return json.load(f)
             else:
                 return {}
 
@@ -282,13 +283,11 @@ class TestMetabaseClient(unittest.TestCase):
             output_path="tests/fixtures/exposure/",
         )
         # Baseline in SCM
-        baseline = yaml.safe_load(
-            open("tests/fixtures/exposure/baseline_test_exposures.yml", "r")
-        )
+        with open("tests/fixtures/exposure/baseline_test_exposures.yml", "r") as f:
+            baseline = yaml.safe_load(f)
         # Load from YAML and tear down
-        sample = yaml.safe_load(
-            open("tests/fixtures/exposure/unittest_exposures.yml", "r")
-        )
+        with open("tests/fixtures/exposure/unittest_exposures.yml", "r") as f:
+            sample = yaml.safe_load(f)
 
         baseline_exposures = sorted(baseline["exposures"], key=lambda ele: ele["name"])
         sample_exposures = sorted(sample["exposures"], key=lambda ele: ele["name"])
