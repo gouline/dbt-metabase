@@ -36,20 +36,9 @@ def models(
         logging.warning("Prioritizing manifest path arg")
         dbt_config.path = None
     if dbt_config.path and not dbt_config.schema:
-        logging.error(
-            "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
+        logging.warning(
+            "You should supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to. Will default to `public`"
         )
-    if dbt_config.path:
-        if dbt_config.database:
-            logging.info(
-                "Argument --database %s is unused in dbt_project yml parser. Use manifest parser instead.",
-                dbt_config.database,
-            )
-        if dbt_docs_url:
-            logging.info(
-                "Argument --dbt_docs_url %s is unused in dbt_project yml parser. Use manifest parser instead.",
-                dbt_docs_url,
-            )
 
     # Instantiate Metabase client
     mbc = MetabaseClient(
@@ -125,8 +114,8 @@ def exposures(
         logging.warning("Prioritizing manifest path arg")
         dbt_config.path = None
     if dbt_config.path and not dbt_config.schema:
-        logging.error(
-            "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
+        logging.warning(
+            "You should supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to. Will default to `public`"
         )
 
     # Instantiate Metabase client
@@ -176,6 +165,73 @@ def exposures(
         output_name=output_name,
         include_personal_collections=include_personal_collections,
         collection_excludes=collection_excludes,
+    )
+
+
+def metrics(
+    metabase_config: MetabaseConfig,
+    dbt_config: DbtConfig,
+):
+    """Exports models from dbt to Metabase.
+    Args:
+        metabase_config (str): Metabase config object
+        dbt_config (str): dbt config object
+    """
+
+    # Assertions
+    if dbt_config.path and dbt_config.manifest_path:
+        logging.warning("Prioritizing manifest path arg")
+        dbt_config.path = None
+    if dbt_config.path and not dbt_config.schema:
+        logging.warning(
+            "You should supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to. Will default to `public`"
+        )
+
+    # Instantiate Metabase client
+    mbc = MetabaseClient(
+        host=metabase_config.host,
+        user=metabase_config.user,
+        password=metabase_config.password,
+        use_http=metabase_config.use_http,
+        verify=metabase_config.verify,
+    )
+    reader: Union[DbtFolderReader, DbtManifestReader]
+
+    # Resolve dbt reader being either YAML or manifest.json based
+    if dbt_config.manifest_path:
+        reader = DbtManifestReader(os.path.expandvars(dbt_config.manifest_path))
+    elif dbt_config.path:
+        reader = DbtFolderReader(os.path.expandvars(dbt_config.path))
+
+    if dbt_config.schema_excludes:
+        dbt_config.schema_excludes = {
+            schema.upper() for schema in dbt_config.schema_excludes
+        }
+
+    # Process dbt stuff
+    dbt_models = reader.read_models(
+        database=dbt_config.database,
+        schema=dbt_config.schema,
+        schema_excludes=dbt_config.schema_excludes,
+        includes=dbt_config.includes,
+        excludes=dbt_config.excludes,
+    )
+
+    # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
+    if not metabase_config.sync_skip:
+        if metabase_config.sync_timeout is not None and not mbc.sync_and_wait(
+            metabase_config.database,
+            dbt_models,
+            metabase_config.sync_timeout,
+        ):
+            logging.critical("Sync timeout reached, models still not compatible")
+            return
+
+    # Process Metabase stuff
+    mbc.sync_metrics(
+        models=dbt_models,
+        database=metabase_config.database,
+        aliases=reader.catch_aliases,
     )
 
 
