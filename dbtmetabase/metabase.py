@@ -442,6 +442,20 @@ class MetabaseClient:
         include_personal_collections: bool = True,
         collection_excludes: Iterable = None,
     ) -> Mapping:
+        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader
+
+        Arguments:
+            models {List[MetabaseModel]} -- List of models as output by dbt reader
+
+        Keyword Arguments:
+            output_path {str} -- The path to output the generated yaml. (default: ".")
+            output_name {str} -- The name of the generated yaml. (default: {"metabase_exposures"})
+            include_personal_collections {bool} -- Include personal collections in Metabase processing. (default: {True})
+            collection_excludes {str} -- List of collections to exclude by name. (default: {None})
+
+        Returns:
+            List[Mapping] -- JSON object representation of all exposures parsed.
+        """
 
         _RESOURCE_VERSION = 2
 
@@ -459,7 +473,7 @@ class MetabaseClient:
         self.tables = self.api("get", "/api/table")
         self.table_map = {table["id"]: table["name"] for table in self.tables}
 
-        documented_exposures = []
+        documented_exposure_names = []
         parsed_exposures = []
 
         for collection in self.collections:
@@ -534,7 +548,7 @@ class MetabaseClient:
                 # No spaces allowed in model names in dbt docs DAG / No duplicate model names
                 exposure_name = exposure_name.replace(" ", "_")
                 enumer = 1
-                while exposure_name in documented_exposures:
+                while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
                     enumer += 1
 
@@ -549,12 +563,12 @@ class MetabaseClient:
                         creator_name=creator_name,
                         creator_email=creator_email,
                         refable_models=refable_models,
-                        description=exposure.get("description"),
+                        description=exposure.get("description", ""),
                         native_query=native_query,
                     )
                 )
 
-                documented_exposures.append(exposure_name)
+                documented_exposure_names.append(exposure_name)
 
         # Output dbt YAML
         with open(
@@ -572,53 +586,89 @@ class MetabaseClient:
         # Return object
         return {"version": _RESOURCE_VERSION, "exposures": parsed_exposures}
 
-    def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
-        if not model:
-            model = self.api("get", f"/api/card/{card_id}")
-        query = model.get("dataset_query", {})
+    def _extract_card_exposures(self, card_id: int, exposure: Optional[Mapping] = None):
+        """Extracts exposures from Metabase questions populating `self.models_exposed`
+
+        Arguments:
+            card_id {int} -- Id of Metabase question used to pull question from api
+
+        Keyword Arguments:
+            exposure {str} -- JSON api response from a question in Metabase, allows us to use the object if already in memory
+
+        Returns:
+            None -- self.models_exposed is populated through this method.
+        """
+
+        # If an exposure is not passed, pull from id
+        if not exposure:
+            exposure = self.api("get", f"/api/card/{card_id}")
+
+        query = exposure.get("dataset_query", {})
+
         if query.get("type") == "query":
+            # Metabase GUI derived query
             source_table_id = query.get("query", {}).get(
-                "source-table", model.get("table_id")
+                "source-table", exposure.get("table_id")
             )
-            if source_table_id in self.table_map:
-                if str(source_table_id).startswith("card__"):
-                    self._extract_card_exposures(int(source_table_id.split("__")[-1]))
-                else:
-                    source_table = self.table_map[source_table_id]
+
+            if str(source_table_id).startswith("card__"):
+                # Handle questions based on other question in virtual db
+                self._extract_card_exposures(int(source_table_id.split("__")[-1]))
+            else:
+                # Normal question
+                source_table = self.table_map.get(source_table_id)
+                if source_table:
                     logging.info(
                         "Model extracted from Metabase question: %s",
                         source_table,
                     )
-                self.models_exposed.append(source_table)
-                for query_join in query.get("query", {}).get("joins", []):
-                    if isinstance(
-                        query_join.get("source-table"), str
-                    ) and query_join.get("source-table").startswith("card__"):
-                        self._extract_card_exposures(
-                            int(query_join.get("source-table").split("__")[-1])
-                        )
-                        continue
-                    joined_table = self.table_map[query_join.get("source-table")]
+                    self.models_exposed.append(source_table)
+
+            # Find models exposed through joins
+            for query_join in query.get("query", {}).get("joins", []):
+
+                # Handle questions based on other question in virtual db
+                if str(query_join.get("source-table", "")).startswith("card__"):
+                    self._extract_card_exposures(
+                        int(query_join.get("source-table").split("__")[-1])
+                    )
+                    continue
+
+                # Joined model parsed
+                joined_table = self.table_map.get(query_join.get("source-table"))
+                if joined_table:
                     logging.info(
                         "Model extracted from Metabase question join: %s",
                         joined_table,
                     )
                     self.models_exposed.append(joined_table)
+
         elif query.get("type") == "native":
+            # Metabase native query
             native_query = query.get("native").get("query")
             ctes = []
+
+            # Parse common table expressions for exclusion
             for cte in re.findall(self.cte_parser, native_query):
                 ctes.extend(cte)
-            for exposure in re.findall(self.exposure_parser, native_query):
-                clean_exposure = exposure.split(".")[-1].strip('"')
+
+            # Parse SQL for exposures through FROM or JOIN clauses
+            for sql_ref in re.findall(self.exposure_parser, native_query):
+
+                # Grab just the table / model name
+                clean_exposure = sql_ref.split(".")[-1].strip('"')
+
+                # Scrub CTEs for cleanliness sake
                 if clean_exposure in ctes:
                     continue
-                logging.info(
-                    "Model extracted from native query: %s",
-                    clean_exposure,
-                )
-                self.models_exposed.append(clean_exposure)
-                self.native_query = native_query
+
+                if clean_exposure:
+                    logging.info(
+                        "Model extracted from native query: %s",
+                        clean_exposure,
+                    )
+                    self.models_exposed.append(clean_exposure)
+                    self.native_query = native_query
 
     def _build_exposure(
         self,
@@ -661,7 +711,7 @@ class MetabaseClient:
 
         if native_query:
             # Format query into markdown code block
-            native_query = "#### Query \n\n```\n{}\n```\n\n".format(
+            native_query = "#### Query\n\n```\n{}\n```\n\n".format(
                 "\n".join(
                     sql_line
                     for sql_line in self.native_query.strip().split("\n")
@@ -674,7 +724,7 @@ class MetabaseClient:
 
         # Format metadata as markdown
         metadata = (
-            "#### Metadata \n\n"
+            "#### Metadata\n\n"
             + "Metabase Id: __{}__\n\n".format(exposure_id)
             + "Created On: __{}__".format(created_at)
         )
