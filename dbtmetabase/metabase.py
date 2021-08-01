@@ -22,10 +22,6 @@ import re
 import yaml
 import os
 
-import re
-import yaml
-import os
-
 
 class MetabaseClient:
     """Metabase API client."""
@@ -835,13 +831,13 @@ class MetabaseClient:
                         metric_filter
                     )
                     compiled["definition"]["filter"] = metric_filter
-                this_metric = None
+                this_metric: MutableMapping = {}
                 for j, existing_metric in enumerate(metabase_metrics):
                     if (
                         metric_name == existing_metric["name"]
                         and table_id == existing_metric["table_id"]
                     ):
-                        if this_metric is not None:
+                        if this_metric:
                             logging.error("Duplicate metric in model %s", lookup_key)
                         logging.info(
                             "Existing metric %s found for %s", metric_name, lookup_key
@@ -887,7 +883,7 @@ class MetabaseClient:
         authenticated: bool = True,
         critical: bool = True,
         **kwargs,
-    ) -> Mapping:
+    ) -> MutableMapping:
         """Unified way of calling Metabase API.
 
         Arguments:
