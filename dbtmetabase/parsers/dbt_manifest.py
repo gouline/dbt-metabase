@@ -1,10 +1,10 @@
 import json
 import os
-from typing import List, Iterable, Mapping, Optional, MutableMapping
+from typing import List, Iterable, Mapping, Optional, MutableMapping, Literal
 import logging
 
-from dbtmetabase.models.metabase import METABASE_META_FIELDS
-from dbtmetabase.models.metabase import MetabaseModel, MetabaseColumn
+from ..models.metabase import METABASE_META_FIELDS
+from ..models.metabase import MetabaseModel, MetabaseColumn
 
 
 class DbtManifestReader:
@@ -26,7 +26,7 @@ class DbtManifestReader:
     def read_models(
         self,
         database: str,
-        schema: str,
+        schema: str = None,
         schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
@@ -146,7 +146,8 @@ class DbtManifestReader:
                     node,
                     include_tags=include_tags,
                     docs_url=docs_url,
-                    manifest_key="sources",
+                    model_key="sources",
+                    source=node["source_name"],
                 )
             )
 
@@ -156,8 +157,9 @@ class DbtManifestReader:
         self,
         model: dict,
         include_tags: bool = True,
-        docs_url: str = None,
-        manifest_key: str = "nodes",
+        docs_url: Optional[str] = None,
+        model_key: Literal["nodes", "sources"] = "nodes",
+        source: Optional[str] = None,
     ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
 
@@ -175,8 +177,8 @@ class DbtManifestReader:
 
         for child_id in children:
             child = {}
-            if self.manifest[manifest_key]:
-                child = self.manifest[manifest_key].get(child_id, {})
+            if self.manifest[model_key]:
+                child = self.manifest[model_key].get(child_id, {})
             if (
                 child.get("resource_type") == "test"
                 and child.get("test_metadata", {}).get("name") == "relationships"
@@ -188,13 +190,11 @@ class DbtManifestReader:
                 # It is better to use child['depends_on']['nodes'] and exclude the current model
 
                 depends_on_id = list(
-                    set(child["depends_on"][manifest_key]) - {model["unique_id"]}
+                    set(child["depends_on"][model_key]) - {model["unique_id"]}
                 )[0]
 
-                fk_target_table_alias = self.manifest[manifest_key][depends_on_id][
-                    "alias"
-                ]
-                fk_target_schema = self.manifest[manifest_key][depends_on_id].get(
+                fk_target_table_alias = self.manifest[model_key][depends_on_id]["alias"]
+                fk_target_schema = self.manifest[model_key][depends_on_id].get(
                     "schema", "public"
                 )
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
@@ -225,11 +225,20 @@ class DbtManifestReader:
                 description += "\n\n"
             description += f"dbt docs link: {full_path}"
 
+        if model_key == "nodes":
+            ref = f"ref('{model.get('identifier', model['name'])}')"
+        elif model_key == "sources":
+            ref = f"source('{source}', '{model['name']}')"
+        else:
+            ref = None
+
         return MetabaseModel(
             name=model.get("alias", model.get("identifier", model.get("name"))).upper(),
             schema=model["schema"].upper(),
             description=description,
             columns=mb_columns,
+            model_key=model_key,
+            ref=ref,
         )
 
     def _read_column(

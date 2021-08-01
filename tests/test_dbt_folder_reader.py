@@ -20,9 +20,8 @@ class TestDbtFolderReader(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_read_models(self):
-        """Ensure we read ymls and output expected schema"""
         models = self.reader.read_models(
-            database="dev",
+            database="test",
             schema="public",
         )
         expectation = [
@@ -30,6 +29,8 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="CUSTOMERS",
                 schema="PUBLIC",
                 description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
+                model_key="nodes",
+                ref="ref('customers')",
                 columns=[
                     MetabaseColumn(
                         name="CUSTOMER_ID",
@@ -100,6 +101,8 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="ORDERS",
                 schema="PUBLIC",
                 description="This table has basic information about orders, as well as some derived facts based on payments",
+                model_key="nodes",
+                ref="ref('orders')",
                 columns=[
                     MetabaseColumn(
                         name="ORDER_ID",
@@ -188,6 +191,8 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="STG_CUSTOMERS",
                 schema="PUBLIC",
                 description="",
+                model_key="nodes",
+                ref="ref('stg_customers')",
                 columns=[
                     MetabaseColumn(
                         name="CUSTOMER_ID",
@@ -204,6 +209,8 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="STG_ORDERS",
                 schema="PUBLIC",
                 description="",
+                model_key="nodes",
+                ref="ref('stg_orders')",
                 columns=[
                     MetabaseColumn(
                         name="ORDER_ID",
@@ -229,6 +236,8 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="STG_PAYMENTS",
                 schema="PUBLIC",
                 description="",
+                model_key="nodes",
+                ref="ref('stg_payments')",
                 columns=[
                     MetabaseColumn(
                         name="PAYMENT_ID",

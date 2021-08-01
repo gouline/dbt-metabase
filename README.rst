@@ -43,6 +43,8 @@ The main features provided by dbt-metabase are:
 * Propagating columns description to Metabase
 * Propagating columns semantic types and visibility types to Metabase through the use of dbt meta fields
 * Propagating table relationships represented as dbt ``relationships`` column tests
+* Extracting dbt model exposures from Metabase and generating YAML files to be included and revisioned with your dbt deployment
+
 
 Usage
 =====
@@ -109,6 +111,63 @@ descriptions to Metabase by executing the below command.
 Check your Metabase instance by going into Settings > Admin > Data Model, you
 will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
 ``GROUP_ID`` is marked as "Foreign Key" pointing to ``ID`` in ``STG_GROUPS``.
+
+Exposure Extraction
+-------------------
+
+dbt-metabase also allows us to extract exposures from Metabase. The invocation is almost identical to
+our export function with the addition of output name and location args. `dbt exposures`_ let us understand
+how our dbt models are exposed in BI which closes the loop between ELT, modelling, and consumption.
+
+
+.. _`dbt exposures`: https://docs.getdbt.com/docs/building-a-dbt-project/exposures
+
+
+.. code-block:: shell
+
+    dbt-metabase exposures \
+        --dbt_manifest_path ./target/manifest.json \
+        --dbt_database business \
+        --metabase_host metabase.example.com \
+        --metabase_user user@example.com \
+        --metabase_password Password123 \
+        --metabase_database business \
+        --output_path ./models/ \
+        --output_name metabase_exposures
+
+Once execution completes, a look at the output ``metabase_exposures.yml`` will 
+reveal all metabase exposures documented with the documentation, descriptions, creator
+emails & names, links to exposures, and even native SQL propagated over from Metabase.
+
+.. code-block:: yaml
+
+    exposures:
+      - name: Number_of_orders_over_time
+        description: '
+          ### Visualization: Line
+      
+          A line chart depicting how order volume changes over time
+      
+          #### Metadata
+      
+          Metabase Id: __8__
+      
+          Created On: __2021-07-21T08:01:38.016244Z__'
+        type: analysis
+        url: http://your.metabase.com/card/8
+        maturity: medium
+        owner:
+          name: Indiana Jones
+          email: user@example.com
+        depends_on:
+          - ref('orders')
+
+Questions which are native queries will have the SQL propagated to a code block in the documentation's
+description for full visibility. This YAML, like the rest of your dbt project can be committed to source
+control to understand how exposures change over time. In a production environment, one can trigger 
+``dbt docs generate`` after ``dbt-metabase exposures`` (or alternatively run the exposure extraction job
+on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes ``dbt docs`` a
+useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
 
 Reading your dbt project
 ------------------------
@@ -260,25 +319,50 @@ line. But if you prefer to call it from your code, here's how to do it:
 
     import dbtmetabase
 
-    dbtmetabase.export(
-      dbt_database=dbt_database,
-      dbt_manifest_path=dbt_manifest_path,
-      dbt_path=dbt_path,
-      dbt_docs_url=dbt_docs,
-      metabase_database=metabase_database,
-      metabase_host=metabase_host,
-      metabase_user=metabase_user,
-      metabase_password=metabase_password,
-      metabase_use_http=metabase_use_http,
-      metabase_verify=metabase_verify,
-      metabase_sync_skip=metabase_sync_skip,
-      metabase_sync_timeout=metabase_sync_timeout,
-      schema=schema,
-      schema_excludes=schema_excludes,
-      includes=includes,
-      excludes=excludes,
-      include_tags=include_tags,
+    # Collect Args the Build Configs #
+    ##################################
+
+    metabase_config = MetabaseConfig(
+        host=metabase_host,
+        user=metabase_user,
+        password=metabase_password,
+        use_http=metabase_use_http,
+        verify=metabase_verify,
+        database=metabase_database,
+        sync_skip=metabase_sync_skip,
+        sync_timeout=metabase_sync_timeout,
     )
+
+    dbt_config = DbtConfig(
+        path=dbt_path,
+        manifest_path=dbt_manifest_path,
+        database=dbt_database,
+        schema=dbt_schema,
+        schema_excludes=dbt_schema_excludes,
+        includes=dbt_includes,
+        excludes=dbt_excludes,
+    )
+
+    # Propagate models to Metabase #
+    ################################
+
+    dbtmetabase.models(
+      metabase_config=metabase_config,
+      dbt_config=dbt_config,
+      dbt_docs_url=dbt_docs,
+      dbt_include_tags=include_tags,
+    )
+
+    # Parse exposures from Metabase into dbt yml #
+    ##############################################
+
+    dbtmetabase.exposures(
+      metabase_config=metabase_config,
+      dbt_config=dbt_config,
+      output_path=output_path,
+      output_name=output_name,
+    )
+
 
 Code of Conduct
 ===============
