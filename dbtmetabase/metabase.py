@@ -573,11 +573,8 @@ class MetabaseClient:
                 "source-table", model.get("table_id")
             )
             if source_table_id in self.table_map:
-                if isinstance(source_table_id, str):
-                    if source_table_id.startswith("card__"):
-                        self._extract_card_exposures(
-                            int(source_table_id.split("__")[-1])
-                        )
+                if str(source_table_id).startswith("card__"):
+                    self._extract_card_exposures(int(source_table_id.split("__")[-1]))
                 else:
                     source_table = self.table_map[source_table_id]
                     logging.info(
