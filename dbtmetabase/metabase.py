@@ -437,14 +437,16 @@ class MetabaseClient:
     def extract_exposures(
         self,
         models: List[MetabaseModel],
-        output_path: str = "./",
+        output_path: str = ".",
         output_name: str = "metabase_exposures",
         include_personal_collections: bool = True,
-        exclude_collections: Iterable = None,
+        collection_excludes: Iterable = None,
     ):
 
-        if exclude_collections is None:
-            exclude_collections = []
+        _RESOURCE_VERSION = 2
+
+        if collection_excludes is None:
+            collection_excludes = []
 
         refable_models = {node.name: node.ref for node in models}
 
@@ -456,7 +458,7 @@ class MetabaseClient:
         captured_exposures = []
 
         for collection in self.collections:
-            if collection["name"] in exclude_collections:
+            if collection["name"] in collection_excludes:
                 continue
             if (
                 not include_personal_collections
@@ -560,7 +562,7 @@ class MetabaseClient:
                 allow_unicode=True,
                 sort_keys=False,
             )
-        return {"version": 2, "exposures": captured_exposures}
+        return {"version": _RESOURCE_VERSION, "exposures": captured_exposures}
 
     def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
         if not model:
@@ -571,10 +573,11 @@ class MetabaseClient:
                 "source-table", model.get("table_id")
             )
             if source_table_id in self.table_map:
-                if isinstance(source_table_id, str) and source_table_id.startswith(
-                    "card__"
-                ):
-                    self._extract_card_exposures(int(source_table_id.split("__")[-1]))
+                if isinstance(source_table_id, str):
+                    if source_table_id.startswith("card__"):
+                        self._extract_card_exposures(
+                            int(source_table_id.split("__")[-1])
+                        )
                 else:
                     source_table = self.table_map[source_table_id]
                     logging.info(
