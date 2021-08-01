@@ -32,18 +32,18 @@ def models(
     """
 
     # Assertions
-    if dbt_config.dbt_path and dbt_config.dbt_manifest_path:
+    if dbt_config.path and dbt_config.manifest_path:
         logging.warning("Prioritizing manifest path arg")
-        dbt_config.dbt_path = None
-    if dbt_config.dbt_path and not dbt_config.dbt_schema:
+        dbt_config.path = None
+    if dbt_config.path and not dbt_config.schema:
         logging.error(
             "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
         )
-    if dbt_config.dbt_path:
-        if dbt_config.dbt_database:
+    if dbt_config.path:
+        if dbt_config.database:
             logging.info(
                 "Argument --database %s is unused in dbt_project yml parser. Use manifest parser instead.",
-                dbt_config.dbt_database,
+                dbt_config.database,
             )
         if dbt_docs_url:
             logging.info(
@@ -53,49 +53,49 @@ def models(
 
     # Instantiate Metabase client
     mbc = MetabaseClient(
-        host=metabase_config.metabase_host,
-        user=metabase_config.metabase_user,
-        password=metabase_config.metabase_password,
-        use_http=metabase_config.metabase_use_http,
-        verify=metabase_config.metabase_verify,
+        host=metabase_config.host,
+        user=metabase_config.user,
+        password=metabase_config.password,
+        use_http=metabase_config.use_http,
+        verify=metabase_config.verify,
     )
     reader: Union[DbtFolderReader, DbtManifestReader]
 
     # Resolve dbt reader being either YAML or manifest.json based
-    if dbt_config.dbt_manifest_path:
-        reader = DbtManifestReader(os.path.expandvars(dbt_config.dbt_manifest_path))
-    elif dbt_config.dbt_path:
-        reader = DbtFolderReader(os.path.expandvars(dbt_config.dbt_path))
+    if dbt_config.manifest_path:
+        reader = DbtManifestReader(os.path.expandvars(dbt_config.manifest_path))
+    elif dbt_config.path:
+        reader = DbtFolderReader(os.path.expandvars(dbt_config.path))
 
-    if dbt_config.dbt_schema_excludes:
-        dbt_config.dbt_schema_excludes = {
-            _schema.upper() for _schema in dbt_config.dbt_schema_excludes
+    if dbt_config.schema_excludes:
+        dbt_config.schema_excludes = {
+            _schema.upper() for _schema in dbt_config.schema_excludes
         }
 
     # Process dbt stuff
     dbt_models = reader.read_models(
-        database=dbt_config.dbt_database,
-        schema=dbt_config.dbt_schema,
-        schema_excludes=dbt_config.dbt_schema_excludes,
-        includes=dbt_config.dbt_includes,
-        excludes=dbt_config.dbt_excludes,
+        database=dbt_config.database,
+        schema=dbt_config.schema,
+        schema_excludes=dbt_config.schema_excludes,
+        includes=dbt_config.includes,
+        excludes=dbt_config.excludes,
         include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
-    if not metabase_config.metabase_sync_skip:
-        if metabase_config.metabase_sync_timeout is not None and not mbc.sync_and_wait(
-            metabase_config.metabase_database,
+    if not metabase_config.sync_skip:
+        if metabase_config.sync_timeout is not None and not mbc.sync_and_wait(
+            metabase_config.database,
             dbt_models,
-            metabase_config.metabase_sync_timeout,
+            metabase_config.sync_timeout,
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
 
     # Process Metabase stuff
     mbc.export_models(
-        database=metabase_config.metabase_database,
+        database=metabase_config.database,
         models=dbt_models,
         aliases=reader.catch_aliases,
     )
@@ -107,7 +107,7 @@ def exposures(
     output_path: str,
     output_name: str,
     include_personal_collections: bool = False,
-    exclude_collections: Optional[Iterable] = None,
+    collection_excludes: Optional[Iterable] = None,
 ):
     """Extracts and imports exposures from Metabase to dbt.
 
@@ -117,54 +117,54 @@ def exposures(
         output_path (str): Append the dbt tags to the end of the table description. Defaults to True.
         output_name (str): URL to your dbt docs hosted catalog, a link will be appended to the model description (only works for manifest parsing). Defaults to None.
         include_personal_collections (bool, optional): Model names to limit processing to. Defaults to None.
-        exclude_collections (Iterable, optional): Model names to exclude. Defaults to None.
+        collection_excludes (Iterable, optional): Model names to exclude. Defaults to None.
     """
 
     # Assertions
-    if dbt_config.dbt_path and dbt_config.dbt_manifest_path:
+    if dbt_config.path and dbt_config.manifest_path:
         logging.warning("Prioritizing manifest path arg")
-        dbt_config.dbt_path = None
-    if dbt_config.dbt_path and not dbt_config.dbt_schema:
+        dbt_config.path = None
+    if dbt_config.path and not dbt_config.schema:
         logging.error(
             "Must supply a schema if using YAML parser, it is used to resolve foreign key relations and which Metabase models to propagate documentation to"
         )
 
     # Instantiate Metabase client
     mbc = MetabaseClient(
-        host=metabase_config.metabase_host,
-        user=metabase_config.metabase_user,
-        password=metabase_config.metabase_password,
-        use_http=metabase_config.metabase_use_http,
-        verify=metabase_config.metabase_verify,
+        host=metabase_config.host,
+        user=metabase_config.user,
+        password=metabase_config.password,
+        use_http=metabase_config.use_http,
+        verify=metabase_config.verify,
     )
     reader: Union[DbtFolderReader, DbtManifestReader]
 
     # Resolve dbt reader being either YAML or manifest.json based
-    if dbt_config.dbt_manifest_path:
-        reader = DbtManifestReader(os.path.expandvars(dbt_config.dbt_manifest_path))
-    elif dbt_config.dbt_path:
-        reader = DbtFolderReader(os.path.expandvars(dbt_config.dbt_path))
+    if dbt_config.manifest_path:
+        reader = DbtManifestReader(os.path.expandvars(dbt_config.manifest_path))
+    elif dbt_config.path:
+        reader = DbtFolderReader(os.path.expandvars(dbt_config.path))
 
-    if dbt_config.dbt_schema_excludes:
-        dbt_config.dbt_schema_excludes = {
-            _schema.upper() for _schema in dbt_config.dbt_schema_excludes
+    if dbt_config.schema_excludes:
+        dbt_config.schema_excludes = {
+            _schema.upper() for _schema in dbt_config.schema_excludes
         }
 
     # Process dbt stuff
     dbt_models = reader.read_models(
-        database=dbt_config.dbt_database,
-        schema=dbt_config.dbt_schema,
-        schema_excludes=dbt_config.dbt_schema_excludes,
-        includes=dbt_config.dbt_includes,
-        excludes=dbt_config.dbt_excludes,
+        database=dbt_config.database,
+        schema=dbt_config.schema,
+        schema_excludes=dbt_config.schema_excludes,
+        includes=dbt_config.includes,
+        excludes=dbt_config.excludes,
     )
 
     # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
-    if not metabase_config.metabase_sync_skip:
-        if metabase_config.metabase_sync_timeout is not None and not mbc.sync_and_wait(
-            metabase_config.metabase_database,
+    if not metabase_config.sync_skip:
+        if metabase_config.sync_timeout is not None and not mbc.sync_and_wait(
+            metabase_config.database,
             dbt_models,
-            metabase_config.metabase_sync_timeout,
+            metabase_config.sync_timeout,
         ):
             logging.critical("Sync timeout reached, models still not compatible")
             return
@@ -175,7 +175,7 @@ def exposures(
         output_path=output_path,
         output_name=output_name,
         include_personal_collections=include_personal_collections,
-        exclude_collections=exclude_collections,
+        collection_excludes=collection_excludes,
     )
 
 
@@ -318,7 +318,6 @@ def main(args: List = None):
         "--collection_excludes",
         nargs="*",
         default=[],
-        dest="exclude_collections",
         help="Exclude a list of collections from exposure parsing (default [])",
     )
 
@@ -339,23 +338,23 @@ def main(args: List = None):
 
     # These args drive loading the Metabase client and dbt models and are prerequisites to any functionality of dbt-metabase
     metabase_config = MetabaseConfig(
-        metabase_host=parsed.metabase_host,
-        metabase_user=parsed.metabase_user,
-        metabase_password=parsed.metabase_password,
-        metabase_use_http=parsed.metabase_use_http,
-        metabase_verify=parsed.metabase_verify,
-        metabase_database=parsed.metabase_database,
-        metabase_sync_skip=parsed.metabase_sync_skip,
-        metabase_sync_timeout=parsed.metabase_sync_timeout,
+        host=parsed.metabase_host,
+        user=parsed.metabase_user,
+        password=parsed.metabase_password,
+        use_http=parsed.metabase_use_http,
+        verify=parsed.metabase_verify,
+        database=parsed.metabase_database,
+        sync_skip=parsed.metabase_sync_skip,
+        sync_timeout=parsed.metabase_sync_timeout,
     )
     dbt_config = DbtConfig(
-        dbt_path=parsed.dbt_path,
-        dbt_manifest_path=parsed.dbt_manifest_path,
-        dbt_database=parsed.dbt_database,
-        dbt_schema=parsed.dbt_schema,
-        dbt_schema_excludes=parsed.dbt_schema_excludes,
-        dbt_includes=parsed.dbt_includes,
-        dbt_excludes=parsed.dbt_excludes,
+        path=parsed.dbt_path,
+        manifest_path=parsed.dbt_manifest_path,
+        database=parsed.dbt_database,
+        schema=parsed.dbt_schema,
+        schema_excludes=parsed.dbt_schema_excludes,
+        includes=parsed.dbt_includes,
+        excludes=parsed.dbt_excludes,
     )
 
     if parsed.command == "models":
@@ -372,7 +371,7 @@ def main(args: List = None):
             output_path=parsed.output_path,
             output_name=parsed.output_name,
             include_personal_collections=parsed.include_personal_collections,
-            exclude_collections=parsed.exclude_collections,
+            collection_excludes=parsed.collection_excludes,
         )
     else:
         logging.error("Invalid command. Must be one of either 'export' or 'exposures'.")
