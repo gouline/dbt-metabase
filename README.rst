@@ -160,7 +160,7 @@ emails & names, links to exposures, and even native SQL propagated over from Met
           name: Indiana Jones
           email: user@example.com
         depends_on:
-        - ref('orders')
+          - ref('orders')
 
 Questions which are native queries will have the SQL propagated to a code block in the documentation's
 description for full visibility. This YAML, like the rest of your dbt project can be committed to source
@@ -323,24 +323,24 @@ line. But if you prefer to call it from your code, here's how to do it:
     ##################################
 
     metabase_config = MetabaseConfig(
-        metabase_host=metabase_host,
-        metabase_user=metabase_user,
-        metabase_password=metabase_password,
-        metabase_use_http=metabase_use_http,
-        metabase_verify=metabase_verify,
-        metabase_database=metabase_database,
-        metabase_sync_skip=metabase_sync_skip,
-        metabase_sync_timeout=metabase_sync_timeout,
+        host=metabase_host,
+        user=metabase_user,
+        password=metabase_password,
+        use_http=metabase_use_http,
+        verify=metabase_verify,
+        database=metabase_database,
+        sync_skip=metabase_sync_skip,
+        sync_timeout=metabase_sync_timeout,
     )
 
     dbt_config = DbtConfig(
-        dbt_path=dbt_path,
-        dbt_manifest_path=dbt_manifest_path,
-        dbt_database=dbt_database,
-        dbt_schema=dbt_schema,
-        dbt_schema_excludes=dbt_schema_excludes,
-        dbt_includes=dbt_includes,
-        dbt_excludes=dbt_excludes,
+        path=dbt_path,
+        manifest_path=dbt_manifest_path,
+        database=dbt_database,
+        schema=dbt_schema,
+        schema_excludes=dbt_schema_excludes,
+        includes=dbt_includes,
+        excludes=dbt_excludes,
     )
 
     # Propagate models to Metabase #

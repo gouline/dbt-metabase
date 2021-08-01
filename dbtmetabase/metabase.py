@@ -445,6 +445,11 @@ class MetabaseClient:
 
         _RESOURCE_VERSION = 2
 
+        class DbtDumper(yaml.Dumper):
+            def increase_indent(self, flow=False, indentless=False):
+                indentless = False
+                return super(DbtDumper, self).increase_indent(flow, indentless)
+
         if collection_excludes is None:
             collection_excludes = []
 
@@ -500,6 +505,7 @@ class MetabaseClient:
                         if not "id" in dashboard_model_ref:
                             continue
                         self._extract_card_exposures(dashboard_model_ref["id"])
+                    self.native_query = ""
                 else:
                     continue
 
@@ -559,6 +565,8 @@ class MetabaseClient:
             yaml.dump(
                 {"version": 2, "exposures": captured_exposures},
                 docs,
+                Dumper=DbtDumper,
+                default_flow_style=False,
                 allow_unicode=True,
                 sort_keys=False,
             )
