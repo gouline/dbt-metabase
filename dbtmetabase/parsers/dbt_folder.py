@@ -28,13 +28,13 @@ class DbtFolderReader:
 
     def read_models(
         self,
-        database: str,
+        database: Optional[str] = None,
         schema: Optional[str] = None,
         schema_excludes: Iterable = None,
         includes: Iterable = None,
         excludes: Iterable = None,
         include_tags: bool = True,
-        dbt_docs_url: str = None,
+        docs_url: Optional[str] = None,
     ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
@@ -55,17 +55,8 @@ class DbtFolderReader:
         if schema is None:
             schema = "public"
 
-        if database:
-            logging.debug(
-                "Argument --dbt_database %s is unused in dbt YAML parser. Use manifest parser instead.",
-                database,
-            )
-
-        if dbt_docs_url:
-            logging.debug(
-                "Argument --dbt_docs_url %s is unused in dbt YAML parser. Use manifest parser instead.",
-                dbt_docs_url,
-            )
+        # Args that allow API interface for both readers to be interchangeable while passing CI
+        del database, docs_url
 
         mb_models: List[MetabaseModel] = []
 

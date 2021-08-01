@@ -149,7 +149,7 @@ class DbtManifestReader:
                 self._read_model(
                     node,
                     include_tags=include_tags,
-                    dbt_docs_url=dbt_docs_url,
+                    docs_url=docs_url,
                     model_key="sources",
                     source=node["source_name"],
                 )
@@ -161,7 +161,7 @@ class DbtManifestReader:
         self,
         model: dict,
         include_tags: bool = True,
-        dbt_docs_url: Optional[str] = None,
+        docs_url: Optional[str] = None,
         model_key: Literal["nodes", "sources"] = "nodes",
         source: Optional[str] = None,
     ) -> MetabaseModel:

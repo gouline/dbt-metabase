@@ -5,24 +5,24 @@ from typing import Optional, Iterable, Union
 @dataclass
 class MetabaseConfig:
     # Metabase Client
-    metabase_database: str
-    metabase_host: str
-    metabase_user: str
-    metabase_password: str
+    database: str
+    host: str
+    user: str
+    password: str
     # Metabase additional connection opts
-    metabase_use_http: bool = False
-    metabase_verify: Union[str, bool] = True
+    use_http: bool = False
+    verify: Union[str, bool] = True
     # Metabase Sync
-    metabase_sync_skip: bool = False
-    metabase_sync_timeout: Optional[int] = None
+    sync_skip: bool = False
+    sync_timeout: Optional[int] = None
 
 
 @dataclass
-class dbtConfig:
+class DbtConfig:
     # dbt Reader
-    dbt_database: str
-    dbt_manifest_path: Optional[str] = None
-    dbt_path: Optional[str] = None
+    database: str
+    manifest_path: Optional[str] = None
+    path: Optional[str] = None
     # dbt Target Models
     schema: Optional[str] = None
     schema_excludes: Iterable = field(default_factory=list)

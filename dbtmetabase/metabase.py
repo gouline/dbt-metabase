@@ -22,6 +22,10 @@ import re
 import yaml
 import os
 
+import re
+import yaml
+import os
+
 
 class MetabaseClient:
     """Metabase API client."""
@@ -406,7 +410,8 @@ class MetabaseClient:
             params=dict(include_hidden=True),
         )
         for table in metadata.get("tables", []):
-            table_schema = table.get("schema", "public").upper()
+            table_schema = table.get("schema")
+            table_schema = table_schema.upper() if table_schema else "PUBLIC"
             table_name = table["name"].upper()
 
             if schemas_to_exclude:
@@ -438,14 +443,35 @@ class MetabaseClient:
     def extract_exposures(
         self,
         models: List[MetabaseModel],
-        output_path: str = "./",
+        output_path: str = ".",
         output_name: str = "metabase_exposures",
         include_personal_collections: bool = True,
-        exclude_collections: Iterable = None,
-    ):
+        collection_excludes: Iterable = None,
+    ) -> Mapping:
+        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader
 
-        if exclude_collections is None:
-            exclude_collections = []
+        Arguments:
+            models {List[MetabaseModel]} -- List of models as output by dbt reader
+
+        Keyword Arguments:
+            output_path {str} -- The path to output the generated yaml. (default: ".")
+            output_name {str} -- The name of the generated yaml. (default: {"metabase_exposures"})
+            include_personal_collections {bool} -- Include personal collections in Metabase processing. (default: {True})
+            collection_excludes {str} -- List of collections to exclude by name. (default: {None})
+
+        Returns:
+            List[Mapping] -- JSON object representation of all exposures parsed.
+        """
+
+        _RESOURCE_VERSION = 2
+
+        class DbtDumper(yaml.Dumper):
+            def increase_indent(self, flow=False, indentless=False):
+                indentless = False
+                return super(DbtDumper, self).increase_indent(flow, indentless)
+
+        if collection_excludes is None:
+            collection_excludes = []
 
         refable_models = {node.name: node.ref for node in models}
 
@@ -453,165 +479,283 @@ class MetabaseClient:
         self.tables = self.api("get", "/api/table")
         self.table_map = {table["id"]: table["name"] for table in self.tables}
 
-        duplicate_name_check = []
-        captured_exposures = []
+        documented_exposure_names = []
+        parsed_exposures = []
 
         for collection in self.collections:
-            if collection["name"] in exclude_collections:
+
+            # Exclude collections by name
+            if collection["name"] in collection_excludes:
                 continue
-            if (
-                not include_personal_collections
-                and collection.get("personal_owner_id") is not None
-            ):
+
+            # Optionally exclude personal collections
+            if not include_personal_collections and collection.get("personal_owner_id"):
                 continue
+
+            # Iter through collection
             logging.info("Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
-                self.models_exposed = []
-                self.native_query = ""
-                if item["model"] == "card":
-                    model = self.api("get", f"/api/{item['model']}/{item['id']}")
-                    name = model.get("name", "Indeterminate Card")
-                    logging.info("Introspecting card: %s", name)
-                    description = model.get("description")
-                    creator_email = model.get("creator", {}).get("email")
-                    creator_name = model.get("creator", {}).get("common_name")
-                    created_at = model.get("created_at")
-                    header = "### Visualization: {}\n\n".format(
-                        model.get("display", "Unknown").title()
-                    )
-                    self._extract_card_exposures(model["id"], model)
-                elif item["model"] == "dashboard":
-                    dashboard = self.api("get", f"/api/{item['model']}/{item['id']}")
-                    if "ordered_cards" not in dashboard:
-                        continue
-                    name = dashboard.get("name", "Indeterminate Dashboard")
-                    logging.info("Introspecting dashboard: %s", name)
-                    description = dashboard.get("description")
-                    creator = self.api("get", f"/api/user/{dashboard['creator_id']}")
-                    creator_email = creator["email"]
-                    creator_name = creator["common_name"]
-                    created_at = dashboard.get("created_at")
-                    header = "### Dashboard Cards: {}\n\n".format(
-                        str(len(dashboard["ordered_cards"]))
-                    )
-                    for dashboard_model in dashboard["ordered_cards"]:
-                        dashboard_model_ref = dashboard_model.get("card", {})
-                        if not "id" in dashboard_model_ref:
-                            continue
-                        self._extract_card_exposures(dashboard_model_ref["id"])
-                else:
+
+                # Ensure collection item is of parsable type
+                exposure_type = item["model"]
+                exposure_id = item["id"]
+                if exposure_type not in ("card", "dashboard"):
                     continue
 
-                # No spaces allowed in model names in dbt docs DAG / No duplicate model names
-                name = name.replace(" ", "_")
-                enumer = 1
-                while name in duplicate_name_check:
-                    name = f"{name}_{enumer}"
-                    enumer += 1
-                duplicate_name_check.append(name)
+                # Prepare attributes for population through _extract_card_exposures calls
+                self.models_exposed = []
+                self.native_query = ""
+                native_query = ""
 
-                # Construct Exposure
-                description = (
-                    header
-                    + (
-                        "{}\n\n".format(description.strip())
-                        if description
-                        else "No description provided in Metabase\n\n"
+                exposure = self.api("get", f"/api/{exposure_type}/{exposure_id}")
+                exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
+                logging.info("Introspecting exposure: %s", exposure_name)
+
+                # Process exposure
+                if exposure_type == "card":
+
+                    # Build header for card and extract models to self.models_exposed
+                    header = "### Visualization: {}\n\n".format(
+                        exposure.get("display", "Unknown").title()
                     )
-                    + (
-                        "#### Query\n\n```\n{}\n```\n\n".format(
-                            "\n".join(
-                                line
-                                for line in self.native_query.strip().split("\n")
-                                if line.strip() != ""
-                            )
-                        )
-                        if self.native_query
-                        else ""
+
+                    # Parse Metabase question
+                    self._extract_card_exposures(exposure_id, exposure)
+                    native_query = self.native_query
+
+                elif exposure_type == "dashboard":
+
+                    # We expect this dict key in order to iter through questions
+                    if "ordered_cards" not in exposure:
+                        continue
+
+                    # Build header for dashboard and extract models for each question to self.models_exposed
+                    header = "### Dashboard Cards: {}\n\n".format(
+                        str(len(exposure["ordered_cards"]))
                     )
-                    + "#### Metadata\n\n"
-                    + ("Metabase Id: __{}__\n\n".format(item["id"]))
-                    + ("Created On: __{}__".format(created_at))
+
+                    # Iterate through dashboard questions
+                    for dashboard_item in exposure["ordered_cards"]:
+                        dashboard_item_reference = dashboard_item.get("card", {})
+                        if "id" not in dashboard_item_reference:
+                            continue
+                        # Parse Metabase question
+                        self._extract_card_exposures(dashboard_item_reference["id"])
+
+                # Extract creator info
+                if "creator" in exposure:
+                    creator_email = exposure["creator"]["email"]
+                    creator_name = exposure["creator"]["common_name"]
+                elif "creator_id" in exposure:
+                    creator = self.api("get", f"/api/user/{exposure['creator_id']}")
+                    creator_email = creator["email"]
+                    creator_name = creator["common_name"]
+
+                # No spaces allowed in model names in dbt docs DAG / No duplicate model names
+                exposure_name = exposure_name.replace(" ", "_")
+                enumer = 1
+                while exposure_name in documented_exposure_names:
+                    exposure_name = f"{exposure_name}_{enumer}"
+                    enumer += 1
+
+                # Construct exposure
+                parsed_exposures.append(
+                    self._build_exposure(
+                        exposure_type=exposure_type,
+                        exposure_id=exposure_id,
+                        name=exposure_name,
+                        header=header,
+                        created_at=exposure["created_at"],
+                        creator_name=creator_name,
+                        creator_email=creator_email,
+                        refable_models=refable_models,
+                        description=exposure.get("description", ""),
+                        native_query=native_query,
+                    )
                 )
-                captured_exposure = {
-                    "name": name,
-                    "description": description,
-                    "type": "analysis" if item["model"] == "card" else "dashboard",
-                    "url": f"{self.protocol}://{self.host}/{item['model']}/{item['id']}",
-                    "maturity": "medium",
-                    "owner": {
-                        "name": creator_name,
-                        "email": creator_email,
-                    },
-                    "depends_on": [
-                        refable_models[exposure.upper()]
-                        for exposure in list({m for m in self.models_exposed})
-                        if exposure.upper() in refable_models
-                    ],
-                }
-                captured_exposures.append(captured_exposure)
+
+                documented_exposure_names.append(exposure_name)
 
         # Output dbt YAML
         with open(
             os.path.expanduser(os.path.join(output_path, f"{output_name}.yml")), "w"
         ) as docs:
             yaml.dump(
-                {"version": 2, "exposures": captured_exposures},
+                {"version": _RESOURCE_VERSION, "exposures": parsed_exposures},
                 docs,
+                Dumper=DbtDumper,
+                default_flow_style=False,
                 allow_unicode=True,
                 sort_keys=False,
             )
-        return {"version": 2, "exposures": captured_exposures}
 
-    def _extract_card_exposures(self, card_id: int, model: Optional[Mapping] = None):
-        if not model:
-            model = self.api("get", f"/api/card/{card_id}")
-        query = model.get("dataset_query", {})
+        # Return object
+        return {"version": _RESOURCE_VERSION, "exposures": parsed_exposures}
+
+    def _extract_card_exposures(self, card_id: int, exposure: Optional[Mapping] = None):
+        """Extracts exposures from Metabase questions populating `self.models_exposed`
+
+        Arguments:
+            card_id {int} -- Id of Metabase question used to pull question from api
+
+        Keyword Arguments:
+            exposure {str} -- JSON api response from a question in Metabase, allows us to use the object if already in memory
+
+        Returns:
+            None -- self.models_exposed is populated through this method.
+        """
+
+        # If an exposure is not passed, pull from id
+        if not exposure:
+            exposure = self.api("get", f"/api/card/{card_id}")
+
+        query = exposure.get("dataset_query", {})
+
         if query.get("type") == "query":
+            # Metabase GUI derived query
             source_table_id = query.get("query", {}).get(
-                "source-table", model.get("table_id")
+                "source-table", exposure.get("table_id")
             )
-            if source_table_id in self.table_map:
-                if isinstance(source_table_id, str) and source_table_id.startswith(
-                    "card__"
-                ):
-                    self._extract_card_exposures(int(source_table_id.split("__")[-1]))
-                else:
-                    source_table = self.table_map[source_table_id]
+
+            if str(source_table_id).startswith("card__"):
+                # Handle questions based on other question in virtual db
+                self._extract_card_exposures(int(source_table_id.split("__")[-1]))
+            else:
+                # Normal question
+                source_table = self.table_map.get(source_table_id)
+                if source_table:
                     logging.info(
                         "Model extracted from Metabase question: %s",
                         source_table,
                     )
-                self.models_exposed.append(source_table)
-                for query_join in query.get("query", {}).get("joins", []):
-                    if isinstance(
-                        query_join.get("source-table"), str
-                    ) and query_join.get("source-table").startswith("card__"):
-                        self._extract_card_exposures(
-                            int(query_join.get("source-table").split("__")[-1])
-                        )
-                        continue
-                    joined_table = self.table_map[query_join.get("source-table")]
+                    self.models_exposed.append(source_table)
+
+            # Find models exposed through joins
+            for query_join in query.get("query", {}).get("joins", []):
+
+                # Handle questions based on other question in virtual db
+                if str(query_join.get("source-table", "")).startswith("card__"):
+                    self._extract_card_exposures(
+                        int(query_join.get("source-table").split("__")[-1])
+                    )
+                    continue
+
+                # Joined model parsed
+                joined_table = self.table_map.get(query_join.get("source-table"))
+                if joined_table:
                     logging.info(
                         "Model extracted from Metabase question join: %s",
                         joined_table,
                     )
                     self.models_exposed.append(joined_table)
         elif query.get("type") == "native":
+            # Metabase native query
             native_query = query.get("native").get("query")
             ctes = []
+
+            # Parse common table expressions for exclusion
             for cte in re.findall(self.cte_parser, native_query):
                 ctes.extend(cte)
-            for exposure in re.findall(self.exposure_parser, native_query):
-                clean_exposure = exposure.split(".")[-1].strip('"')
+
+            # Parse SQL for exposures through FROM or JOIN clauses
+            for sql_ref in re.findall(self.exposure_parser, native_query):
+
+                # Grab just the table / model name
+                clean_exposure = sql_ref.split(".")[-1].strip('"')
+
+                # Scrub CTEs for cleanliness sake
                 if clean_exposure in ctes:
                     continue
-                logging.info(
-                    "Model extracted from native query: %s",
-                    clean_exposure,
+
+                if clean_exposure:
+                    logging.info(
+                        "Model extracted from native query: %s",
+                        clean_exposure,
+                    )
+                    self.models_exposed.append(clean_exposure)
+                    self.native_query = native_query
+
+    def _build_exposure(
+        self,
+        exposure_type: str,
+        exposure_id: int,
+        name: str,
+        header: str,
+        created_at: str,
+        creator_name: str,
+        creator_email: str,
+        refable_models: Mapping,
+        description: str = "",
+        native_query: str = "",
+    ) -> Mapping:
+        """Builds an exposure object representation as defined here: https://docs.getdbt.com/reference/exposure-properties
+
+        Arguments:
+            exposure_type {str} -- Model type in Metabase being either `card` or `dashboard`
+            exposure_id {str} -- Card or Dashboard id in Metabase
+            name {str} -- Name of exposure as the title of the card or dashboard in Metabase
+            header {str} -- The header goes at the top of the description and is useful for prefixing metadata
+            created_at {str} -- Timestamp of exposure creation derived from Metabase
+            creator_name {str} -- Creator name derived from Metabase
+            creator_email {str} -- Creator email derived from Metabase
+            refable_models {str} -- List of dbt models from dbt parser which can validly be referenced, parsed exposures are always checked against this list to avoid generating invalid yaml
+
+        Keyword Arguments:
+            description {str} -- The description of the exposure as documented in Metabase. (default: No description provided in Metabase)
+            native_query {str} -- If exposure contains SQL, this arg will include the SQL in the dbt exposure documentation. (default: {""})
+
+        Returns:
+            Mapping -- JSON object representation of single exposure.
+        """
+
+        # Ensure model type is compatible
+        assert exposure_type in (
+            "card",
+            "dashboard",
+        ), "Cannot construct exposure for object type of {}".format(exposure_type)
+
+        if native_query:
+            # Format query into markdown code block
+            native_query = "#### Query\n\n```\n{}\n```\n\n".format(
+                "\n".join(
+                    sql_line
+                    for sql_line in self.native_query.strip().split("\n")
+                    if sql_line.strip() != ""
                 )
-                self.models_exposed.append(clean_exposure)
-                self.native_query = native_query
+            )
+
+        if not description:
+            description = "No description provided in Metabase\n\n"
+
+        # Format metadata as markdown
+        metadata = (
+            "#### Metadata\n\n"
+            + "Metabase Id: __{}__\n\n".format(exposure_id)
+            + "Created On: __{}__".format(created_at)
+        )
+
+        # Build description
+        description = (
+            header + ("{}\n\n".format(description.strip())) + native_query + metadata
+        )
+
+        # Output exposure
+        return {
+            "name": name,
+            "description": description,
+            "type": "analysis" if exposure_type == "card" else "dashboard",
+            "url": f"{self.protocol}://{self.host}/{exposure_type}/{exposure_id}",
+            "maturity": "medium",
+            "owner": {
+                "name": creator_name,
+                "email": creator_email,
+            },
+            "depends_on": [
+                refable_models[exposure.upper()]
+                for exposure in list({m for m in self.models_exposed})
+                if exposure.upper() in refable_models
+            ],
+        }
 
     def sync_metrics(
         self,
