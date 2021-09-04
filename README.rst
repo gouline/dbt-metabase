@@ -99,7 +99,7 @@ descriptions to Metabase by executing the below command.
 
 .. code-block:: shell
 
-    dbt-metabase export \
+    dbt-metabase export models \
         --dbt_path . \
         --dbt_database business \
         --metabase_host metabase.example.com \
@@ -125,7 +125,7 @@ how our dbt models are exposed in BI which closes the loop between ELT, modellin
 
 .. code-block:: shell
 
-    dbt-metabase exposures \
+    dbt-metabase export exposures \
         --dbt_manifest_path ./target/manifest.json \
         --dbt_database business \
         --metabase_host metabase.example.com \
@@ -165,7 +165,7 @@ emails & names, links to exposures, and even native SQL propagated over from Met
 Questions which are native queries will have the SQL propagated to a code block in the documentation's
 description for full visibility. This YAML, like the rest of your dbt project can be committed to source
 control to understand how exposures change over time. In a production environment, one can trigger 
-``dbt docs generate`` after ``dbt-metabase exposures`` (or alternatively run the exposure extraction job
+``dbt docs generate`` after ``dbt-metabase export exposures`` (or alternatively run the exposure extraction job
 on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes ``dbt docs`` a
 useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
 

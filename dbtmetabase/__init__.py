@@ -374,4 +374,4 @@ def main(args: List = None):
             collection_excludes=parsed.collection_excludes,
         )
     else:
-        logging.error("Invalid command. Must be one of either 'export' or 'exposures'.")
+        logging.error("Invalid command. Must be one of either 'models' or 'exposures'.")
