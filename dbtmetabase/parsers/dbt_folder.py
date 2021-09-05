@@ -62,7 +62,7 @@ class DbtFolderReader:
 
         for path in (Path(self.project_path) / "models").rglob("*.yml"):
             logging.info("Processing model: %s", path)
-            with open(path, "r") as stream:
+            with open(path, "r", encoding="utf-8") as stream:
                 schema_file = yaml.safe_load(stream)
                 if schema_file is None:
                     logging.warning("Skipping empty or invalid YAML: %s", path)
