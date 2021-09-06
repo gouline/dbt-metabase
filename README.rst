@@ -99,7 +99,7 @@ descriptions to Metabase by executing the below command.
 
 .. code-block:: shell
 
-    dbt-metabase export \
+    dbt-metabase models \
         --dbt_path . \
         --dbt_database business \
         --metabase_host metabase.example.com \
@@ -116,7 +116,7 @@ Exposure Extraction
 -------------------
 
 dbt-metabase also allows us to extract exposures from Metabase. The invocation is almost identical to
-our export function with the addition of output name and location args. `dbt exposures`_ let us understand
+our models function with the addition of output name and location args. `dbt exposures`_ let us understand
 how our dbt models are exposed in BI which closes the loop between ELT, modelling, and consumption.
 
 
@@ -215,7 +215,7 @@ Change the ``email`` column as follows:
       meta:
         metabase.semantic_type: type/Email
 
-Once you run ``dbt-metabase export`` again, you will notice that ``EMAIL`` is
+Once you run ``dbt-metabase models`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
 
 Here is the list of semantic types (formerly known as special types) currently accepted by Metabase:
