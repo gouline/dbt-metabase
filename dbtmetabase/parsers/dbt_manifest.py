@@ -44,7 +44,7 @@ class DbtManifestReader:
         path = self.manifest_path
         mb_models: List[MetabaseModel] = []
 
-        with open(path, "r") as manifest_file:
+        with open(path, "r", encoding="utf-8") as manifest_file:
             self.manifest = json.load(manifest_file)
 
         for _, node in self.manifest["nodes"].items():

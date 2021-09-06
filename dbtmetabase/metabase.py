@@ -572,7 +572,9 @@ class MetabaseClient:
 
         # Output dbt YAML
         with open(
-            os.path.expanduser(os.path.join(output_path, f"{output_name}.yml")), "w"
+            os.path.expanduser(os.path.join(output_path, f"{output_name}.yml")),
+            "w",
+            encoding="utf-8",
         ) as docs:
             yaml.dump(
                 {"version": _RESOURCE_VERSION, "exposures": parsed_exposures},
