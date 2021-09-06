@@ -193,7 +193,6 @@ def main(args: List = None):
         action="version",
         version=f"%(prog)s {__version__}",
     )
-    parser.add_argument("command", choices=["export"], help="command to execute")
 
     # Commands
     parser.add_argument(
@@ -374,4 +373,4 @@ def main(args: List = None):
             collection_excludes=parsed.collection_excludes,
         )
     else:
-        logging.error("Invalid command. Must be one of either 'export' or 'exposures'.")
+        logging.error("Invalid command. Must be one of either 'models' or 'exposures'.")
