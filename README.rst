@@ -10,7 +10,7 @@ dbt-metabase
 .. image:: https://pepy.tech/badge/dbt-metabase
     :target: https://pepy.tech/project/dbt-metabase
     :alt: Downloads
-.. image:: https://black.readthedocs.io/en/stable/_static/license.svg
+.. image:: https://img.shields.io/badge/License-MIT-yellow.svg
     :target: https://github.com/gouline/dbt-metabase/blob/master/LICENSE
     :alt: License: MIT
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
