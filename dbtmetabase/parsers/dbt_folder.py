@@ -1,13 +1,11 @@
-import re
-import os
 import logging
-
-from pathlib import Path
-from typing import List, Iterable, Mapping, MutableMapping, Literal, Optional
-
+import os
+import re
 import yaml
+from pathlib import Path
+from typing import List, Iterable, Mapping, MutableMapping, Optional
 
-from ..models.metabase import METABASE_META_FIELDS
+from ..models.metabase import METABASE_META_FIELDS, ModelKey
 from ..models.metabase import MetabaseModel, MetabaseColumn
 
 
@@ -78,7 +76,7 @@ class DbtFolderReader:
                                 model,
                                 schema.upper(),
                                 include_tags=include_tags,
-                                model_key="nodes",
+                                model_key=ModelKey.nodes,
                             )
                         )
                 for source in schema_file.get("sources", []):
@@ -102,7 +100,7 @@ class DbtFolderReader:
                                     model,
                                     source_schema_name.upper(),
                                     include_tags=include_tags,
-                                    model_key="sources",
+                                    model_key=ModelKey.sources,
                                     source=source["name"],
                                 )
                             )
@@ -114,7 +112,7 @@ class DbtFolderReader:
         model: dict,
         schema: str,
         include_tags: bool = True,
-        model_key: Literal["nodes", "sources"] = "nodes",
+        model_key: ModelKey = ModelKey.nodes,
         source: str = None,
     ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
@@ -141,12 +139,12 @@ class DbtFolderReader:
                     description += "\n\n"
                 description += f"Tags: {tags}"
 
-        if model_key == "nodes":
+        ref: Optional[str] = None
+
+        if model_key == ModelKey.nodes:
             ref = f"ref('{model.get('identifier', model['name'])}')"
-        elif model_key == "sources":
+        elif model_key == ModelKey.sources:
             ref = f"source('{source}', '{model['name']}')"
-        else:
-            ref = None
 
         return MetabaseModel(
             # We are implicitly complying with aliases by doing this

@@ -1,9 +1,9 @@
 import json
-import os
-from typing import List, Iterable, Mapping, Optional, MutableMapping, Literal
 import logging
+import os
+from typing import List, Iterable, Mapping, Optional, MutableMapping
 
-from ..models.metabase import METABASE_META_FIELDS
+from ..models.metabase import METABASE_META_FIELDS, ModelKey
 from ..models.metabase import MetabaseModel, MetabaseColumn
 
 
@@ -146,7 +146,7 @@ class DbtManifestReader:
                     node,
                     include_tags=include_tags,
                     docs_url=docs_url,
-                    model_key="sources",
+                    model_key=ModelKey.sources,
                     source=node["source_name"],
                 )
             )
@@ -158,7 +158,7 @@ class DbtManifestReader:
         model: dict,
         include_tags: bool = True,
         docs_url: Optional[str] = None,
-        model_key: Literal["nodes", "sources"] = "nodes",
+        model_key: ModelKey = ModelKey.nodes,
         source: Optional[str] = None,
     ) -> MetabaseModel:
         """Reads one dbt model in Metabase-friendly format.
@@ -225,12 +225,12 @@ class DbtManifestReader:
                 description += "\n\n"
             description += f"dbt docs link: {full_path}"
 
-        if model_key == "nodes":
+        ref: Optional[str] = None
+
+        if model_key == ModelKey.nodes:
             ref = f"ref('{model.get('identifier', model['name'])}')"
-        elif model_key == "sources":
+        elif model_key == ModelKey.sources:
             ref = f"source('{source}', '{model['name']}')"
-        else:
-            ref = None
 
         return MetabaseModel(
             name=model.get("alias", model.get("identifier", model.get("name"))).upper(),
