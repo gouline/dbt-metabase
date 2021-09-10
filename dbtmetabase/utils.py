@@ -16,7 +16,9 @@ def get_version() -> str:
         logging.debug("No _version.py found")
 
     # importlib is only available on Python 3.6+
+    # pylint also needs to be ignored
     try:
+        # pylint: disable=import-error,no-name-in-module,no-member
         import importlib.metadata
 
         try:
