@@ -1,3 +1,5 @@
+setuptools>=45
+wheels
 pylint
 mypy
 types-requests
