@@ -1,5 +1,5 @@
 import logging
-import importlib.metadata
+import sys
 
 
 def get_version() -> str:
@@ -16,9 +16,14 @@ def get_version() -> str:
     except ModuleNotFoundError:
         logging.debug("No _version.py found")
 
-    try:
-        return importlib.metadata.version("dbt-metabase")
-    except importlib.metadata.PackageNotFoundError:
-        logging.warning("No version found in metadata")
+    # importlib is only available on Python 3.8+
+    if sys.version_info >= (3, 8):
+        # pylint: disable=no-member
+        import importlib.metadata
+
+        try:
+            return importlib.metadata.version("dbt-metabase")
+        except importlib.metadata.PackageNotFoundError:
+            logging.warning("No version found in metadata")
 
     return "0.0.0-UNKONWN"

@@ -1,11 +1,12 @@
+import logging
 import unittest
 
+from dbtmetabase.models.metabase import ModelKey
 from dbtmetabase.parsers.dbt_folder import (
     DbtFolderReader,
     MetabaseModel,
     MetabaseColumn,
 )
-import logging
 
 
 class MockDbtFolderReader(DbtFolderReader):
@@ -29,7 +30,7 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="CUSTOMERS",
                 schema="PUBLIC",
                 description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
-                model_key="nodes",
+                model_key=ModelKey.nodes,
                 ref="ref('customers')",
                 columns=[
                     MetabaseColumn(
@@ -101,7 +102,7 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="ORDERS",
                 schema="PUBLIC",
                 description="This table has basic information about orders, as well as some derived facts based on payments",
-                model_key="nodes",
+                model_key=ModelKey.nodes,
                 ref="ref('orders')",
                 columns=[
                     MetabaseColumn(
@@ -191,7 +192,7 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="STG_CUSTOMERS",
                 schema="PUBLIC",
                 description="",
-                model_key="nodes",
+                model_key=ModelKey.nodes,
                 ref="ref('stg_customers')",
                 columns=[
                     MetabaseColumn(
@@ -209,7 +210,7 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="STG_ORDERS",
                 schema="PUBLIC",
                 description="",
-                model_key="nodes",
+                model_key=ModelKey.nodes,
                 ref="ref('stg_orders')",
                 columns=[
                     MetabaseColumn(
@@ -236,7 +237,7 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="STG_PAYMENTS",
                 schema="PUBLIC",
                 description="",
-                model_key="nodes",
+                model_key=ModelKey.nodes,
                 ref="ref('stg_payments')",
                 columns=[
                     MetabaseColumn(

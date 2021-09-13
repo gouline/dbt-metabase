@@ -1,12 +1,13 @@
+import json
+import logging
+import os
+
 from dbtmetabase.metabase import MetabaseClient
 from dbtmetabase.models.metabase import (
     MetabaseModel,
     MetabaseColumn,
+    ModelKey,
 )
-
-import json
-import logging
-import os
 
 mbc = MetabaseClient(
     host="localhost:3000",
@@ -108,7 +109,7 @@ def rebuild_baseline_exposure_yaml():
             name="CUSTOMERS",
             schema="PUBLIC",
             description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
-            model_key="nodes",
+            model_key=ModelKey.nodes,
             ref="ref('customers')",
             columns=[
                 MetabaseColumn(
@@ -180,7 +181,7 @@ def rebuild_baseline_exposure_yaml():
             name="ORDERS",
             schema="PUBLIC",
             description="This table has basic information about orders, as well as some derived facts based on payments",
-            model_key="nodes",
+            model_key=ModelKey.nodes,
             ref="ref('orders')",
             columns=[
                 MetabaseColumn(
@@ -270,7 +271,7 @@ def rebuild_baseline_exposure_yaml():
             name="STG_CUSTOMERS",
             schema="PUBLIC",
             description="",
-            model_key="nodes",
+            model_key=ModelKey.nodes,
             ref="ref('stg_customers')",
             columns=[
                 MetabaseColumn(
@@ -288,7 +289,7 @@ def rebuild_baseline_exposure_yaml():
             name="STG_ORDERS",
             schema="PUBLIC",
             description="",
-            model_key="nodes",
+            model_key=ModelKey.nodes,
             ref="ref('stg_orders')",
             columns=[
                 MetabaseColumn(
@@ -315,7 +316,7 @@ def rebuild_baseline_exposure_yaml():
             name="STG_PAYMENTS",
             schema="PUBLIC",
             description="",
-            model_key="nodes",
+            model_key=ModelKey.nodes,
             ref="ref('stg_payments')",
             columns=[
                 MetabaseColumn(

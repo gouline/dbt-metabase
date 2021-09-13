@@ -1,9 +1,16 @@
 from dataclasses import dataclass, field
-from typing import Sequence, Optional, MutableMapping, Literal
+from enum import Enum
+
+from typing import Sequence, Optional, MutableMapping
 
 # Allowed metabase.* fields
 # Should be covered by attributes in the MetabaseColumn class
 METABASE_META_FIELDS = ["special_type", "semantic_type", "visibility_type"]
+
+
+class ModelKey(str, Enum):
+    nodes = "nodes"
+    sources = "sources"
 
 
 @dataclass
@@ -25,7 +32,7 @@ class MetabaseModel:
     name: str
     schema: str
     description: str = ""
-    model_key: Literal["nodes", "sources"] = "nodes"
+    model_key: ModelKey = ModelKey.nodes
     ref: Optional[str] = None
 
     columns: Sequence[MetabaseColumn] = field(default_factory=list)
