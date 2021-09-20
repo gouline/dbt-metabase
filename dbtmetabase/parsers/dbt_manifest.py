@@ -193,7 +193,17 @@ class DbtManifestReader:
                     set(child["depends_on"][model_key]) - {model["unique_id"]}
                 )[0]
 
-                fk_target_table_alias = self.manifest[model_key][depends_on_id]["alias"]
+                try:
+                    fk_target_table_alias = self.manifest[model_key][depends_on_id][
+                        "alias"
+                    ]
+                except KeyError:
+                    logging.debug(
+                        "Could not resolve depends on model id %s to a model in manifest",
+                        depends_on_id,
+                    )
+                    continue
+
                 fk_target_schema = self.manifest[model_key][depends_on_id].get(
                     "schema", "public"
                 )

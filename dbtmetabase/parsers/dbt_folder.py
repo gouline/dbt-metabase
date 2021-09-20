@@ -171,7 +171,11 @@ class DbtFolderReader:
             description=column.get("description", ""),
         )
 
-        for test in column.get("tests", []):
+        tests: Optional[Iterable] = column.get("tests", [])
+        if tests is None:
+            tests = []
+
+        for test in tests:
             if isinstance(test, dict):
                 if "relationships" in test:
                     relationships = test["relationships"]
