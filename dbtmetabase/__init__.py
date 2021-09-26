@@ -2,6 +2,7 @@ import logging
 import functools
 from pathlib import Path
 from typing import Iterable, Optional, Callable, Any
+import os
 
 import click
 import yaml
@@ -14,6 +15,15 @@ from .utils import get_version, load_config
 __version__ = get_version()
 
 CONFIG = load_config()
+ENV_VARS = [
+    "DBT_DATABASE",
+    "DBT_PATH",
+    "DBT_MANIFEST_PATH",
+    "MB_USER",
+    "MB_PASS",
+    "MB_HOST",
+    "MB_DATABASE",
+]
 
 
 class MultiArg(click.Option):
@@ -246,32 +256,71 @@ def cli():
     ...
 
 
-def check_config(ctx, _, value):
-    if not value or ctx.resilient_parsing:
-        return
-    package_logger.logger().info("Looking for configuration file in ~/.dbt-metabase :magnifying_glass_tilted_right:")
+@click.command(context_settings=dict(max_content_width=600), cls=CommandController)
+def check_config():
+    package_logger.logger().info(
+        "Looking for configuration file in ~/.dbt-metabase :magnifying_glass_tilted_right:"
+    )
+    package_logger.logger().info(
+        "...bootstrapping environmental variables :racing_car:"
+    )
+    any_found = False
+    for env in ENV_VARS:
+        if env in os.environ:
+            package_logger.logger().info("Injecting valid env var: %s", env)
+            param = env.lower().replace("mb_", "metabase_")
+            CONFIG[param] = os.environ[env]
+            any_found = True
+    if not any_found:
+        package_logger.logger().info("NO valid env vars found")
+
     if not CONFIG:
         package_logger.logger().info(
-            "No configuration file found, run the `config` command to interactively generate one."
+            "No configuration file or env vars found, run the `config` command to interactively generate one.",
         )
     else:
-        package_logger.logger().info("Config file found!")
+        package_logger.logger().info("Config rendered!")
         package_logger.logger().info(
             {k: (v if "pass" not in k else "****") for k, v in CONFIG.items()}
         )
-    ctx.exit()
 
 
 @cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
 @click.option(
-    "--check",
+    "--inspect",
     is_flag=True,
-    is_eager=True,
-    callback=check_config,
-    expose_value=False,
+    help="Introspect your dbt-metabase config.",
 )
-def config():
-    """Interactively generate a config or validate an existing config.yml"""
+@click.option(
+    "--resolve",
+    is_flag=True,
+    help="Introspect your dbt-metabase config automatically injecting env vars into the configuration overwriting config.yml defaults. Use this flag if you are using env vars and want to see the resolved runtime output.",
+)
+@click.option(
+    "--env",
+    is_flag=True,
+    help="List all valid env vars for dbt-metabase.",
+)
+@click.pass_context
+def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False):
+    """Interactively generate a config or validate an existing config.yml
+
+    Execute the `config` command with no flags to enter an interactive session to create or update a config.yml.
+
+    The config.yml should be located in ~/.dbt-metabase/
+        Valid keys include any parameter seen in a dbt-metabase --help function
+        Example: `dbt-metabase models --help`
+    """
+    if inspect:
+        package_logger.logger().info(
+            {k: (v if "pass" not in k else "****") for k, v in CONFIG.items()}
+        )
+    if resolve:
+        ctx.invoke(check_config)
+    if env:
+        ctx.invoke(check_env)
+    if inspect or resolve or env:
+        ctx.exit()
     click.confirm(
         "Confirming you want to build or modify a dbt-metabase config file?", abort=True
     )
@@ -404,6 +453,19 @@ def config():
             allow_unicode=True,
             sort_keys=False,
         )
+
+
+@click.command(context_settings=dict(max_content_width=600), cls=CommandController)
+def check_env():
+    package_logger.logger().info("All valid env vars: %s", ENV_VARS)
+    any_found = False
+    for env in ENV_VARS:
+        if env in os.environ:
+            val = os.environ[env] if "pass" not in env.lower() else "****"
+            package_logger.logger().info("Found value for %s --> %s", env, val)
+            any_found = True
+    if not any_found:
+        package_logger.logger().info("None of the env vars found in environment")
 
 
 @cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
