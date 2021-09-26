@@ -1,17 +1,19 @@
 import logging
 import functools
 from pathlib import Path
-from typing import Iterable, Optional, Callable
+from typing import Iterable, Optional, Callable, Any
 
 import click
 import yaml
 
 from .logger import logging as package_logger
 from .models.interface import Metabase, Dbt
-from .utils import get_version
+from .utils import get_version, load_config
 
 
 __version__ = get_version()
+
+CONFIG = load_config()
 
 
 class MultiArg(click.Option):
@@ -53,26 +55,37 @@ class MultiArg(click.Option):
         return retval
 
 
+class OptionAcceptableFromConfig(click.Option):
+    """This class override should be used on arguments that are marked `required=True` in order to give them
+    more resilence to raising an error when the option exists in the users config"""
+
+    def process_value(self, ctx: click.Context, value: Any) -> Any:
+        if value is not None:
+            value = self.type_cast_value(ctx, value)
+
+        if self.required and self.value_is_missing(value):
+            if self.name not in CONFIG:
+                raise click.core.MissingParameter(ctx=ctx, param=self)
+            value = CONFIG[self.name]
+
+        if self.callback is not None:
+            value = self.callback(ctx, self, value)
+
+        return value
+
+
 class CommandController(click.Command):
-    """This class inherets from click.Command and supplies custom help text render to
-    render our docstrings a little prettier as well as an invoke hook to load from a config file if it exists
-    or the argument is passed"""
+    """This class inherets from click.Command and supplies custom help text renderer to
+    render our docstrings a little prettier as well as a hook in the invoke to load from a config file if it exists."""
 
     def invoke(self, ctx: click.Context):
-        config_path = Path.home() / ".dbt-metabase"
-        config_data = None
-        if (config_path / "config.yml").exists():
-            with open(config_path / "config.yml") as f:
-                config_data = yaml.safe_load(f).get("config", {})
-        elif (config_path / "config.yaml").exists():
-            with open(config_path / "config.yaml") as f:
-                config_data = yaml.safe_load(f).get("config", {})
-        if config_data is not None:
-            for param, value in ctx.params.items():
-                if value is None and param in config_data:
-                    ctx.params[param] = config_data[param]
 
-        return super(CommandController, self).invoke(ctx)
+        if CONFIG:
+            for param, value in ctx.params.items():
+                if value is None and param in CONFIG:
+                    ctx.params[param] = CONFIG[param]
+
+        return super().invoke(ctx)
 
     def get_help(self, ctx: click.Context):
         orig_wrap_test = click.formatting.wrap_text
@@ -94,7 +107,7 @@ class CommandController(click.Command):
             ).replace("\n\n", "\n")
 
         click.formatting.wrap_text = wrap_text
-        return super(CommandController, self).get_help(ctx)
+        return super().get_help(ctx)
 
 
 def shared_opts(func: Callable) -> Callable:
@@ -111,6 +124,8 @@ def shared_opts(func: Callable) -> Callable:
         "--dbt_database",
         envvar="DBT_DATABASE",
         show_envvar=True,
+        required=True,
+        cls=OptionAcceptableFromConfig,
         help="Target database name as specified in dbt models to be actioned",
         type=str,
     )
@@ -158,6 +173,8 @@ def shared_opts(func: Callable) -> Callable:
         "--metabase_database",
         envvar="MB_DATABASE",
         show_envvar=True,
+        required=True,
+        cls=OptionAcceptableFromConfig,
         type=str,
         help="Target database name as set in Metabase (typically aliased)",
     )
@@ -166,6 +183,8 @@ def shared_opts(func: Callable) -> Callable:
         metavar="HOST",
         envvar="MB_HOST",
         show_envvar=True,
+        required=True,
+        cls=OptionAcceptableFromConfig,
         type=str,
         help="Metabase hostname",
     )
@@ -174,6 +193,8 @@ def shared_opts(func: Callable) -> Callable:
         metavar="USER",
         envvar="MB_USER",
         show_envvar=True,
+        required=True,
+        cls=OptionAcceptableFromConfig,
         type=str,
         help="Metabase username",
     )
@@ -182,6 +203,8 @@ def shared_opts(func: Callable) -> Callable:
         metavar="PASS",
         envvar="MB_PASSWORD",
         show_envvar=True,
+        required=True,
+        cls=OptionAcceptableFromConfig,
         type=str,
         help="Metabase password",
     )
@@ -226,24 +249,15 @@ def cli():
 def check_config(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
-    package_logger.logger().info("Looking for configuration file in ~/.dbt-metabase")
-    config_path = Path.home() / ".dbt-metabase"
-    config_path.mkdir(parents=True, exist_ok=True)
-    config_file = None
-    if (config_path / "config.yml").exists():
-        with open(config_path / "config.yml") as f:
-            config_file = yaml.safe_load(f).get("config", {})
-    elif (config_path / "config.yaml").exists():
-        with open(config_path / "config.yaml") as f:
-            config_file = yaml.safe_load(f).get("config", {})
-    if not config_file:
+    package_logger.logger().info("Looking for configuration file in ~/.dbt-metabase :magnifying_glass_tilted_right:")
+    if not CONFIG:
         package_logger.logger().info(
             "No configuration file found, run the `config` command to interactively generate one."
         )
     else:
         package_logger.logger().info("Config file found!")
         package_logger.logger().info(
-            {k: (v if "pass" not in k else "****") for k, v in config_file.items()}
+            {k: (v if "pass" not in k else "****") for k, v in CONFIG.items()}
         )
     ctx.exit()
 
@@ -256,8 +270,7 @@ def check_config(ctx, _, value):
     callback=check_config,
     expose_value=False,
 )
-@click.pass_context
-def config(ctx: click.Context):
+def config():
     """Interactively generate a config or validate an existing config.yml"""
     click.confirm(
         "Confirming you want to build or modify a dbt-metabase config file?", abort=True
