@@ -40,7 +40,7 @@ def console_log_handler(
     return handler
 
 
-@lru_cache
+@lru_cache(max_size=128)
 def logger(
     logger_name: str = "dbtmetabase",
 ) -> logging.Logger:
