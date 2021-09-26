@@ -44,5 +44,6 @@ class MetabaseModel:
             return f"ref('{self.name}')"
         elif self.model_type == ModelType.sources:
             return f"source('{self.source}', '{self.name if self.dbt_name is None else self.dbt_name}')"
+        return None
 
     columns: Sequence[MetabaseColumn] = field(default_factory=list)

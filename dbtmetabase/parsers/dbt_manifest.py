@@ -3,7 +3,7 @@ import os
 from typing import List, Tuple, Mapping, Optional, MutableMapping
 
 from ..logger.logging import logger
-from ..models import interface
+from ..models import interface  # pylint: disable=unused-import
 from ..models.metabase import METABASE_META_FIELDS, ModelType
 from ..models.metabase import MetabaseModel, MetabaseColumn
 

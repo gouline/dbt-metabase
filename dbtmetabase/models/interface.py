@@ -1,7 +1,6 @@
 import logging
 import os.path
-from dataclasses import dataclass, field
-from typing import Optional, Iterable, Union, List, Tuple, MutableMapping
+from typing import Optional, Iterable, Union, List
 
 from .metabase import MetabaseModel
 from ..metabase import MetabaseClient
@@ -24,7 +23,7 @@ class Metabase:
         user: str,
         password: str,
         use_http: bool = False,
-        verify: Union[str, bool] = True,
+        verify: Optional[Union[str, bool]] = True,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
     ):
@@ -115,7 +114,7 @@ class Dbt:
         self.prepare_dbt_parser()
 
     @property
-    def schema_excludes(self) -> str:
+    def schema_excludes(self) -> Iterable:
         return self._schema_excludes
 
     @schema_excludes.setter

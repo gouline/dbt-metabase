@@ -4,7 +4,7 @@ import yaml
 from pathlib import Path
 from typing import List, Iterable, Mapping, MutableMapping, Optional, Tuple
 
-from ..models import interface
+from ..models import interface  # pylint: disable=unused-import
 from ..models.metabase import METABASE_META_FIELDS, ModelType
 from ..models.metabase import MetabaseModel, MetabaseColumn
 from ..logger.logging import logger
@@ -253,3 +253,4 @@ class DbtFolderReader:
         if matches:
             logger().debug("%s -> %s", text, matches[0])
             return matches[0]
+        return None

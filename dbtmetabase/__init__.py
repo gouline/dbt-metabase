@@ -53,8 +53,9 @@ class MultiArg(click.Option):
             # Call the actual process
             self._previous_parser_process(value, state)
 
-        retval = super(MultiArg, self).add_to_parser(parser, ctx)
+        super().add_to_parser(parser, ctx)
         for name in self.opts:
+            # pylint: disable=protected-access
             our_parser = parser._long_opt.get(name) or parser._short_opt.get(name)
             if our_parser:
                 self._eat_all_parser = our_parser
@@ -62,7 +63,21 @@ class MultiArg(click.Option):
                 our_parser.process = parser_process
                 break
 
-        return retval
+        return
+
+
+class ListParam(click.Tuple):
+    def __init__(self) -> None:
+        self.type = click.STRING
+        super().__init__([])
+
+    def convert(
+        self, value: Any, param: Optional[click.Parameter], ctx: Optional[click.Context]
+    ) -> Any:
+        len_value = len(value)
+        types = [self.type] * len_value
+
+        return list(ty(x, param, ctx) for ty, x in zip(types, value))
 
 
 class OptionAcceptableFromConfig(click.Option):
@@ -137,7 +152,7 @@ def shared_opts(func: Callable) -> Callable:
         required=True,
         cls=OptionAcceptableFromConfig,
         help="Target database name as specified in dbt models to be actioned",
-        type=str,
+        type=click.STRING,
     )
     @click.option(
         "--dbt_path",
@@ -156,7 +171,7 @@ def shared_opts(func: Callable) -> Callable:
     @click.option(
         "--dbt_schema",
         help="Target schema. Should be passed if using folder parser",
-        type=str,
+        type=click.STRING,
     )
     @click.option(
         "--dbt_schema_excludes",
@@ -185,7 +200,7 @@ def shared_opts(func: Callable) -> Callable:
         show_envvar=True,
         required=True,
         cls=OptionAcceptableFromConfig,
-        type=str,
+        type=click.STRING,
         help="Target database name as set in Metabase (typically aliased)",
     )
     @click.option(
@@ -195,7 +210,7 @@ def shared_opts(func: Callable) -> Callable:
         show_envvar=True,
         required=True,
         cls=OptionAcceptableFromConfig,
-        type=str,
+        type=click.STRING,
         help="Metabase hostname",
     )
     @click.option(
@@ -205,7 +220,7 @@ def shared_opts(func: Callable) -> Callable:
         show_envvar=True,
         required=True,
         cls=OptionAcceptableFromConfig,
-        type=str,
+        type=click.STRING,
         help="Metabase username",
     )
     @click.option(
@@ -215,7 +230,7 @@ def shared_opts(func: Callable) -> Callable:
         show_envvar=True,
         required=True,
         cls=OptionAcceptableFromConfig,
-        type=str,
+        type=click.STRING,
         help="Metabase password",
     )
     @click.option(
@@ -350,7 +365,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
         "Please enter the name of your dbt Database",
         default=config_file.get("dbt_database"),
         show_default=True,
-        type=str,
+        type=click.STRING,
     )
     config_file["dbt_manifest_path"] = click.prompt(
         "Please enter the path to your dbt manifest.json \ntypically located in the /target directory of the dbt project",
@@ -366,7 +381,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
             default=config_file.get("dbt_schema_excludes"),
             show_default=True,
             value_proc=lambda s: list(map(str.strip, s.split(","))),
-            type=list,
+            type=click.UNPROCESSED,
         )
     else:
         config_file.pop("dbt_schema_excludes", None)
@@ -378,7 +393,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
             default=config_file.get("dbt_excludes"),
             show_default=True,
             value_proc=lambda s: list(map(str.strip, s.split(","))),
-            type=list,
+            type=ListParam(),
         )
     else:
         config_file.pop("dbt_excludes", None)
@@ -386,26 +401,26 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
         "Target database name as set in Metabase (typically aliased)",
         default=config_file.get("metabase_database"),
         show_default=True,
-        type=str,
+        type=click.STRING,
     )
     config_file["metabase_host"] = click.prompt(
         "Metabase hostname, this is the URL without the protocol (HTTP/S)",
         default=config_file.get("metabase_host"),
         show_default=True,
-        type=str,
+        type=click.STRING,
     )
     config_file["metabase_user"] = click.prompt(
         "Metabase username",
         default=config_file.get("metabase_user"),
         show_default=True,
-        type=str,
+        type=click.STRING,
     )
     config_file["metabase_password"] = click.prompt(
         "Metabase password [hidden]",
         default=config_file.get("metabase_password"),
         hide_input=True,
         show_default=False,
-        type=str,
+        type=click.STRING,
     )
     config_file["metabase_use_http"] = click.confirm(
         "Use HTTP instead of HTTPS to connect to Metabase, unless testing locally we should be saying no here",
@@ -434,7 +449,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
             default=config_file.get("metabase_sync_timeout", -1),
             show_default=True,
             value_proc=lambda i: None if int(i) <= 0 else int(i),
-            type=int,
+            type=click.INT,
         )
     else:
         config_file.pop("metabase_sync_timeout", None)
@@ -473,7 +488,7 @@ def check_env():
 @click.option(
     "--dbt_docs_url",
     metavar="URL",
-    type=str,
+    type=click.STRING,
     help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description (default None)",
 )
 @click.option(
@@ -581,7 +596,7 @@ def models(
 )
 @click.option(
     "--output_name",
-    type=str,
+    type=click.STRING,
     help="Output name for generated exposure yaml. Defaults to metabase_exposures.yml",
 )
 @click.option(
