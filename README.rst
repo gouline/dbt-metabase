@@ -322,7 +322,7 @@ line. But if you prefer to call it from your code, here's how to do it:
     # Collect Args the Build Configs #
     ##################################
 
-    metabase_config = MetabaseConfig(
+    metabase_config = Metabase(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
@@ -333,7 +333,7 @@ line. But if you prefer to call it from your code, here's how to do it:
         sync_timeout=metabase_sync_timeout,
     )
 
-    dbt_config = DbtConfig(
+    dbt_config = Dbt(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
         database=dbt_database,

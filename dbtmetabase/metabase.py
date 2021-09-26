@@ -1,5 +1,10 @@
+import re
 import json
-import logging
+import requests
+import time
+import yaml
+import os
+
 from typing import (
     Sequence,
     Optional,
@@ -11,14 +16,8 @@ from typing import (
     Mapping,
 )
 
-import requests
-import time
-
+from .logger.logging import logger
 from .models.metabase import MetabaseModel, MetabaseColumn
-
-import re
-import yaml
-import os
 
 
 class MetabaseClient:
@@ -59,7 +58,7 @@ class MetabaseClient:
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
-        logging.info("Session established successfully")
+        logger().info(":ok_hand: Session established successfully")
 
     def get_session_id(self, user: str, password: str) -> str:
         """Obtains new session ID from API.
@@ -101,7 +100,7 @@ class MetabaseClient:
             timeout = 30
 
         if timeout < self._SYNC_PERIOD_SECS:
-            logging.critical(
+            logger().critical(
                 "Timeout provided %d secs, must be at least %d",
                 timeout,
                 self._SYNC_PERIOD_SECS,
@@ -110,7 +109,7 @@ class MetabaseClient:
 
         database_id = self.find_database_id(database)
         if not database_id:
-            logging.critical("Cannot find database by name %s", database)
+            logger().critical("Cannot find database by name %s", database)
             return False
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
@@ -148,7 +147,7 @@ class MetabaseClient:
             lookup_key = f"{schema_name}.{model_name}"
 
             if lookup_key not in field_lookup:
-                logging.warning(
+                logger().warning(
                     "Model %s not found in %s schema", lookup_key, schema_name
                 )
                 are_models_compatible = False
@@ -157,7 +156,7 @@ class MetabaseClient:
                 for column in model.columns:
                     column_name = column.name.upper()
                     if column_name not in table_lookup:
-                        logging.warning(
+                        logger().warning(
                             "Column %s not found in %s model", column_name, lookup_key
                         )
                         are_models_compatible = False
@@ -180,7 +179,7 @@ class MetabaseClient:
 
         database_id = self.find_database_id(database)
         if not database_id:
-            logging.critical("Cannot find database by name %s", database)
+            logger().critical("Cannot find database by name %s", database)
             return
 
         table_lookup, field_lookup = self.build_metadata_lookups(database_id)
@@ -211,7 +210,9 @@ class MetabaseClient:
 
         api_table = table_lookup.get(lookup_key)
         if not api_table:
-            logging.error("Table %s does not exist in Metabase", lookup_key)
+            logger().error(
+                "\n:cross_mark: Table %s does not exist in Metabase", lookup_key
+            )
             return
 
         # Empty strings not accepted by Metabase
@@ -228,11 +229,13 @@ class MetabaseClient:
                 f"/api/table/{table_id}",
                 json={"description": model_description},
             )
-            logging.info("Updated table %s successfully", lookup_key)
+            logger().info("\n:raising_hands: Updated table %s successfully", lookup_key)
         elif not model_description:
-            logging.info("No model description provided for table %s", lookup_key)
+            logger().info(
+                "\n:bow: No model description provided for table %s", lookup_key
+            )
         else:
-            logging.info("Table %s is up-to-date", lookup_key)
+            logger().info("\n:thumbs_up: Table %s is up-to-date", lookup_key)
 
         for column in model.columns:
             self.export_column(schema_name, model_name, column, field_lookup, aliases)
@@ -259,7 +262,7 @@ class MetabaseClient:
 
         field = field_lookup.get(table_lookup_key, {}).get(column_name)
         if not field:
-            logging.error(
+            logger().error(
                 "Field %s.%s does not exist in Metabase", table_lookup_key, column_name
             )
             return
@@ -289,15 +292,13 @@ class MetabaseClient:
             )
 
             if not target_table or not target_field:
-                logging.info(
-                    "Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
+                logger().info(
+                    ":bow: Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
                     table_lookup_key,
                     target_field,
                 )
 
             else:
-                # Now we can trust our parse_ref even if it is pointing to something like source("salesforce", "my_cool_table_alias")
-                # just as easily as a simple ref("stg_salesforce_cool_table") -> the dict is empty if parsing from manifest.json
                 was_aliased = (
                     aliases.get(target_table.split(".", 1)[-1])
                     if target_table
@@ -308,16 +309,19 @@ class MetabaseClient:
                         [target_table.split(".", 1)[0], was_aliased]
                     )
 
-                logging.info(
-                    "Looking for field %s in table %s", target_field, target_table
+                logger().debug(
+                    ":magnifying_glass_tilted_right: Looking for field %s in table %s",
+                    target_field,
+                    target_table,
                 )
+
                 fk_target_field_id = (
                     field_lookup.get(target_table, {}).get(target_field, {}).get("id")
                 )
 
                 if fk_target_field_id:
-                    logging.info(
-                        "Setting target field %s to PK in order to facilitate FK ref for %s column",
+                    logger().info(
+                        ":key: Setting target field %s to PK in order to facilitate FK ref for %s column",
                         fk_target_field_id,
                         column_name,
                     )
@@ -327,8 +331,8 @@ class MetabaseClient:
                         json={semantic_type: "type/PK"},
                     )
                 else:
-                    logging.error(
-                        "Unable to find foreign key target %s.%s",
+                    logger().error(
+                        ":cross_mark: Unable to find foreign key target %s.%s",
                         target_table,
                         target_field,
                     )
@@ -342,6 +346,10 @@ class MetabaseClient:
             column_description = None
         else:
             column_description = column.description
+
+        # Preserve this relationship by default
+        if api_field["fk_target_field_id"] is not None and fk_target_field_id is None:
+            fk_target_field_id = api_field["fk_target_field_id"]
 
         if (
             api_field["description"] != column_description
@@ -360,9 +368,13 @@ class MetabaseClient:
                     "fk_target_field_id": fk_target_field_id,
                 },
             )
-            logging.info("Updated field %s.%s successfully", model_name, column_name)
+            logger().info(
+                ":sparkles: Updated field %s.%s successfully", model_name, column_name
+            )
         else:
-            logging.info("Field %s.%s is up-to-date", model_name, column_name)
+            logger().info(
+                ":thumbs_up: Field %s.%s is up-to-date", model_name, column_name
+            )
 
     def find_database_id(self, name: str) -> Optional[str]:
         """Finds Metabase database ID by name.
@@ -414,7 +426,7 @@ class MetabaseClient:
                 }
 
                 if table_schema in schemas_to_exclude:
-                    logging.debug(
+                    logger().debug(
                         "Ignoring Metabase table %s in schema %s. It belongs to excluded schemas %s",
                         table_name,
                         table_schema,
@@ -467,7 +479,7 @@ class MetabaseClient:
         if collection_excludes is None:
             collection_excludes = []
 
-        refable_models = {node.name: node.ref for node in models}
+        refable_models = {node.name.upper(): node.ref for node in models}
 
         self.collections = self.api("get", "/api/collection")
         self.tables = self.api("get", "/api/table")
@@ -487,7 +499,7 @@ class MetabaseClient:
                 continue
 
             # Iter through collection
-            logging.info("Exploring collection %s", collection["name"])
+            logger().info("\n\n:sparkles: Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
 
                 # Ensure collection item is of parsable type
@@ -503,7 +515,10 @@ class MetabaseClient:
 
                 exposure = self.api("get", f"/api/{exposure_type}/{exposure_id}")
                 exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
-                logging.info("Introspecting exposure: %s", exposure_name)
+                logger().info(
+                    "\n:bow_and_arrow: Introspecting exposure: %s",
+                    exposure_name,
+                )
 
                 # Process exposure
                 if exposure_type == "card":
@@ -514,7 +529,7 @@ class MetabaseClient:
                     )
 
                     # Parse Metabase question
-                    self._extract_card_exposures(exposure_id, exposure)
+                    self._extract_card_exposures(exposure_id, exposure, refable_models)
                     native_query = self.native_query
 
                 elif exposure_type == "dashboard":
@@ -534,7 +549,13 @@ class MetabaseClient:
                         if "id" not in dashboard_item_reference:
                             continue
                         # Parse Metabase question
-                        self._extract_card_exposures(dashboard_item_reference["id"])
+                        self._extract_card_exposures(
+                            dashboard_item_reference["id"],
+                            refable_models=refable_models,
+                        )
+
+                if not self.models_exposed:
+                    logger().info(":bow: No models mapped to exposure")
 
                 # Extract creator info
                 if "creator" in exposure:
@@ -588,7 +609,12 @@ class MetabaseClient:
         # Return object
         return {"version": _RESOURCE_VERSION, "exposures": parsed_exposures}
 
-    def _extract_card_exposures(self, card_id: int, exposure: Optional[Mapping] = None):
+    def _extract_card_exposures(
+        self,
+        card_id: int,
+        exposure: Optional[Mapping] = None,
+        refable_models: Optional[MutableMapping] = None,
+    ):
         """Extracts exposures from Metabase questions populating `self.models_exposed`
 
         Arguments:
@@ -600,6 +626,9 @@ class MetabaseClient:
         Returns:
             None -- self.models_exposed is populated through this method.
         """
+
+        if refable_models is None:
+            refable_models = {}
 
         # If an exposure is not passed, pull from id
         if not exposure:
@@ -615,13 +644,15 @@ class MetabaseClient:
 
             if str(source_table_id).startswith("card__"):
                 # Handle questions based on other question in virtual db
-                self._extract_card_exposures(int(source_table_id.split("__")[-1]))
+                self._extract_card_exposures(
+                    int(source_table_id.split("__")[-1]), refable_models=refable_models
+                )
             else:
                 # Normal question
                 source_table = self.table_map.get(source_table_id)
                 if source_table:
-                    logging.info(
-                        "Model extracted from Metabase question: %s",
+                    logger().info(
+                        ":direct_hit: Model extracted from Metabase question: %s",
                         source_table,
                     )
                     self.models_exposed.append(source_table)
@@ -632,15 +663,16 @@ class MetabaseClient:
                 # Handle questions based on other question in virtual db
                 if str(query_join.get("source-table", "")).startswith("card__"):
                     self._extract_card_exposures(
-                        int(query_join.get("source-table").split("__")[-1])
+                        int(query_join.get("source-table").split("__")[-1]),
+                        refable_models=refable_models,
                     )
                     continue
 
                 # Joined model parsed
                 joined_table = self.table_map.get(query_join.get("source-table"))
                 if joined_table:
-                    logging.info(
-                        "Model extracted from Metabase question join: %s",
+                    logger().info(
+                        ":direct_hit: Model extracted from Metabase question join: %s",
                         joined_table,
                     )
                     self.models_exposed.append(joined_table)
@@ -660,13 +692,16 @@ class MetabaseClient:
                 # Grab just the table / model name
                 clean_exposure = sql_ref.split(".")[-1].strip('"')
 
-                # Scrub CTEs for cleanliness sake
+                # Scrub CTEs
                 if clean_exposure in ctes:
+                    continue
+                # Verify this is one of our parsed refable models so exposures dont break the DAG
+                if not refable_models.get(clean_exposure):
                     continue
 
                 if clean_exposure:
-                    logging.info(
-                        "Model extracted from native query: %s",
+                    logger().info(
+                        ":direct_hit: Model extracted from native query: %s",
                         clean_exposure,
                     )
                     self.models_exposed.append(clean_exposure)
@@ -794,9 +829,9 @@ class MetabaseClient:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
                 if "password" in kwargs["json"]:
-                    logging.error("HTTP request failed. Response: %s", response.text)
+                    logger().error("HTTP request failed. Response: %s", response.text)
                 else:
-                    logging.error(
+                    logger().error(
                         "HTTP request failed. Payload: %s. Response: %s",
                         kwargs["json"],
                         response.text,
