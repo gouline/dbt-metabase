@@ -64,7 +64,7 @@ class DbtManifestReader:
             model_name = node["name"].upper()
 
             if node["config"]["materialized"] == "ephemeral":
-                logger().info(
+                logger().debug(
                     "Skipping ephemeral model %s not manifested in database", model_name
                 )
                 continue
