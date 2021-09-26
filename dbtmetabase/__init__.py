@@ -347,11 +347,11 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
     config_file = {}
     conf_name = None
     if (config_path / "config.yml").exists():
-        with open(config_path / "config.yml") as f:
+        with open(config_path / "config.yml", "r", encoding="utf-8") as f:
             config_file = yaml.safe_load(f).get("config", {})
             conf_name = "config.yml"
     elif (config_path / "config.yaml").exists():
-        with open(config_path / "config.yaml") as f:
+        with open(config_path / "config.yaml", "r", encoding="utf-8") as f:
             config_file = yaml.safe_load(f).get("config", {})
             conf_name = "config.yaml"
     else:
@@ -460,7 +460,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
     package_logger.logger().info(
         {k: (v if "pass" not in k else "****") for k, v in config_file.items()}
     )
-    with open(config_path / conf_name, "w") as outfile:
+    with open(config_path / conf_name, "w", encoding="utf-8") as outfile:
         yaml.dump(
             output_config,
             outfile,

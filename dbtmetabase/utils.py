@@ -36,9 +36,9 @@ def load_config() -> dict:
     config_data = {}
     config_path = Path.home() / ".dbt-metabase"
     if (config_path / "config.yml").exists():
-        with open(config_path / "config.yml") as f:
+        with open(config_path / "config.yml", "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f).get("config", {})
     elif (config_path / "config.yaml").exists():
-        with open(config_path / "config.yaml") as f:
+        with open(config_path / "config.yaml", "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f).get("config", {})
     return config_data
