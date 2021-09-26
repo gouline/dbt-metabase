@@ -1,5 +1,6 @@
 import logging
 import functools
+from pathlib import Path
 from typing import Iterable, Optional, Callable
 
 import click
@@ -58,13 +59,18 @@ class CommandController(click.Command):
     or the argument is passed"""
 
     def invoke(self, ctx: click.Context):
-        config_file = ctx.params.get("config")
-        if config_file is not None:
-            with open(config_file) as f:
-                config_data = yaml.safe_load(f)
-                for param, value in ctx.params.items():
-                    if value is None and param in config_data:
-                        ctx.params[param] = config_data[param]
+        config_path = Path.home() / ".dbt-metabase"
+        config_data = None
+        if (config_path / "config.yml").exists():
+            with open(config_path / "config.yml") as f:
+                config_data = yaml.safe_load(f).get("config", {})
+        elif (config_path / "config.yaml").exists():
+            with open(config_path / "config.yaml") as f:
+                config_data = yaml.safe_load(f).get("config", {})
+        if config_data is not None:
+            for param, value in ctx.params.items():
+                if value is None and param in config_data:
+                    ctx.params[param] = config_data[param]
 
         return super(CommandController, self).invoke(ctx)
 
@@ -103,7 +109,6 @@ def shared_opts(func: Callable) -> Callable:
 
     @click.option(
         "--dbt_database",
-        required=True,
         envvar="DBT_DATABASE",
         show_envvar=True,
         help="Target database name as specified in dbt models to be actioned",
@@ -132,26 +137,25 @@ def shared_opts(func: Callable) -> Callable:
         "--dbt_schema_excludes",
         metavar="SCHEMAS",
         cls=MultiArg,
-        type=tuple,
+        type=list,
         help="Target schemas to exclude. Ignored in folder parser. Accepts multiple arguments after the flag",
     )
     @click.option(
         "--dbt_includes",
         metavar="MODELS",
         cls=MultiArg,
-        type=tuple,
+        type=list,
         help="Model names to limit processing to",
     )
     @click.option(
         "--dbt_excludes",
         metavar="MODELS",
         cls=MultiArg,
-        type=tuple,
+        type=list,
         help="Model names to exclude",
     )
     @click.option(
         "--metabase_database",
-        required=True,
         envvar="MB_DATABASE",
         show_envvar=True,
         type=str,
@@ -162,7 +166,6 @@ def shared_opts(func: Callable) -> Callable:
         metavar="HOST",
         envvar="MB_HOST",
         show_envvar=True,
-        required=True,
         type=str,
         help="Metabase hostname",
     )
@@ -171,7 +174,6 @@ def shared_opts(func: Callable) -> Callable:
         metavar="USER",
         envvar="MB_USER",
         show_envvar=True,
-        required=True,
         type=str,
         help="Metabase username",
     )
@@ -180,7 +182,6 @@ def shared_opts(func: Callable) -> Callable:
         metavar="PASS",
         envvar="MB_PASSWORD",
         show_envvar=True,
-        required=True,
         type=str,
         help="Metabase password",
     )
@@ -220,6 +221,176 @@ def shared_opts(func: Callable) -> Callable:
 def cli():
     """Model synchronization from dbt to Metabase."""
     ...
+
+
+def check_config(ctx, _, value):
+    if not value or ctx.resilient_parsing:
+        return
+    package_logger.logger().info("Looking for configuration file in ~/.dbt-metabase")
+    config_path = Path.home() / ".dbt-metabase"
+    config_path.mkdir(parents=True, exist_ok=True)
+    config_file = None
+    if (config_path / "config.yml").exists():
+        with open(config_path / "config.yml") as f:
+            config_file = yaml.safe_load(f).get("config", {})
+    elif (config_path / "config.yaml").exists():
+        with open(config_path / "config.yaml") as f:
+            config_file = yaml.safe_load(f).get("config", {})
+    if not config_file:
+        package_logger.logger().info(
+            "No configuration file found, run the `config` command to interactively generate one."
+        )
+    else:
+        package_logger.logger().info("Config file found!")
+        package_logger.logger().info(
+            {k: (v if "pass" not in k else "****") for k, v in config_file.items()}
+        )
+    ctx.exit()
+
+
+@cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
+@click.option(
+    "--check",
+    is_flag=True,
+    is_eager=True,
+    callback=check_config,
+    expose_value=False,
+)
+@click.pass_context
+def config(ctx: click.Context):
+    """Interactively generate a config or validate an existing config.yml"""
+    click.confirm(
+        "Confirming you want to build or modify a dbt-metabase config file?", abort=True
+    )
+    package_logger.logger().info(
+        "Preparing interactive configuration :rocket: (note defaults denoted by [...] are pulled from your existing config if found)"
+    )
+    config_path = Path.home() / ".dbt-metabase"
+    config_path.mkdir(parents=True, exist_ok=True)
+    config_file = {}
+    conf_name = None
+    if (config_path / "config.yml").exists():
+        with open(config_path / "config.yml") as f:
+            config_file = yaml.safe_load(f).get("config", {})
+            conf_name = "config.yml"
+    elif (config_path / "config.yaml").exists():
+        with open(config_path / "config.yaml") as f:
+            config_file = yaml.safe_load(f).get("config", {})
+            conf_name = "config.yaml"
+    else:
+        # Default config name
+        conf_name = "config.yml"
+    if not config_file:
+        package_logger.logger().info("Building config file! :hammer:")
+    else:
+        package_logger.logger().info("Modifying config file! :wrench:")
+    config_file["dbt_database"] = click.prompt(
+        "Please enter the name of your dbt Database",
+        default=config_file.get("dbt_database"),
+        show_default=True,
+        type=str,
+    )
+    config_file["dbt_manifest_path"] = click.prompt(
+        "Please enter the path to your dbt manifest.json \ntypically located in the /target directory of the dbt project",
+        default=config_file.get("dbt_manifest_path"),
+        show_default=True,
+        type=click.Path(exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    )
+    if click.confirm(
+        "Would you like to set some default schemas to exclude when no flags are provided?"
+    ):
+        config_file["dbt_schema_excludes"] = click.prompt(
+            "Target schemas to exclude separated by commas",
+            default=config_file.get("dbt_schema_excludes"),
+            show_default=True,
+            value_proc=lambda s: list(map(str.strip, s.split(","))),
+            type=list,
+        )
+    else:
+        config_file.pop("dbt_schema_excludes", None)
+    if click.confirm(
+        "Would you like to set some default dbt models to exclude when no flags are provided?"
+    ):
+        config_file["dbt_excludes"] = click.prompt(
+            "dbt model names to exclude separated by commas",
+            default=config_file.get("dbt_excludes"),
+            show_default=True,
+            value_proc=lambda s: list(map(str.strip, s.split(","))),
+            type=list,
+        )
+    else:
+        config_file.pop("dbt_excludes", None)
+    config_file["metabase_database"] = click.prompt(
+        "Target database name as set in Metabase (typically aliased)",
+        default=config_file.get("metabase_database"),
+        show_default=True,
+        type=str,
+    )
+    config_file["metabase_host"] = click.prompt(
+        "Metabase hostname, this is the URL without the protocol (HTTP/S)",
+        default=config_file.get("metabase_host"),
+        show_default=True,
+        type=str,
+    )
+    config_file["metabase_user"] = click.prompt(
+        "Metabase username",
+        default=config_file.get("metabase_user"),
+        show_default=True,
+        type=str,
+    )
+    config_file["metabase_password"] = click.prompt(
+        "Metabase password [hidden]",
+        default=config_file.get("metabase_password"),
+        hide_input=True,
+        show_default=False,
+        type=str,
+    )
+    config_file["metabase_use_http"] = click.confirm(
+        "Use HTTP instead of HTTPS to connect to Metabase, unless testing locally we should be saying no here",
+        default=config_file.get("metabase_use_http", False),
+        show_default=True,
+    )
+    if click.confirm("Would you like to set a custom certificate bundle to use?"):
+        config_file["metabase_verify"] = click.prompt(
+            "Path to certificate bundle used by Metabase client",
+            default=config_file.get("metabase_verify"),
+            show_default=True,
+            type=click.Path(
+                exists=True, file_okay=True, dir_okay=False, resolve_path=True
+            ),
+        )
+    else:
+        config_file.pop("metabase_verify", None)
+    config_file["metabase_sync"] = click.confirm(
+        "Would you like to allow Metabase schema syncs by default? Best to say yes as there is little downside",
+        default=config_file.get("metabase_sync", True),
+        show_default=True,
+    )
+    if config_file["metabase_sync"]:
+        config_file["metabase_sync_timeout"] = click.prompt(
+            "Synchronization timeout in seconds. If set, we will fail hard on synchronization failure; \nIf set to 0 or a negative number, we will proceed after attempting sync regardless of success",
+            default=config_file.get("metabase_sync_timeout", -1),
+            show_default=True,
+            value_proc=lambda i: None if int(i) <= 0 else int(i),
+            type=int,
+        )
+    else:
+        config_file.pop("metabase_sync_timeout", None)
+    output_config = {"config": config_file}
+    package_logger.logger().info(
+        "Config constructed -- writing config to ~/.dbt-metabase"
+    )
+    package_logger.logger().info(
+        {k: (v if "pass" not in k else "****") for k, v in config_file.items()}
+    )
+    with open(config_path / conf_name, "w") as outfile:
+        yaml.dump(
+            output_config,
+            outfile,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+        )
 
 
 @cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
@@ -346,6 +517,7 @@ def models(
 @click.option(
     "--collection_excludes",
     cls=MultiArg,
+    type=list,
     help="Metabase collection names to exclude",
 )
 @click.option(
