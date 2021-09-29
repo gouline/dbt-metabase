@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from dbtmetabase.models.interface import Dbt
+from dbtmetabase.models.interface import DbtInterface
 from dbtmetabase.models.metabase import ModelType
 from dbtmetabase.parsers.dbt_folder import (
     MetabaseModel,
@@ -12,7 +12,7 @@ from dbtmetabase.parsers.dbt_folder import (
 class TestDbtFolderReader(unittest.TestCase):
     def setUp(self):
         """Must specify dbt root dir"""
-        self.client = Dbt(
+        self.interface = DbtInterface(
             database="test",
             schema="public",
             path="tests/fixtures/sample_project/",
@@ -21,7 +21,7 @@ class TestDbtFolderReader(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_read_models(self):
-        models = self.client.parser.read_models(self.client)[0]
+        models = self.interface.parser.read_models(self.interface.get_config())[0]
         expectation = [
             MetabaseModel(
                 name="customers",
@@ -275,7 +275,7 @@ class TestDbtFolderReader(unittest.TestCase):
 class TestDbtManifestReader(unittest.TestCase):
     def setUp(self):
         """Must specify dbt root dir"""
-        self.client = Dbt(
+        self.interface = DbtInterface(
             database="test",
             schema="public",
             manifest_path="tests/fixtures/sample_project/target/manifest.json",
@@ -284,8 +284,7 @@ class TestDbtManifestReader(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_read_models(self):
-        models = self.client.parser.read_models(self.client)[0]
-        print(models)
+        models = self.interface.parser.read_models(self.interface.get_config())[0]
         expectation = [
             MetabaseModel(
                 name="orders",

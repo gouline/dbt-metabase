@@ -8,7 +8,7 @@ import click
 import yaml
 
 from .logger import logging as package_logger
-from .models.interface import Metabase, Dbt
+from .models.interface import MetabaseInterface, DbtInterface
 from .utils import get_version, load_config
 
 
@@ -271,7 +271,7 @@ def cli():
     ...
 
 
-@click.command(context_settings=dict(max_content_width=600), cls=CommandController)
+@click.command(cls=CommandController)
 def check_config():
     package_logger.logger().info(
         "Looking for configuration file in ~/.dbt-metabase :magnifying_glass_tilted_right:"
@@ -300,7 +300,20 @@ def check_config():
         )
 
 
-@cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
+@click.command(cls=CommandController)
+def check_env():
+    package_logger.logger().info("All valid env vars: %s", ENV_VARS)
+    any_found = False
+    for env in ENV_VARS:
+        if env in os.environ:
+            val = os.environ[env] if "pass" not in env.lower() else "****"
+            package_logger.logger().info("Found value for %s --> %s", env, val)
+            any_found = True
+    if not any_found:
+        package_logger.logger().info("None of the env vars found in environment")
+
+
+@cli.command(cls=CommandController)
 @click.option(
     "--inspect",
     is_flag=True,
@@ -314,11 +327,14 @@ def check_config():
 @click.option(
     "--env",
     is_flag=True,
-    help="List all valid env vars for dbt-metabase.",
+    help="List all valid env vars for dbt-metabase. Env vars are evaluated before the config.yml and thus take precendence if used.",
 )
 @click.pass_context
 def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False):
     """Interactively generate a config or validate an existing config.yml
+
+    A config allows you to omit arguments which will be substituted with config defaults. This simplifies
+    the execution of dbt-metabase to simply calling a command in most cases. Ex `dbt-metabase models`
 
     Execute the `config` command with no flags to enter an interactive session to create or update a config.yml.
 
@@ -470,20 +486,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
         )
 
 
-@click.command(context_settings=dict(max_content_width=600), cls=CommandController)
-def check_env():
-    package_logger.logger().info("All valid env vars: %s", ENV_VARS)
-    any_found = False
-    for env in ENV_VARS:
-        if env in os.environ:
-            val = os.environ[env] if "pass" not in env.lower() else "****"
-            package_logger.logger().info("Found value for %s --> %s", env, val)
-            any_found = True
-    if not any_found:
-        package_logger.logger().info("None of the env vars found in environment")
-
-
-@cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
+@cli.command(cls=CommandController)
 @shared_opts
 @click.option(
     "--dbt_docs_url",
@@ -546,11 +549,12 @@ def models(
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
     """
 
+    # Set global logging level if verbose
     if verbose:
         package_logger.LOGGING_LEVEL = logging.DEBUG
 
-    # Load models
-    dbt_interface = Dbt(
+    # Instantiate dbt interface
+    dbt = DbtInterface(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
         database=dbt_database,
@@ -559,14 +563,16 @@ def models(
         includes=dbt_includes,
         excludes=dbt_excludes,
     )
-    dbt_models, alias_mapping = dbt_interface.parser.read_models(
-        dbt_config=dbt_interface,
+
+    # Load models
+    dbt_models, aliases = dbt.parser.read_models(
+        dbt_config=dbt.get_config(),
         include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
 
     # Instantiate Metabase interface
-    metabase_interface = Metabase(
+    metabase = MetabaseInterface(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
@@ -577,16 +583,18 @@ def models(
         sync_timeout=metabase_sync_timeout,
     )
 
-    # Process Metabase stuff
-    metabase_interface.prepare_metabase_client(dbt_models)
-    metabase_interface.client.export_models(
-        database=metabase_interface.database,
+    # Load client
+    metabase.prepare_metabase_client(dbt_models)
+
+    # Execute model export
+    metabase.client.export_models(
+        database=metabase.database,
         models=dbt_models,
-        aliases=alias_mapping,
+        aliases=aliases,
     )
 
 
-@cli.command(context_settings=dict(max_content_width=600), cls=CommandController)
+@cli.command(cls=CommandController)
 @shared_opts
 @click.option(
     "--output_path",
@@ -664,11 +672,12 @@ def exposures(
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
     """
 
+    # Set global logging level if verbose
     if verbose:
         package_logger.LOGGING_LEVEL = logging.DEBUG
 
-    # Load models
-    dbt_interface = Dbt(
+    # Instantiate dbt interface
+    dbt = DbtInterface(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
         database=dbt_database,
@@ -678,10 +687,12 @@ def exposures(
         excludes=dbt_excludes,
     )
 
-    dbt_models = dbt_interface.parser.read_models(dbt_config=dbt_interface)[0]
+    # Load models
+    dbt_models, aliases = dbt.parser.read_models(dbt_config=dbt.get_config())
+    del aliases
 
     # Instantiate Metabase interface
-    metabase_interface = Metabase(
+    metabase = MetabaseInterface(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
@@ -692,9 +703,11 @@ def exposures(
         sync_timeout=metabase_sync_timeout,
     )
 
-    # Process Metabase stuff
-    metabase_interface.prepare_metabase_client(dbt_models)
-    metabase_interface.client.extract_exposures(
+    # Load client
+    metabase.prepare_metabase_client(dbt_models)
+
+    # Execute exposure extraction
+    metabase.client.extract_exposures(
         models=dbt_models,
         output_path=output_path,
         output_name=output_name,
@@ -704,4 +717,5 @@ def exposures(
 
 
 def main():
-    cli()
+    # Valid kwarg
+    cli(max_content_width=600)  # pylint: disable=unexpected-keyword-arg

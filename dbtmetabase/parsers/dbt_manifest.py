@@ -2,10 +2,10 @@ import json
 import os
 from typing import List, Tuple, Mapping, Optional, MutableMapping
 
-from ..logger.logging import logger
-from ..models import interface  # pylint: disable=unused-import
+from ..models.config import DbtConfig
 from ..models.metabase import METABASE_META_FIELDS, ModelType
 from ..models.metabase import MetabaseModel, MetabaseColumn
+from ..logger.logging import logger
 
 
 class DbtManifestReader:
@@ -26,7 +26,7 @@ class DbtManifestReader:
 
     def read_models(
         self,
-        dbt_config: "interface.Dbt",
+        dbt_config: DbtConfig,
         include_tags: bool = True,
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:

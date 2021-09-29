@@ -1,9 +1,9 @@
 import logging
 import os.path
-from typing import Optional, Iterable, Union, List
+from typing import Optional, Union, List
 
+from .config import MetabaseConfig, DbtConfig
 from .metabase import MetabaseModel
-from ..metabase import MetabaseClient
 from .exceptions import (
     NoDbtPathSupplied,
     NoDbtSchemaSupplied,
@@ -13,35 +13,16 @@ from .exceptions import (
 )
 from ..parsers.dbt_folder import DbtFolderReader
 from ..parsers.dbt_manifest import DbtManifestReader
+from ..metabase import MetabaseClient
 
 
-class Metabase:
-    def __init__(
-        self,
-        database: str,
-        host: str,
-        user: str,
-        password: str,
-        use_http: bool = False,
-        verify: Optional[Union[str, bool]] = True,
-        sync: bool = True,
-        sync_timeout: Optional[int] = None,
-    ):
-        # Metabase Client
-        self.database = database
-        self.host = host
-        self.user = user
-        self.password = password
-        # Metabase additional connection opts
-        self.use_http = use_http
-        self.verify = verify
-        # Metabase Sync
-        self.sync = sync
-        self.sync_timeout = sync_timeout
-        self._client: Optional["MetabaseClient"] = None
+class MetabaseInterface(MetabaseConfig):
+    """Interface for interacting with instantiating a Metabase Config and preparing a client object"""
+
+    _client: Optional[MetabaseClient] = None
 
     @property
-    def client(self) -> "MetabaseClient":
+    def client(self) -> MetabaseClient:
         if self._client is None:
             raise MetabaseClientNotInstantiated(
                 "Metabase client is not yet instantiated. Call `prepare_metabase_client` method first"
@@ -81,45 +62,15 @@ class Metabase:
                 )
 
 
-class Dbt:
-    def __init__(
-        self,
-        database: str,
-        manifest_path: Optional[str] = None,
-        path: Optional[str] = None,
-        schema: Optional[str] = None,
-        schema_excludes: Optional[Iterable] = None,
-        includes: Optional[Iterable] = None,
-        excludes: Optional[Iterable] = None,
-    ):
+class DbtInterface(DbtConfig):
+    """Interface for interacting with instantiating a Dbt Config and preparing a validated parser object"""
 
-        if schema_excludes is None:
-            schema_excludes = []
-        if includes is None:
-            includes = []
-        if excludes is None:
-            excludes = []
+    _parser: Optional[Union[DbtManifestReader, DbtFolderReader]] = None
 
-        # dbt Reader
-        self.database = database
-        self.manifest_path = manifest_path
-        self.path = path
-        # dbt Target Models
-        self.schema = schema
-        self._schema_excludes = schema_excludes
-        self.includes = includes
-        self.excludes = excludes
-        self._parser: Optional[Union[DbtManifestReader, DbtFolderReader]] = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.validate_config()
         self.prepare_dbt_parser()
-
-    @property
-    def schema_excludes(self) -> Iterable:
-        return self._schema_excludes
-
-    @schema_excludes.setter
-    def schema_excludes(self, value: Iterable) -> None:
-        self._schema_excludes = list({schema.upper() for schema in value})
 
     @property
     def parser(self) -> Union[DbtManifestReader, DbtFolderReader]:
@@ -128,6 +79,17 @@ class Dbt:
                 "dbt reader is not yet instantiated. Call `prepare_dbt_parser` method first"
             )
         return self._parser
+
+    def get_config(self) -> DbtConfig:
+        return DbtConfig(
+            database=self.database,
+            manifest_path=self.manifest_path,
+            path=self.path,
+            schema=self.schema,
+            schema_excludes=self.schema_excludes,
+            includes=self.includes,
+            excludes=self.excludes,
+        )
 
     def validate_config(self) -> None:
         """Validates a dbt config object
