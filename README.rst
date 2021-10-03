@@ -332,7 +332,7 @@ secrets. Listed below are acceptable env vars which correspond to their CLI flag
 * ``MB_DATABASE``
 
 If any one of the above is present in the environment, the corresponding CLI flag is not needed unless overriding
-the environement value. In the absence of a CLI flag, dbt-metabase will first look to the environemnt for any 
+the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environemnt for any 
 env vars to inject, then we will look to the config.yml for cached defaults. Thus the order of precedence is:
 
 Programmatic Invocation
