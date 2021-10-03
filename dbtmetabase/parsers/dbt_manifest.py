@@ -278,6 +278,7 @@ class DbtManifestReader:
             unique_id=unique_id,
             source=source,
             dbt_name=dbt_name,
+            meta=model.get("meta", {}),
         )
 
     def _read_column(

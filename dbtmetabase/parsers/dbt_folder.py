@@ -169,6 +169,7 @@ class DbtFolderReader:
             model_type=model_type,
             source=source,
             dbt_name=dbt_name,
+            meta=model.get("meta", {}),
         )
 
     def _read_column(self, column: Mapping, schema: str) -> MetabaseColumn:
