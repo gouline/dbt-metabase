@@ -716,6 +716,95 @@ def exposures(
     )
 
 
+@cli.command(cls=CommandController)
+@shared_opts
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Flag which signals verbose output",
+)
+def metrics(
+    metabase_host: str,
+    metabase_user: str,
+    metabase_password: str,
+    metabase_database: str,
+    dbt_database: str,
+    dbt_path: Optional[str] = None,
+    dbt_manifest_path: Optional[str] = None,
+    dbt_schema: Optional[str] = None,
+    dbt_schema_excludes: Optional[Iterable] = None,
+    dbt_includes: Optional[Iterable] = None,
+    dbt_excludes: Optional[Iterable] = None,
+    metabase_use_http: bool = False,
+    metabase_verify: Optional[str] = None,
+    metabase_sync: bool = True,
+    metabase_sync_timeout: Optional[int] = None,
+    verbose: bool = False,
+) -> None:
+    """Synchronize metrics expressed in dbt schema files with Metabase.
+
+    \f
+    Args:
+        metabase_host (str): Metabase hostname
+        metabase_user (str): Metabase username
+        metabase_password (str): Metabase password
+        metabase_database (str): Target database name as set in Metabase (typically aliased)
+        dbt_database (str):  Target database name as specified in dbt models to be actioned
+        dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
+        dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
+        dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.
+        dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
+        dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
+        dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
+        metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
+        metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
+        metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
+        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
+        verbose (bool, optional): Flag which signals verbose output. Defaults to False.
+    """
+
+    # Set global logging level if verbose
+    if verbose:
+        package_logger.LOGGING_LEVEL = logging.DEBUG
+
+    # Instantiate dbt interface
+    dbt = DbtInterface(
+        path=dbt_path,
+        manifest_path=dbt_manifest_path,
+        database=dbt_database,
+        schema=dbt_schema,
+        schema_excludes=dbt_schema_excludes,
+        includes=dbt_includes,
+        excludes=dbt_excludes,
+    )
+
+    # Load models
+    dbt_models, aliases = dbt.parser.read_models(dbt_config=dbt.get_config())
+
+    # Instantiate Metabase interface
+    metabase = MetabaseInterface(
+        host=metabase_host,
+        user=metabase_user,
+        password=metabase_password,
+        use_http=metabase_use_http,
+        verify=metabase_verify,
+        database=metabase_database,
+        sync=metabase_sync,
+        sync_timeout=metabase_sync_timeout,
+    )
+
+    # Load client
+    metabase.prepare_metabase_client(dbt_models)
+
+    # Execute metric synchronization
+    metabase.client.sync_metrics(
+        database=metabase.database,
+        models=dbt_models,
+        aliases=aliases,
+    )
+
+
 def main():
     # Valid kwarg
     cli(max_content_width=600)  # pylint: disable=unexpected-keyword-arg
