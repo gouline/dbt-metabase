@@ -18,6 +18,7 @@ from typing import (
 
 from .logger.logging import logger
 from .models.metabase import MetabaseModel, MetabaseColumn
+from .parsers.metrics import MetabaseMetricCompiler
 
 
 class MetabaseClient:
@@ -788,6 +789,131 @@ class MetabaseClient:
                 if exposure.upper() in refable_models
             ],
         }
+
+    def sync_metrics(
+        self,
+        database: str,
+        models: List[MetabaseModel],
+        aliases: Optional[Mapping] = None,
+        revision_header: str = "Metric has been updated. ",
+    ):
+
+        if aliases is None:
+            aliases = {}
+
+        metabase_metrics = self.api("get", "/api/metric")
+        database_id = self.find_database_id(database)
+
+        if not database_id:
+            logger().critical("Cannot find database by name %s", database)
+            return
+
+        table_lookup, field_lookup = self.build_metadata_lookups(database_id)
+
+        metabase_compiler = MetabaseMetricCompiler(field_lookup)
+
+        for model in models:
+
+            if "metabase.metrics" not in model.meta:
+                continue
+
+            schema_name = model.schema.upper()
+            model_name = model.name.upper()
+
+            lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
+            metabase_compiler.current_target = lookup_key
+            logger().info("Syncing metrics for %s", lookup_key)
+
+            api_table = table_lookup.get(lookup_key)
+
+            if not api_table:
+                logger().error("Table %s does not exist in Metabase", lookup_key)
+                continue
+
+            table_id = api_table["id"]
+
+            for metric in model.meta["metabase.metrics"]:
+                if "name" not in metric or "metric" not in metric:
+                    logger().warning(
+                        "Invalid metric %s in model %s", metric["name"], lookup_key
+                    )
+                    continue
+                logger().debug("Constructing metric from %s", metric)
+                metric_name = metric["name"]
+                metric_compiled = metabase_compiler.transpile_expression(
+                    metric["metric"]
+                )
+                logger().debug("Metric %s compiled to %s", metric_name, metric_compiled)
+                metric_description = metric.get(
+                    "description", "No description provided"
+                )
+                compiled = {
+                    "name": metric_name,
+                    "description": metric_description,
+                    "table_id": table_id,
+                    "definition": {
+                        "source-table": table_id,
+                        "aggregation": [
+                            [
+                                "aggregation-options",
+                                metric_compiled,
+                                {"display-name": metric_name},
+                            ]
+                        ],
+                    },
+                }
+                metric_filter = metric.get("filter")
+                if metric_filter:
+                    metric_filter = metabase_compiler.transpile_expression(
+                        metric_filter
+                    )
+                    compiled["definition"]["filter"] = metric_filter
+                this_metric: MutableMapping = {}
+                for j, existing_metric in enumerate(metabase_metrics):
+                    if (
+                        metric_name == existing_metric["name"]
+                        and table_id == existing_metric["table_id"]
+                    ):
+                        if this_metric:
+                            logger().error("Duplicate metric in model %s", lookup_key)
+                        logger().info(
+                            "Existing metric %s found for %s", metric_name, lookup_key
+                        )
+                        this_metric = metabase_metrics.pop(j)
+                if this_metric:
+                    # Revise
+                    agglomerate_changes = ""
+                    # Check Name, Description, Table Id, and Definition
+                    if this_metric["name"] != compiled["name"]:
+                        agglomerate_changes += f'Name changed from {this_metric["name"]} to {compiled["name"]}. '
+                    if this_metric["description"] != compiled["description"]:
+                        agglomerate_changes += f'Description changed from {this_metric["description"]} to {compiled["description"]}. '
+                    if this_metric["table_id"] != compiled["table_id"]:
+                        agglomerate_changes += f'Table Id changed from {this_metric["table_id"]} to {compiled["table_id"]}. '
+                    if this_metric["definition"] != compiled["definition"]:
+                        agglomerate_changes += (
+                            f'Formula definiton updated to {metric["metric"]}'
+                        )
+                    if agglomerate_changes:
+                        compiled["revision_message"] = (
+                            revision_header + agglomerate_changes
+                        )
+                        output_metric = self.api(
+                            "put", f"/api/metric/{this_metric['id']}", json=compiled
+                        )
+                        logger().info("Metric %s updated!", metric_name)
+                        logger().debug(output_metric)
+                    else:
+                        logger().info("No changes to %s", metric_name)
+                else:
+                    # Create
+                    output_metric = self.api("post", "/api/metric/", json=compiled)
+                    logger().info("Metric %s created!", metric_name)
+                    logger().debug(output_metric)
+
+        # {"archived":true,"revision_message":"(Archive)"} <- Retires Metrics
+        # [Full sync or interactive retirement for orphans?]
+        logger().info("Orphaned Metrics: %s", metabase_metrics)
 
     def api(
         self,
