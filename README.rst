@@ -339,21 +339,22 @@ A ``config.yml`` can be created or updated manually as well if needed. The only
 requirement is that it must be located in ~/.dbt-metabase. The layout is as follows:
 
 .. code-block:: yaml
+
     config:
-      dbt_database: reporting
-      dbt_manifest_path: /home/user/dbt/target/manifest.json
-      metabase_database: Reporting
-      metabase_host: reporting.metabase.io
-      metabase_user: user@source.co
-      metabase_password: ...
-      metabase_use_http: false
-      metabase_sync: true
-      metabase_sync_timeout: null
-      dbt_schema_excludes:
-      - development
-      - testing
-      dbt_excludes:
-      - test_monday_io_site_diff
+        dbt_database: reporting
+        dbt_manifest_path: /home/user/dbt/target/manifest.json
+        metabase_database: Reporting
+        metabase_host: reporting.metabase.io
+        metabase_user: user@source.co
+        metabase_password: ...
+        metabase_use_http: false
+        metabase_sync: true
+        metabase_sync_timeout: null
+        dbt_schema_excludes:
+          - development
+          - testing
+        dbt_excludes:
+          - test_monday_io_site_diff
 
 Programmatic Invocation
 -----------------------
