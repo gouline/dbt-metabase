@@ -37,6 +37,7 @@ class MetabaseModel:
     dbt_name: Optional[str] = None
     source: Optional[str] = None
     unique_id: Optional[str] = None
+    meta: MutableMapping = field(default_factory=dict)
 
     @property
     def ref(self) -> Optional[str]:
