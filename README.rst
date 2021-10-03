@@ -317,7 +317,7 @@ Configuration
     dbt-metabase config
 
 Using the above command, you can enter an interactive configuration session where you can cache default selections
-for arguments. This creates a config.yml in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host, 
+for arguments. This creates a ``config.yml`` in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host, 
 metabase_password, dbt_manifest_path, etc. 
 
 In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing 
@@ -334,6 +334,26 @@ secrets. Listed below are acceptable env vars which correspond to their CLI flag
 If any one of the above is present in the environment, the corresponding CLI flag is not needed unless overriding
 the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any 
 env vars to inject, then we will look to the config.yml for cached defaults.
+
+A ``config.yml`` can be created or updated manually as well if needed. The only 
+requirement is that it must be located in ~/.dbt-metabase. The layout is as follows:
+
+.. code-block:: yaml
+    config:
+      dbt_database: reporting
+      dbt_manifest_path: /home/user/dbt/target/manifest.json
+      metabase_database: Reporting
+      metabase_host: reporting.metabase.io
+      metabase_user: user@source.co
+      metabase_password: ...
+      metabase_use_http: false
+      metabase_sync: true
+      metabase_sync_timeout: null
+      dbt_schema_excludes:
+      - development
+      - testing
+      dbt_excludes:
+      - test_monday_io_site_diff
 
 Programmatic Invocation
 -----------------------
