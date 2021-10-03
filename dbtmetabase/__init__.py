@@ -689,7 +689,7 @@ def exposures(
 
     # Load models
     dbt_models, aliases = dbt.parser.read_models(dbt_config=dbt.get_config())
-    del aliases
+    del aliases  # Unused in this particular function
 
     # Instantiate Metabase interface
     metabase = MetabaseInterface(
