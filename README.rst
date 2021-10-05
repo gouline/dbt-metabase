@@ -378,8 +378,7 @@ line. But if you prefer to call it from your code, here's how to do it:
     )
 
     # Load models
-    dbt_models, aliases = dbt.parser.read_models(
-        dbt_config=dbt.get_config(),
+    dbt_models, aliases = dbt.read_models(
         include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
