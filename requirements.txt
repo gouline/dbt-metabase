@@ -1,2 +1,4 @@
 PyYAML
 requests
+click
+rich
