@@ -565,8 +565,7 @@ def models(
     )
 
     # Load models
-    dbt_models, aliases = dbt.parser.read_models(
-        dbt_config=dbt.get_config(),
+    dbt_models, aliases = dbt.read_models(
         include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
@@ -688,7 +687,7 @@ def exposures(
     )
 
     # Load models
-    dbt_models, aliases = dbt.parser.read_models(dbt_config=dbt.get_config())
+    dbt_models, aliases = dbt.read_models()
     del aliases  # Unused in this particular function
 
     # Instantiate Metabase interface

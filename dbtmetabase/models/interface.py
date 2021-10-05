@@ -1,6 +1,6 @@
 import logging
 import os.path
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple, MutableMapping
 
 from .config import MetabaseConfig, DbtConfig
 from .metabase import MetabaseModel
@@ -125,3 +125,10 @@ class DbtInterface(DbtConfig):
             raise NoDbtPathSupplied(
                 "One of either dbt_path or dbt_manifest_path is required."
             )
+
+    def read_models(
+        self,
+        include_tags: bool = True,
+        docs_url: Optional[str] = None,
+    ) -> Tuple[List[MetabaseModel], MutableMapping]:
+        return self.parser.read_models(self, include_tags, docs_url)
