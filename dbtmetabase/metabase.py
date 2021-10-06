@@ -405,7 +405,9 @@ class MetabaseClient:
         )
         for table in metadata.get("tables", []):
             table_schema = table.get("schema")
-            table_schema = table_schema.upper() if table_schema else "PUBLIC"
+            # table["schema"] is null for bigquery datasets
+            bigquery_schema = metadata.get("details", {}).get("dataset-id")
+            table_schema = (table_schema or bigquery_schema or "public").upper()
             table_name = table["name"].upper()
 
             if schemas_to_exclude:
