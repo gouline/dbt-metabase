@@ -8,16 +8,15 @@ from dbtmetabase.metabase import MetabaseClient
 from dbtmetabase.models.metabase import (
     MetabaseModel,
     MetabaseColumn,
-    ModelKey,
+    ModelType,
 )
 
 MODELS = [
     MetabaseModel(
-        name="ORDERS",
+        name="orders",
         schema="PUBLIC",
         description="This table has basic information about orders, as well as some derived facts based on payments",
-        model_key=ModelKey.nodes,
-        ref="ref('orders')",
+        model_type=ModelType.nodes,
         columns=[
             MetabaseColumn(
                 name="ORDER_ID",
@@ -34,7 +33,7 @@ MODELS = [
                 meta_fields={},
                 semantic_type="type/FK",
                 visibility_type=None,
-                fk_target_table="PUBLIC.CUSTOMERS",
+                fk_target_table="PUBLIC.customers",
                 fk_target_field="CUSTOMER_ID",
             ),
             MetabaseColumn(
@@ -103,11 +102,10 @@ MODELS = [
         ],
     ),
     MetabaseModel(
-        name="CUSTOMERS",
+        name="customers",
         schema="PUBLIC",
         description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
-        model_key=ModelKey.nodes,
-        ref="ref('customers')",
+        model_type=ModelType.nodes,
         columns=[
             MetabaseColumn(
                 name="CUSTOMER_ID",
@@ -115,7 +113,7 @@ MODELS = [
                 meta_fields={},
                 semantic_type="type/FK",
                 visibility_type=None,
-                fk_target_table="PUBLIC.ORDERS",
+                fk_target_table="PUBLIC.orders",
                 fk_target_field="CUSTOMER_ID",
             ),
             MetabaseColumn(
@@ -175,11 +173,10 @@ MODELS = [
         ],
     ),
     MetabaseModel(
-        name="STG_ORDERS",
+        name="stg_orders",
         schema="PUBLIC",
         description="",
-        model_key=ModelKey.nodes,
-        ref="ref('stg_orders')",
+        model_type=ModelType.nodes,
         columns=[
             MetabaseColumn(
                 name="ORDER_ID",
@@ -202,11 +199,10 @@ MODELS = [
         ],
     ),
     MetabaseModel(
-        name="STG_PAYMENTS",
+        name="stg_payments",
         schema="PUBLIC",
         description="",
-        model_key=ModelKey.nodes,
-        ref="ref('stg_payments')",
+        model_type=ModelType.nodes,
         columns=[
             MetabaseColumn(
                 name="PAYMENT_ID",
@@ -229,11 +225,10 @@ MODELS = [
         ],
     ),
     MetabaseModel(
-        name="STG_CUSTOMERS",
+        name="stg_customers",
         schema="PUBLIC",
         description="",
-        model_key=ModelKey.nodes,
-        ref="ref('stg_customers')",
+        model_type=ModelType.nodes,
         columns=[
             MetabaseColumn(
                 name="CUSTOMER_ID",

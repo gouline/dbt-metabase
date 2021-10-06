@@ -309,6 +309,53 @@ You can control this behavior with two arguments:
 * ``--metabase_sync_timeout`` - number of seconds to wait and re-check data model before
   giving up
 
+Configuration
+-------------
+
+.. code-block:: shell
+
+    dbt-metabase config
+
+Using the above command, you can enter an interactive configuration session where you can cache default selections
+for arguments. This creates a ``config.yml`` in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host, 
+metabase_password, dbt_manifest_path, etc. 
+
+In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing 
+secrets. Listed below are acceptable env vars which correspond to their CLI flags:
+
+* ``DBT_DATABASE``
+* ``DBT_PATH``
+* ``DBT_MANIFEST_PATH``
+* ``MB_USER``
+* ``MB_PASS``
+* ``MB_HOST``
+* ``MB_DATABASE``
+
+If any one of the above is present in the environment, the corresponding CLI flag is not needed unless overriding
+the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any 
+env vars to inject, then we will look to the config.yml for cached defaults.
+
+A ``config.yml`` can be created or updated manually as well if needed. The only 
+requirement is that it must be located in ~/.dbt-metabase. The layout is as follows:
+
+.. code-block:: yaml
+
+    config:
+        dbt_database: reporting
+        dbt_manifest_path: /home/user/dbt/target/manifest.json
+        metabase_database: Reporting
+        metabase_host: reporting.metabase.io
+        metabase_user: user@source.co
+        metabase_password: ...
+        metabase_use_http: false
+        metabase_sync: true
+        metabase_sync_timeout: null
+        dbt_schema_excludes:
+          - development
+          - testing
+        dbt_excludes:
+          - test_monday_io_site_diff
+
 Programmatic Invocation
 -----------------------
 
@@ -317,23 +364,10 @@ line. But if you prefer to call it from your code, here's how to do it:
 
 .. code-block:: python
 
-    import dbtmetabase
+    from dbtmetabase.models.interface import MetabaseInterface, DbtInterface
 
-    # Collect Args the Build Configs #
-    ##################################
-
-    metabase_config = MetabaseConfig(
-        host=metabase_host,
-        user=metabase_user,
-        password=metabase_password,
-        use_http=metabase_use_http,
-        verify=metabase_verify,
-        database=metabase_database,
-        sync_skip=metabase_sync_skip,
-        sync_timeout=metabase_sync_timeout,
-    )
-
-    dbt_config = DbtConfig(
+    # Instantiate dbt interface
+    dbt = DbtInterface(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
         database=dbt_database,
@@ -343,24 +377,41 @@ line. But if you prefer to call it from your code, here's how to do it:
         excludes=dbt_excludes,
     )
 
-    # Propagate models to Metabase #
-    ################################
-
-    dbtmetabase.models(
-      metabase_config=metabase_config,
-      dbt_config=dbt_config,
-      dbt_docs_url=dbt_docs,
-      dbt_include_tags=include_tags,
+    # Load models
+    dbt_models, aliases = dbt.read_models(
+        include_tags=dbt_include_tags,
+        docs_url=dbt_docs_url,
     )
 
-    # Parse exposures from Metabase into dbt yml #
-    ##############################################
+    # Instantiate Metabase interface
+    metabase = MetabaseInterface(
+        host=metabase_host,
+        user=metabase_user,
+        password=metabase_password,
+        use_http=metabase_use_http,
+        verify=metabase_verify,
+        database=metabase_database,
+        sync=metabase_sync,
+        sync_timeout=metabase_sync_timeout,
+    )
 
-    dbtmetabase.exposures(
-      metabase_config=metabase_config,
-      dbt_config=dbt_config,
-      output_path=output_path,
-      output_name=output_name,
+    # Load client
+    metabase.prepare_metabase_client(dbt_models)
+
+    # Propagate models to Metabase
+    metabase.client.export_models(
+        database=metabase.database,
+        models=dbt_models,
+        aliases=aliases,
+    )
+
+    # Parse exposures from Metabase into dbt schema yml
+    metabase.client.extract_exposures(
+        models=dbt_models,
+        output_path=output_path,
+        output_name=output_name,
+        include_personal_collections=include_personal_collections,
+        collection_excludes=collection_excludes,
     )
 
 
