@@ -520,7 +520,7 @@ def models(
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
     metabase_sync: bool = True,
-    metabase_sync_timeout: Optional[int] = None,
+    metabase_sync_timeout: Optional[int] = 60,
     dbt_include_tags: bool = True,
     dbt_docs_url: Optional[str] = None,
     verbose: bool = False,
@@ -543,7 +543,7 @@ def models(
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
+        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Only valid if sync is enabled. Defaults to 60.
         dbt_include_tags (bool, optional): Flag to append tags to table descriptions in Metabase. Defaults to True.
         dbt_docs_url (Optional[str], optional): Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description. Defaults to None.
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
@@ -638,7 +638,7 @@ def exposures(
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
     metabase_sync: bool = True,
-    metabase_sync_timeout: Optional[int] = None,
+    metabase_sync_timeout: Optional[int] = 60,
     output_path: str = ".",
     output_name: str = "metabase_exposures.yml",
     include_personal_collections: bool = False,
@@ -663,7 +663,7 @@ def exposures(
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
+        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Only valid if sync is enabled. Defaults to 60.
         output_path (str): Output path for generated exposure yaml. Defaults to "." local dir.
         output_name (str): Output name for generated exposure yaml. Defaults to metabase_exposures.yml.
         include_personal_collections (bool, optional): Flag to include Personal Collections during exposure parsing. Defaults to False.
