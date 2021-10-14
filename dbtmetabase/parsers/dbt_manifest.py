@@ -269,6 +269,8 @@ class DbtManifestReader:
         else:
             dbt_name = model["name"]
 
+        meta_props = self._read_meta_props(model)
+
         return MetabaseModel(
             name=resolved_name,
             schema=model["schema"].upper(),
@@ -278,6 +280,7 @@ class DbtManifestReader:
             unique_id=unique_id,
             source=source,
             dbt_name=dbt_name,
+            **meta_props,
         )
 
     def _read_column(
@@ -297,9 +300,11 @@ class DbtManifestReader:
 
         column_name = column.get("name", "").upper().strip('"')
         column_description = column.get("description")
+        meta_props = self._read_meta_props(column)
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
+            **meta_props,
         )
 
         if relationship:
@@ -313,10 +318,21 @@ class DbtManifestReader:
                 metabase_column.fk_target_field,
             )
 
-        if column["meta"]:
-            meta = column.get("meta", [])
-            for field in METABASE_META_FIELDS:
-                if f"metabase.{field}" in meta:
-                    setattr(metabase_column, field, meta[f"metabase.{field}"])
 
         return metabase_column
+
+    def _read_meta_props(
+        self,
+        mapping: Mapping,
+        
+    ) -> dict:
+        """Reads meta column of a manifest mapping and returns valid properties as dict
+        """
+        
+        props = dict()
+        if mapping["meta"]:
+            meta = mapping.get("meta", [])
+            for field in METABASE_META_FIELDS:
+                if f"metabase.{field}" in meta:
+                    props[field] = meta[f"metabase.{field}"]
+        return props

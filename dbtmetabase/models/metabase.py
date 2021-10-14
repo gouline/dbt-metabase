@@ -33,6 +33,8 @@ class MetabaseModel:
     schema: str
     description: str = ""
 
+    visibility_type: Optional[str] = None
+
     model_type: ModelType = ModelType.nodes
     dbt_name: Optional[str] = None
     source: Optional[str] = None

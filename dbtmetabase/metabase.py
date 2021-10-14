@@ -216,21 +216,23 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
-        if not model.description:
-            model_description = None
-        else:
-            model_description = model.description
 
         table_id = api_table["id"]
-        if api_table["description"] != model_description and model_description:
+        if (
+            api_table["description"] != (model.description or None)
+            or api_table["visibility_type"] != (model.visibility_type or 'normal')
+        ):
             # Update with new values
             self.api(
                 "put",
                 f"/api/table/{table_id}",
-                json={"description": model_description},
+                json={
+                    "description": model.description or None,
+                    "visibility": model.visibility_type or "normal",
+                },
             )
             logger().info("\n:raising_hands: Updated table %s successfully", lookup_key)
-        elif not model_description:
+        elif not model.description:
             logger().info(
                 "\n:bow: No model description provided for table %s", lookup_key
             )
