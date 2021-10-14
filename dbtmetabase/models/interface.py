@@ -51,15 +51,11 @@ class MetabaseInterface(MetabaseConfig):
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
         if self.sync:
-            if self.sync_timeout is not None and not self._client.sync_and_wait(
+            self._client.sync_and_wait(
                 self.database,
                 dbt_models,
                 self.sync_timeout,
-            ):
-                logging.critical("Sync timeout reached, models still not compatible")
-                raise MetabaseUnableToSync(
-                    "Unable to align models between dbt target models and Metabase"
-                )
+            )
 
 
 class DbtInterface(DbtConfig):
