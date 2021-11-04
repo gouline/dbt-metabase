@@ -67,6 +67,8 @@ Let's start by defining a short sample ``schema.yml`` as below.
     models:
       - name: stg_users
         description: User records.
+        points_of_interest: Relevant records.
+        caveats: Sensitive information about users.
         columns:
           - name: id
             description: Primary key.
