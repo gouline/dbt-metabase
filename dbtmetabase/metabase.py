@@ -221,21 +221,21 @@ class MetabaseClient:
         else:
             model_description = model.description
 
+        body_table = {}
+        if api_table["description"] != model_description:
+            body_table["description"] = model_description
+        if api_table["points_of_interest"] != model.points_of_interest:
+            body_table["points_of_interest"] = model.points_of_interest
+        if api_table["caveats"] != model.caveats:
+            body_table["caveats"] = model.caveats
+
         table_id = api_table["id"]
-        if (
-                api_table["description"] != model_description or
-                api_table["points_of_interest"] != model.points_of_interest or
-                api_table["caveats"] != model.caveats
-        ):
+        if bool(body_table):
             # Update with new values
             self.api(
                 "put",
                 f"/api/table/{table_id}",
-                json={
-                    "description": model_description,
-                    "points_of_interest": model.points_of_interest,
-                    "caveats": model.caveats,
-                },
+                json=body_table,
             )
             logger().info("\n:raising_hands: Updated table %s successfully", lookup_key)
         elif not model_description:

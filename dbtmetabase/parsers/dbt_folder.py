@@ -144,9 +144,9 @@ class DbtFolderReader:
             metabase_columns.append(self._read_column(column, schema))
 
         description = model.get("description", "")
-        meta = model.get("meta")
-        points_of_interest = meta.get("metabase.points_of_interest") if meta else None
-        caveats = meta.get("metabase.caveats") if meta else None
+        meta = model.get("meta", {})
+        points_of_interest = meta.get("metabase.points_of_interest")
+        caveats = meta.get("metabase.caveats")
 
         if include_tags:
             tags = model.get("tags", [])
