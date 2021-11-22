@@ -220,14 +220,22 @@ class MetabaseClient:
             model_description = None
         else:
             model_description = model.description
+        if not model.points_of_interest:
+            model_points_of_interest = None
+        else:
+            model_points_of_interest = model.points_of_interest
+        if not model.caveats:
+            model_caveats = None
+        else:
+            model_caveats = model.caveats
 
         body_table = {}
         if api_table["description"] != model_description:
             body_table["description"] = model_description
-        if api_table["points_of_interest"] != model.points_of_interest:
-            body_table["points_of_interest"] = model.points_of_interest
-        if api_table["caveats"] != model.caveats:
-            body_table["caveats"] = model.caveats
+        if api_table.get("points_of_interest") != model_points_of_interest:
+            body_table["points_of_interest"] = model_points_of_interest
+        if api_table.get("caveats") != model_caveats:
+            body_table["caveats"] = model_caveats
 
         table_id = api_table["id"]
         if bool(body_table):
