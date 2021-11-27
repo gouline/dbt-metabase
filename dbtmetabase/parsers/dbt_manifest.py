@@ -246,6 +246,9 @@ class DbtManifestReader:
             )
 
         description = model.get("description", "")
+        meta = model.get("meta", {})
+        points_of_interest = meta.get("metabase.points_of_interest")
+        caveats = meta.get("metabase.caveats")
 
         if include_tags:
             tags = model.get("tags", [])
@@ -273,6 +276,8 @@ class DbtManifestReader:
             name=resolved_name,
             schema=model["schema"].upper(),
             description=description,
+            points_of_interest=points_of_interest,
+            caveats=caveats,
             columns=metabase_column,
             model_type=model_type,
             unique_id=unique_id,

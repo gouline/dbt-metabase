@@ -101,6 +101,8 @@ class TestDbtFolderReader(unittest.TestCase):
                 name="orders",
                 schema="PUBLIC",
                 description="This table has basic information about orders, as well as some derived facts based on payments",
+                points_of_interest="Basic information only",
+                caveats="Some facts are derived from payments",
                 model_type=ModelType.nodes,
                 dbt_name=None,
                 source=None,
