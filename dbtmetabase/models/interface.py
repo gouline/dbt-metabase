@@ -1,6 +1,9 @@
 import logging
+import json
 import os.path
-from typing import Optional, Union, List, Tuple, MutableMapping
+import subprocess
+from pathlib import Path
+from typing import Optional, Union, List, Tuple, MutableMapping, Mapping
 
 from .config import MetabaseConfig, DbtConfig
 from .metabase import MetabaseModel
@@ -28,6 +31,18 @@ class MetabaseInterface(MetabaseConfig):
                 "Metabase client is not yet instantiated. Call `prepare_metabase_client` method first"
             )
         return self._client
+
+    @property
+    def database_id(self) -> int:
+        if self._client is None:
+            raise MetabaseClientNotInstantiated(
+                "Metabase client is not yet instantiated. Call `prepare_metabase_client` method first"
+            )
+        return self.client.find_database_id(self.database)
+
+    @property
+    def instance_url(self) -> str:
+        f"{'http' if self.use_http else 'https'}://{self.host}"
 
     def prepare_metabase_client(self, dbt_models: Optional[List[MetabaseModel]] = None):
         """Prepares the metabase client which can then after be accessed via the `client` property
@@ -132,3 +147,45 @@ class DbtInterface(DbtConfig):
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         return self.parser.read_models(self, include_tags, docs_url)
+
+    def compile_model(self, model_name, target: Optional[str] = None) -> bool:
+        if not self.manifest_path:
+            raise NoDbtPathSupplied(
+                "Cannot return compiled model result unless `dbt_manifest_path` is supplied through cli, env, or config."
+            )
+
+        proj_dir = str(
+            Path(self.path).absolute()
+            if self.path
+            else Path(self.manifest_path).parent.parent.absolute()
+        )
+
+        subprocess.run(
+            [
+                "dbt",
+                "compile",
+                "-m",
+                model_name,
+                "--project-dir",
+                proj_dir,
+                "--no-version-check",
+            ]
+            + (["--target", target] if target else []),
+            check=True,
+        )
+
+        with open(self.manifest_path, "r", encoding="utf-8") as manifest_file:
+            compiled_manifest: Mapping = json.load(manifest_file)
+
+        for ix, model in enumerate(
+            map(lambda x: x.split(".", 2)[-1], list(compiled_manifest["nodes"].keys()))
+        ):
+            if model == model_name:
+                compiled_sql = list(compiled_manifest["nodes"].values())[ix][
+                    "compiled_sql"
+                ]
+                break
+        else:
+            raise Exception("Model not found...")
+
+        return compiled_sql

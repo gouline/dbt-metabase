@@ -1,6 +1,8 @@
 import re
 import json
 import requests
+import webbrowser
+import base64
 import time
 import yaml
 import os
@@ -790,6 +792,20 @@ class MetabaseClient:
                 if exposure.upper() in refable_models
             ],
         }
+
+    def explore_query(self, database, query):
+        exploratory_interface = {
+            "dataset_query": {
+                "database": self.find_database_id(database),
+                "native": {"query": query, "template-tags": {}},
+                "type": "native",
+            },
+            "display": "table",
+            "visualization_settings": {},
+        }
+        webbrowser.open(
+            f"{self.protocol}://{self.host}/question#{str(base64.b64encode(json.dumps(exploratory_interface).encode('utf-8')), 'utf-8')}"
+        )
 
     def api(
         self,
