@@ -31,6 +31,9 @@ models:
 
   - name: orders
     description: This table has basic information about orders, as well as some derived facts based on payments
+    meta:
+      metabase.points_of_interest: Basic information only
+      metabase.caveats: Some facts are derived from payments
 
     columns:
       - name: order_id

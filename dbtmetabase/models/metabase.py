@@ -32,6 +32,8 @@ class MetabaseModel:
     name: str
     schema: str
     description: str = ""
+    points_of_interest: Optional[str] = None
+    caveats: Optional[str] = None
 
     model_type: ModelType = ModelType.nodes
     dbt_name: Optional[str] = None
