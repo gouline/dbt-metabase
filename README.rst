@@ -296,6 +296,24 @@ Here are the visibility types supported by Metabase:
 
 If you notice new ones, please submit a PR to update this readme.
 
+Model extra fields
+----------------
+
+In addition to the model description, Metabase accepts two extra information fields. Those optional
+fields are called ``caveats`` and ``points_of_interest`` and can be defined under the ``meta`` tag
+of the model.
+
+This is how you can specify them in the ``stg_users`` example:
+
+.. code-block:: yaml
+
+  - name: stg_users
+    description: User records.
+    meta:
+      metabase.points_of_interest: Relevant records.
+      metabase.caveats: Sensitive information about users.
+
+
 Database Sync
 -------------
 
