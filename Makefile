@@ -16,13 +16,20 @@ check-fmt:
 	black --check .
 .PHONY: check-fmt
 
-check-lint:
+check-lint-python:
 	pylint dbtmetabase
-.PHONY: check-lint
+.PHONY: check-lint-python
+
+check-lint-rst:
+	pylint dbtmetabase
+.PHONY: check-lint-rst
 
 check-type:
 	mypy dbtmetabase
 .PHONY: check-type
+
+check: check-fmt check-lint-python check-lint-rst check-type
+.PHONY: check
 
 test:
 	python3 -m unittest tests

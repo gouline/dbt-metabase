@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.6.x'
+          python-version: "3.6.x"
 
       - name: Requirements
         run: make requirements
@@ -27,8 +27,11 @@ jobs:
       - name: Formatting check (black)
         run: make check-fmt
 
-      - name: Lint check (pylint)
-        run: make check-lint
+      - name: Lint Python check (pylint)
+        run: make check-lint-python
+
+      - name: Lint reStructuredText check (rst-lint)
+        run: make check-lint-rst
 
       - name: Type check (mypy)
         run: make check-type
