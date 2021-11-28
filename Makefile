@@ -21,7 +21,7 @@ check-lint-python:
 .PHONY: check-lint-python
 
 check-lint-rst:
-	pylint dbtmetabase
+	rst-lint README.rst
 .PHONY: check-lint-rst
 
 check-type:
