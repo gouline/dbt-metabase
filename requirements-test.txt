@@ -5,3 +5,4 @@ mypy
 types-requests
 types-PyYAML
 black
+restructuredtext-lint
