@@ -119,9 +119,7 @@ class MetabaseClient:
 
         database_id = self.find_database_id(database)
         if not database_id:
-            raise MetabaseUnableToSync(
-                "Cannot find database by name %s", database
-            )
+            raise MetabaseUnableToSync("Cannot find database by name %s", database)
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
