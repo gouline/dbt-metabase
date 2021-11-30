@@ -9,7 +9,6 @@ from .exceptions import (
     NoDbtSchemaSupplied,
     MetabaseClientNotInstantiated,
     DbtParserNotInstantiated,
-    MetabaseUnableToSync,
 )
 from ..parsers.dbt_folder import DbtFolderReader
 from ..parsers.dbt_manifest import DbtManifestReader

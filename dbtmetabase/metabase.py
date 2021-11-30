@@ -16,7 +16,7 @@ from typing import (
     Mapping,
 )
 
-from dbtmetabase.models.exceptions import MetabaseUnableToSync
+from dbtmetabase.models import exceptions
 
 from .logger.logging import logger
 from .models.metabase import MetabaseModel, MetabaseColumn
@@ -111,15 +111,13 @@ class MetabaseClient:
             allow_sync_failure = False
 
         if timeout < self._SYNC_PERIOD_SECS:
-            raise MetabaseUnableToSync(
-                "Timeout provided %d secs, must be at least %d",
-                timeout,
-                self._SYNC_PERIOD_SECS,
+            raise exceptions.MetabaseUnableToSync(
+                f"Timeout provided {timeout} secs, must be at least {self._SYNC_PERIOD_SECS}"
             )
 
         database_id = self.find_database_id(database)
         if not database_id:
-            raise MetabaseUnableToSync("Cannot find database by name %s", database)
+            raise exceptions.MetabaseUnableToSync(f"Cannot find database by name {database}")
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
@@ -133,7 +131,7 @@ class MetabaseClient:
             else:
                 break
         if not sync_successful and not allow_sync_failure:
-            raise MetabaseUnableToSync(
+            raise exceptions.MetabaseUnableToSync(
                 "Unable to align models between dbt target models and Metabase"
             )
         return sync_successful
