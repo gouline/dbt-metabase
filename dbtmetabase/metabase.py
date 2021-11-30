@@ -117,7 +117,9 @@ class MetabaseClient:
 
         database_id = self.find_database_id(database)
         if not database_id:
-            raise exceptions.MetabaseUnableToSync(f"Cannot find database by name {database}")
+            raise exceptions.MetabaseUnableToSync(
+                f"Cannot find database by name {database}"
+            )
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
