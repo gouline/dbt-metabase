@@ -12,7 +12,6 @@ from .exceptions import (
     NoDbtSchemaSupplied,
     MetabaseClientNotInstantiated,
     DbtParserNotInstantiated,
-    MetabaseUnableToSync,
     ModelNotFound,
 )
 from ..parsers.dbt_folder import DbtFolderReader
@@ -51,8 +50,6 @@ class MetabaseInterface(MetabaseConfig):
         Args:
             dbt_models (Optional[List[MetabaseModel]]): Used if sync is enabled to verify all dbt models passed exist in Metabase
 
-        Raises:
-            MetabaseUnableToSync: This error is raised if sync is enabled and a timeout is explicitly set in the `Metabase` object config
         """
         if dbt_models is None:
             dbt_models = []
