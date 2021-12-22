@@ -809,7 +809,17 @@ class MetabaseClient:
             ],
         }
 
-    def explore_query(self, database, query):
+    def explore_query(self, database: str, query: str) -> None:
+        """Allows a user to open a model in the Metabase query editor to expedite the process
+        of testing models against production sources, visualizing model distributions, etc.
+
+        Arguments:
+            database {str} -- Metabase database name.
+            query {str} -- A SQL query to be opened in Metabase
+
+        Returns:
+            None
+        """
         exploratory_interface = {
             "dataset_query": {
                 "database": self.find_database_id(database),

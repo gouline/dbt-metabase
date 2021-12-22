@@ -16,3 +16,7 @@ class MetabaseUnableToSync(Exception):
 
 class DbtParserNotInstantiated(Exception):
     """Thrown when trying to access dbt reader from interface prior to instantiation via class method"""
+
+
+class ModelNotFound(Exception):
+    """Thrown when model is not found in manifest after successful compile command"""

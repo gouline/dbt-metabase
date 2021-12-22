@@ -716,12 +716,77 @@ def exposures(
 
 
 @cli.command(cls=CommandController)
-@shared_opts
 @click.option(
     "-m",
-    "--model-name",
+    "--model",
     type=click.STRING,
-    help="Full name of the dbt model to explore in the Metabase UI",
+    required=True,
+    help="Name of the dbt model to explore in the Metabase UI, ex. dim_customer",
+)
+@click.option(
+    "--dbt_path",
+    envvar="DBT_PATH",
+    show_envvar=True,
+    help="Path to dbt project. If specified with --dbt_manifest_path, then the manifest is prioritized",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+)
+@click.option(
+    "--dbt_manifest_path",
+    envvar="DBT_MANIFEST_PATH",
+    show_envvar=True,
+    help="Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project)",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+)
+@click.option(
+    "--metabase_database",
+    envvar="MB_DATABASE",
+    show_envvar=True,
+    required=True,
+    cls=OptionAcceptableFromConfig,
+    type=click.STRING,
+    help="Target database name as set in Metabase (typically aliased)",
+)
+@click.option(
+    "--metabase_host",
+    metavar="HOST",
+    envvar="MB_HOST",
+    show_envvar=True,
+    required=True,
+    cls=OptionAcceptableFromConfig,
+    type=click.STRING,
+    help="Metabase hostname",
+)
+@click.option(
+    "--metabase_user",
+    metavar="USER",
+    envvar="MB_USER",
+    show_envvar=True,
+    required=True,
+    cls=OptionAcceptableFromConfig,
+    type=click.STRING,
+    help="Metabase username",
+)
+@click.option(
+    "--metabase_password",
+    metavar="PASS",
+    envvar="MB_PASSWORD",
+    show_envvar=True,
+    required=True,
+    cls=OptionAcceptableFromConfig,
+    type=click.STRING,
+    help="Metabase password",
+)
+@click.option(
+    "--metabase_http/--metabase_https",
+    "metabase_use_http",
+    default=False,
+    help="use HTTP or HTTPS to connect to Metabase. Default HTTPS",
+)
+@click.option(
+    "--metabase_verify",
+    metavar="CERT",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    help="Path to certificate bundle used by Metabase client",
 )
 @click.option(
     "-v",
@@ -734,18 +799,11 @@ def explore(
     metabase_user: str,
     metabase_password: str,
     metabase_database: str,
-    model_name: str,
-    dbt_database: str,
+    model: str,
     dbt_path: Optional[str] = None,
     dbt_manifest_path: Optional[str] = None,
-    dbt_schema: Optional[str] = None,
-    dbt_schema_excludes: Optional[Iterable] = None,
-    dbt_includes: Optional[Iterable] = None,
-    dbt_excludes: Optional[Iterable] = None,
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
-    metabase_sync: bool = True,
-    metabase_sync_timeout: Optional[int] = None,
     verbose: bool = False,
 ) -> None:
     """Compiles dbt model and opens Metabase query UI with compiled SQL pre-populated.
@@ -756,18 +814,11 @@ def explore(
         metabase_user (str): Metabase username
         metabase_password (str): Metabase password
         metabase_database (str): Target database name as set in Metabase (typically aliased)
-        model_name (str): Full name of the dbt model to explore in the Metabase UI.
-        dbt_database (str):  Target database name as specified in dbt models to be actioned
+        model (str): Full name of the dbt model to explore in the Metabase UI.
         dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
         dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
-        dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.
-        dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
-        dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
-        dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
-        metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
     """
 
@@ -779,15 +830,11 @@ def explore(
     dbt = DbtInterface(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
-        database=dbt_database,
-        schema=dbt_schema,
-        schema_excludes=dbt_schema_excludes,
-        includes=dbt_includes,
-        excludes=dbt_excludes,
+        database="UNUSED",
     )
 
     # Compile model
-    compiled_sql = dbt.compile_model(model_name)
+    compiled_sql = dbt.compile_model(model)
 
     # Instantiate Metabase interface
     metabase = MetabaseInterface(
@@ -797,8 +844,6 @@ def explore(
         use_http=metabase_use_http,
         verify=metabase_verify,
         database=metabase_database,
-        sync=metabase_sync,
-        sync_timeout=metabase_sync_timeout,
     )
 
     # Load client

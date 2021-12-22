@@ -13,6 +13,7 @@ from .exceptions import (
     MetabaseClientNotInstantiated,
     DbtParserNotInstantiated,
     MetabaseUnableToSync,
+    ModelNotFound,
 )
 from ..parsers.dbt_folder import DbtFolderReader
 from ..parsers.dbt_manifest import DbtManifestReader
@@ -33,7 +34,7 @@ class MetabaseInterface(MetabaseConfig):
         return self._client
 
     @property
-    def database_id(self) -> int:
+    def database_id(self) -> Optional[str]:
         if self._client is None:
             raise MetabaseClientNotInstantiated(
                 "Metabase client is not yet instantiated. Call `prepare_metabase_client` method first"
@@ -42,7 +43,7 @@ class MetabaseInterface(MetabaseConfig):
 
     @property
     def instance_url(self) -> str:
-        f"{'http' if self.use_http else 'https'}://{self.host}"
+        return f"{'http' if self.use_http else 'https'}://{self.host}"
 
     def prepare_metabase_client(self, dbt_models: Optional[List[MetabaseModel]] = None):
         """Prepares the metabase client which can then after be accessed via the `client` property
@@ -148,23 +149,27 @@ class DbtInterface(DbtConfig):
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         return self.parser.read_models(self, include_tags, docs_url)
 
-    def compile_model(self, model_name, target: Optional[str] = None) -> bool:
+    def compile_model(self, model_name: str, target: Optional[str] = None) -> str:
+        """This function runs `dbt compile --select your_model` and extracts the compiled SQL from the updated artifact"""
         if not self.manifest_path:
             raise NoDbtPathSupplied(
                 "Cannot return compiled model result unless `dbt_manifest_path` is supplied through cli, env, or config."
             )
 
+        # Explicitly supplying project path allows us to run in any directory
+        # We will use the user supplied project path arg; but if that is not passed then we infer from manifest path
         proj_dir = str(
-            Path(self.path).absolute()
-            if self.path
-            else Path(self.manifest_path).parent.parent.absolute()
+            (
+                Path(self.path) if self.path else Path(self.manifest_path).parent.parent
+            ).absolute()
         )
 
+        # Compile SQL and update artifact. Ensure a successful exit code with `check`
         subprocess.run(
             [
                 "dbt",
                 "compile",
-                "-m",
+                "--select",
                 model_name,
                 "--project-dir",
                 proj_dir,
@@ -177,15 +182,14 @@ class DbtInterface(DbtConfig):
         with open(self.manifest_path, "r", encoding="utf-8") as manifest_file:
             compiled_manifest: Mapping = json.load(manifest_file)
 
-        for ix, model in enumerate(
-            map(lambda x: x.split(".", 2)[-1], list(compiled_manifest["nodes"].keys()))
-        ):
-            if model == model_name:
-                compiled_sql = list(compiled_manifest["nodes"].values())[ix][
-                    "compiled_sql"
-                ]
-                break
-        else:
-            raise Exception("Model not found...")
-
-        return compiled_sql
+        try:
+            return list(
+                filter(
+                    lambda node: node["name"] == model_name,
+                    compiled_manifest["nodes"].values(),
+                )
+            )[0]["compiled_sql"]
+        except IndexError as err:
+            raise ModelNotFound(
+                f"The model {model_name} was not found in dbt manifest. Please verify the `dbt_manifest_path` is pointing to the artifact that is generated after dbt compile"
+            ) from err
