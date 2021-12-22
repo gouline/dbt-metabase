@@ -18,6 +18,8 @@ from typing import (
     Mapping,
 )
 
+from dbtmetabase.models import exceptions
+
 from .logger.logging import logger
 from .models.metabase import MetabaseModel, MetabaseColumn
 
@@ -97,22 +99,29 @@ class MetabaseClient:
 
         Returns:
             bool -- True if schema compatible with models, false if still incompatible.
+
+        Raises:
+            MetabaseUnableToSync if
+                - the timeout provided is not sufficient
+                - the database cannot be found
+                - a timeout was provided but sync was unsuccessful
         """
         if timeout is None:
             timeout = 30
+            allow_sync_failure = True
+        else:
+            allow_sync_failure = False
 
         if timeout < self._SYNC_PERIOD_SECS:
-            logger().critical(
-                "Timeout provided %d secs, must be at least %d",
-                timeout,
-                self._SYNC_PERIOD_SECS,
+            raise exceptions.MetabaseUnableToSync(
+                f"Timeout provided {timeout} secs, must be at least {self._SYNC_PERIOD_SECS}"
             )
-            return False
 
         database_id = self.find_database_id(database)
         if not database_id:
-            logger().critical("Cannot find database by name %s", database)
-            return False
+            raise exceptions.MetabaseUnableToSync(
+                f"Cannot find database by name {database}"
+            )
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
@@ -125,6 +134,10 @@ class MetabaseClient:
                 time.sleep(self._SYNC_PERIOD_SECS)
             else:
                 break
+        if not sync_successful and not allow_sync_failure:
+            raise exceptions.MetabaseUnableToSync(
+                "Unable to align models between dbt target models and Metabase"
+            )
         return sync_successful
 
     def models_compatible(self, database_id: str, models: Sequence) -> bool:
