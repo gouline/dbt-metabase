@@ -34,6 +34,7 @@ class MetabaseClient:
         password: str,
         use_http: bool = False,
         verify: Union[str, bool] = None,
+        session_id: str = None,
     ):
         """Constructor.
 
@@ -45,12 +46,13 @@ class MetabaseClient:
         Keyword Arguments:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
+            session_id {str} -- Metabase session ID (optional).
         """
 
         self.host = host
         self.protocol = "http" if use_http else "https"
         self.verify = verify
-        self.session_id = self.get_session_id(user, password)
+        self.session_id = session_id || self.get_session_id(user, password)
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
