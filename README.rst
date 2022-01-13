@@ -135,7 +135,7 @@ how our dbt models are exposed in BI which closes the loop between ELT, modellin
         --output_path ./models/ \
         --output_name metabase_exposures
 
-Once execution completes, a look at the output ``metabase_exposures.yml`` will 
+Once execution completes, a look at the output ``metabase_exposures.yml`` will
 reveal all metabase exposures documented with the documentation, descriptions, creator
 emails & names, links to exposures, and even native SQL propagated over from Metabase.
 
@@ -145,13 +145,13 @@ emails & names, links to exposures, and even native SQL propagated over from Met
       - name: Number_of_orders_over_time
         description: '
           ### Visualization: Line
-      
+
           A line chart depicting how order volume changes over time
-      
+
           #### Metadata
-      
+
           Metabase Id: __8__
-      
+
           Created On: __2021-07-21T08:01:38.016244Z__'
         type: analysis
         url: http://your.metabase.com/card/8
@@ -164,7 +164,7 @@ emails & names, links to exposures, and even native SQL propagated over from Met
 
 Questions which are native queries will have the SQL propagated to a code block in the documentation's
 description for full visibility. This YAML, like the rest of your dbt project can be committed to source
-control to understand how exposures change over time. In a production environment, one can trigger 
+control to understand how exposures change over time. In a production environment, one can trigger
 ``dbt docs generate`` after ``dbt-metabase exposures`` (or alternatively run the exposure extraction job
 on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes ``dbt docs`` a
 useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
@@ -335,10 +335,10 @@ Configuration
     dbt-metabase config
 
 Using the above command, you can enter an interactive configuration session where you can cache default selections
-for arguments. This creates a ``config.yml`` in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host, 
-metabase_password, dbt_manifest_path, etc. 
+for arguments. This creates a ``config.yml`` in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host,
+metabase_password, dbt_manifest_path, etc.
 
-In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing 
+In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing
 secrets. Listed below are acceptable env vars which correspond to their CLI flags:
 
 * ``DBT_DATABASE``
@@ -350,10 +350,10 @@ secrets. Listed below are acceptable env vars which correspond to their CLI flag
 * ``MB_DATABASE``
 
 If any one of the above is present in the environment, the corresponding CLI flag is not needed unless overriding
-the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any 
+the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any
 env vars to inject, then we will look to the config.yml for cached defaults.
 
-A ``config.yml`` can be created or updated manually as well if needed. The only 
+A ``config.yml`` can be created or updated manually as well if needed. The only
 requirement is that it must be located in ~/.dbt-metabase. The layout is as follows:
 
 .. code-block:: yaml
@@ -432,6 +432,104 @@ line. But if you prefer to call it from your code, here's how to do it:
         collection_excludes=collection_excludes,
     )
 
+.. list-table:: DbtInterface keyword argument reference
+   :widths: 25 25 25 25 100
+   :header-rows: 1
+
+   * - kwarg
+     - type
+     - nullable
+     - default
+     - meaning
+   * - database
+     - str
+     - No
+     -
+     - ???
+   * - manifest_path
+     - str
+     - Yes
+     - None
+     - Path to the manifest.json file (when using artifacts)
+   * - path
+     - str
+     - Yes
+     - None
+     - Path to the dbt project (when using direct parsing)
+   * - schema
+     - str
+     - Yes
+     - None
+     - If supplied, only pushes docs for models in this particular database schema / BigQuery dataset
+   * - schema_excludes
+     - Iterable[str]
+     - Yes
+     - None
+     - ???
+   * - includes
+     - Iterable[str]
+     - Yes
+     - None
+     - ???
+   * - excludes
+     - Iterable[str]
+     - Yes
+     - None
+     - ???
+
+
+Note: Requires either `manifest_path` or `path`. Will ignore `path` if both are provided.
+
+
+.. list-table:: MetabaseInterface keyword argument reference
+  :widths: 25 25 25 25 100
+  :header-rows: 1
+
+  * - kwarg
+    - type
+    - nullable
+    - default
+    - meaning
+  * - database
+    - str
+    - No
+    -
+    - ???
+  * - host
+    - str
+    - No
+    -
+    - IP or URL to Metabase without http:// or https:// prefix
+  * - user
+    - str
+    - No
+    -
+    - Metabase Admin Username
+  * - password
+    - str
+    - No
+    -
+    - Metabase Admin Password
+  * - use_http
+    - boolean
+    - No
+    - False
+    - Uses HTTPS if False and HTTP if True (use HTTPS if at all possible!)
+  * - verify
+    - boolean
+    - Yes
+    - True
+    - ???
+  * - sync
+    - boolean
+    - No
+    - True
+    - ???
+  * - sync_timeout
+    - integer
+    - Yes
+    - None
+    - Set timeout in seconds for the sync. No timeout if ommitted.
 
 Code of Conduct
 ===============
