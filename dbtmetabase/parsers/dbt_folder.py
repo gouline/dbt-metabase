@@ -1,40 +1,27 @@
-import os
 import re
 import yaml
 from pathlib import Path
 from typing import List, Iterable, Mapping, MutableMapping, Optional, Tuple
 
-from ..models.config import DbtConfig
 from ..models.metabase import METABASE_META_FIELDS, ModelType
 from ..models.metabase import MetabaseModel, MetabaseColumn
 from ..logger.logging import logger
+from .dbt import DbtReader
 
 
-class DbtFolderReader:
+class DbtFolderReader(DbtReader):
     """
     Reader for dbt project configuration.
     """
 
-    def __init__(self, project_path: str):
-        """Constructor.
-
-        Arguments:
-            project_path {str} -- Path to dbt project root.
-        """
-
-        self.project_path = os.path.expanduser(project_path)
-        self.alias_mapping: MutableMapping = {}
-
     def read_models(
         self,
-        dbt_config: DbtConfig,
         include_tags: bool = True,
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         """Reads dbt models in Metabase-friendly format.
 
         Keyword Arguments:
-            dbt_config {Dbt} -- Dbt object
             include_tags {bool} -- Append dbt model tags to dbt model descriptions. (default: {True})
             docs_url {Optional[str]} -- Append dbt docs url to dbt model description
 
@@ -42,11 +29,11 @@ class DbtFolderReader:
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        database = dbt_config.database
-        schema = dbt_config.schema
-        schema_excludes = dbt_config.schema_excludes
-        includes = dbt_config.includes
-        excludes = dbt_config.excludes
+        database = self.database
+        schema = self.schema
+        schema_excludes = self.schema_excludes
+        includes = self.includes
+        excludes = self.excludes
 
         if schema_excludes is None:
             schema_excludes = []
@@ -62,7 +49,7 @@ class DbtFolderReader:
 
         mb_models: List[MetabaseModel] = []
 
-        for path in (Path(self.project_path) / "models").rglob("*.yml"):
+        for path in (Path(self.path) / "models").rglob("*.yml"):
             with open(path, "r", encoding="utf-8") as stream:
                 schema_file = yaml.safe_load(stream)
                 if schema_file is None:

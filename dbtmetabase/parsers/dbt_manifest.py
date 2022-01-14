@@ -1,39 +1,23 @@
 import json
-import os
 from typing import List, Tuple, Mapping, Optional, MutableMapping
 
-from ..models.config import DbtConfig
 from ..models.metabase import METABASE_META_FIELDS, ModelType
 from ..models.metabase import MetabaseModel, MetabaseColumn
 from ..logger.logging import logger
+from .dbt import DbtReader
 
 
-class DbtManifestReader:
-    """
-    Reader for dbt manifest artifact.
-    """
-
-    def __init__(self, project_path: str):
-        """Constructor.
-
-        Arguments:
-            manifest_path {str} -- Path to dbt manifest.json.
-        """
-
-        self.manifest_path = os.path.expanduser(project_path)
-        self.manifest: Mapping = {}
-        self.alias_mapping: MutableMapping = {}
+class DbtManifestReader(DbtReader):
+    """Reader for dbt manifest artifact."""
 
     def read_models(
         self,
-        dbt_config: DbtConfig,
         include_tags: bool = True,
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         """Reads dbt models in Metabase-friendly format.
 
         Keyword Arguments:
-            dbt_config {Dbt} -- Dbt object
             include_tags {bool} -- Append dbt model tags to dbt model descriptions. (default: {True})
             docs_url {Optional[str]} -- Append dbt docs url to dbt model description
 
@@ -41,11 +25,13 @@ class DbtManifestReader:
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        database = dbt_config.database
-        schema = dbt_config.schema
-        schema_excludes = dbt_config.schema_excludes
-        includes = dbt_config.includes
-        excludes = dbt_config.excludes
+        database = self.database
+        schema = self.schema
+        schema_excludes = self.schema_excludes
+        includes = self.includes
+        excludes = self.excludes
+
+        manifest = {}
 
         if schema_excludes is None:
             schema_excludes = []
@@ -54,13 +40,12 @@ class DbtManifestReader:
         if excludes is None:
             excludes = []
 
-        path = self.manifest_path
         mb_models: List[MetabaseModel] = []
 
-        with open(path, "r", encoding="utf-8") as manifest_file:
-            self.manifest = json.load(manifest_file)
+        with open(self.path, "r", encoding="utf-8") as manifest_file:
+            manifest = json.load(manifest_file)
 
-        for _, node in self.manifest["nodes"].items():
+        for _, node in manifest["nodes"].items():
             model_name = node["name"].upper()
 
             if node["config"]["materialized"] == "ephemeral":
@@ -110,6 +95,7 @@ class DbtManifestReader:
 
             mb_models.append(
                 self._read_model(
+                    manifest,
                     node,
                     include_tags=include_tags,
                     docs_url=docs_url,
@@ -118,7 +104,7 @@ class DbtManifestReader:
                 )
             )
 
-        for _, node in self.manifest["sources"].items():
+        for _, node in manifest["sources"].items():
             model_name = node.get("identifier", node.get("name")).upper()
 
             if node["database"].upper() != database.upper():
@@ -162,6 +148,7 @@ class DbtManifestReader:
 
             mb_models.append(
                 self._read_model(
+                    manifest,
                     node,
                     include_tags=include_tags,
                     docs_url=docs_url,
@@ -174,6 +161,7 @@ class DbtManifestReader:
 
     def _read_model(
         self,
+        manifest: Mapping,
         model: dict,
         source: Optional[str] = None,
         model_type: ModelType = ModelType.nodes,
@@ -194,13 +182,13 @@ class DbtManifestReader:
 
         metabase_column: List[MetabaseColumn] = []
 
-        children = self.manifest["child_map"][model["unique_id"]]
+        children = manifest["child_map"][model["unique_id"]]
         relationship_tests = {}
 
         for child_id in children:
             child = {}
-            if self.manifest[model_type]:
-                child = self.manifest[model_type].get(child_id, {})
+            if manifest[model_type]:
+                child = manifest[model_type].get(child_id, {})
             # Only proceed if we are seeing an explicitly declared relationship test
             if (
                 child.get("resource_type") == "test"
@@ -214,7 +202,7 @@ class DbtManifestReader:
                     set(child["depends_on"][model_type]) - {model["unique_id"]}
                 )[0]
 
-                foreign_key_model = self.manifest[model_type].get(depends_on_id, {})
+                foreign_key_model = manifest[model_type].get(depends_on_id, {})
                 fk_target_table_alias = foreign_key_model.get(
                     "alias",
                     foreign_key_model.get("identifier", foreign_key_model.get("name")),
@@ -227,7 +215,7 @@ class DbtManifestReader:
                     )
                     continue
 
-                fk_target_schema = self.manifest[model_type][depends_on_id].get(
+                fk_target_schema = manifest[model_type][depends_on_id].get(
                     "schema", "public"
                 )
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
