@@ -17,7 +17,7 @@ class DbtReader(metaclass=ABCMeta):
         includes: Optional[Iterable],
         excludes: Optional[Iterable],
     ):
-        """[summary]
+        """Constructor.
 
         Args:
             path (str): Path to dbt target.
