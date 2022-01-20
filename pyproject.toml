@@ -12,9 +12,6 @@ include = '\.pyi?$'
 
 [tool.mypy]
 python_version = "3.8"
-
-[[tool.mypy.overrides]]
-module = ["dbtmetabase"]
 ignore_missing_imports = true
 
 [tool.pylint.master]

@@ -527,13 +527,12 @@ def models(
 ) -> None:
     """Exports model documentation and semantic types from dbt to Metabase.
 
-    \f
     Args:
-        metabase_host (str): Metabase hostname
-        metabase_user (str): Metabase username
-        metabase_password (str): Metabase password
-        metabase_database (str): Target database name as set in Metabase (typically aliased)
-        dbt_database (str):  Target database name as specified in dbt models to be actioned
+        metabase_host (str): Metabase hostname.
+        metabase_user (str): Metabase username.
+        metabase_password (str): Metabase password.
+        metabase_database (str): Target database name as set in Metabase (typically aliased).
+        dbt_database (str):  Target database name as specified in dbt models to be actioned.
         dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
         dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
         dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.
@@ -647,13 +646,12 @@ def exposures(
 ) -> None:
     """Extracts and imports exposures from Metabase to dbt.
 
-    \f
     Args:
-        metabase_host (str): Metabase hostname
-        metabase_user (str): Metabase username
-        metabase_password (str): Metabase password
-        metabase_database (str): Target database name as set in Metabase (typically aliased)
-        dbt_database (str):  Target database name as specified in dbt models to be actioned
+        metabase_host (str): Metabase hostname.
+        metabase_user (str): Metabase username.
+        metabase_password (str): Metabase password.
+        metabase_database (str): Target database name as set in Metabase (typically aliased).
+        dbt_database (str): Target database name as specified in dbt models to be actioned.
         dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
         dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
         dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.

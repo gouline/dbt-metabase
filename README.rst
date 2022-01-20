@@ -413,9 +413,6 @@ line. But if you prefer to call it from your code, here's how to do it:
         sync_timeout=metabase_sync_timeout,
     )
 
-    # Load client
-    metabase.prepare_metabase_client(dbt_models)
-
     # Propagate models to Metabase
     metabase.client.export_models(
         database=metabase.database,
