@@ -11,7 +11,7 @@ from .logger import logging as package_logger
 from .models.interface import MetabaseInterface, DbtInterface
 from .utils import get_version, load_config
 
-
+__all__ = ["MetabaseInterface", "DbtInterface"]
 __version__ = get_version()
 
 CONFIG = load_config()
