@@ -135,7 +135,7 @@ how our dbt models are exposed in BI which closes the loop between ELT, modellin
         --output_path ./models/ \
         --output_name metabase_exposures
 
-Once execution completes, a look at the output ``metabase_exposures.yml`` will 
+Once execution completes, a look at the output ``metabase_exposures.yml`` will
 reveal all metabase exposures documented with the documentation, descriptions, creator
 emails & names, links to exposures, and even native SQL propagated over from Metabase.
 
@@ -145,13 +145,13 @@ emails & names, links to exposures, and even native SQL propagated over from Met
       - name: Number_of_orders_over_time
         description: '
           ### Visualization: Line
-      
+
           A line chart depicting how order volume changes over time
-      
+
           #### Metadata
-      
+
           Metabase Id: __8__
-      
+
           Created On: __2021-07-21T08:01:38.016244Z__'
         type: analysis
         url: http://your.metabase.com/card/8
@@ -164,7 +164,7 @@ emails & names, links to exposures, and even native SQL propagated over from Met
 
 Questions which are native queries will have the SQL propagated to a code block in the documentation's
 description for full visibility. This YAML, like the rest of your dbt project can be committed to source
-control to understand how exposures change over time. In a production environment, one can trigger 
+control to understand how exposures change over time. In a production environment, one can trigger
 ``dbt docs generate`` after ``dbt-metabase exposures`` (or alternatively run the exposure extraction job
 on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes ``dbt docs`` a
 useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
@@ -270,6 +270,31 @@ Here is the list of semantic types (formerly known as special types) currently a
 
 If you notice new ones, please submit a PR to update this readme.
 
+Foreign Keys
+------------
+
+By default, dbt-metabase parses the relationship tests to figure out PK-FK
+relationships between two tables. Alternatively, you can also use the meta
+fields ``fk_target_table`` and ``fk_target_field`` to set the relationships
+just like semantic types. You can set the ``semantic_type`` as ``type/FK``
+without setting those two fields, but you cannot set those two fields
+without the ``semantic_type`` set to ``type/FK``.
+
+Here is an example of how you could to this:
+
+.. code-block:: yaml
+
+    - name: country_id
+      description: FK to User's country in the dim_countries table.
+      meta:
+        metabase.semantic_type: type/FK
+        metabase.fk_target_table: analytics_dims.dim_countries
+        metabase.fk_target_field: id
+
+Importantly, the ``fk_target_table`` needs to be in the format
+``schema_name.table_name``. If the model has an alias, use the alias, not
+the original model name here.
+
 Visibility Types
 ----------------
 
@@ -335,10 +360,10 @@ Configuration
     dbt-metabase config
 
 Using the above command, you can enter an interactive configuration session where you can cache default selections
-for arguments. This creates a ``config.yml`` in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host, 
-metabase_password, dbt_manifest_path, etc. 
+for arguments. This creates a ``config.yml`` in ~/.dbt-metabase. This is particularly useful for arguments which are repeated on every invocation like metabase_user, metabase_host,
+metabase_password, dbt_manifest_path, etc.
 
-In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing 
+In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing
 secrets. Listed below are acceptable env vars which correspond to their CLI flags:
 
 * ``DBT_DATABASE``
@@ -350,10 +375,10 @@ secrets. Listed below are acceptable env vars which correspond to their CLI flag
 * ``MB_DATABASE``
 
 If any one of the above is present in the environment, the corresponding CLI flag is not needed unless overriding
-the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any 
+the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any
 env vars to inject, then we will look to the config.yml for cached defaults.
 
-A ``config.yml`` can be created or updated manually as well if needed. The only 
+A ``config.yml`` can be created or updated manually as well if needed. The only
 requirement is that it must be located in ~/.dbt-metabase. The layout is as follows:
 
 .. code-block:: yaml
