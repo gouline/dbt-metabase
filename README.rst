@@ -278,9 +278,8 @@ relationships between two tables. Alternatively, you can also use the meta
 fields ``fk_target_table`` and ``fk_target_field`` to set the relationships
 just like semantic types. You can set the ``semantic_type`` as ``type/FK``
 without setting those two fields, but you cannot set those two fields
-without the ``semantic_type`` set to ``type/FK``. If both the meta fields
-and a relationships test are set for a field, the information supplied by
-the meta fields takes precedence.
+without the ``semantic_type`` set to ``type/FK``. If both, meta fields
+and relationship test, are set for a field, meta fields take precedence.
 
 Here is an example of how you could to this:
 
