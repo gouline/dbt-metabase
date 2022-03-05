@@ -5,7 +5,13 @@ from typing import Sequence, Optional, MutableMapping
 
 # Allowed metabase.* fields
 # Should be covered by attributes in the MetabaseColumn class
-METABASE_META_FIELDS = ["special_type", "semantic_type", "visibility_type"]
+METABASE_META_FIELDS = [
+    "special_type",
+    "semantic_type",
+    "visibility_type",
+    "fk_target_table",
+    "fk_target_field",
+]
 
 
 class ModelType(str, Enum):
