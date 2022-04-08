@@ -229,10 +229,12 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
+        model_display_name = model.display_name or None
         if not model.description:
             model_description = None
         else:
-            model_description = model.description
+            # We want to always convert newlines to spaces
+            model_description = model.description.replace("\n", " ")
         if not model.points_of_interest:
             model_points_of_interest = None
         else:
@@ -243,6 +245,8 @@ class MetabaseClient:
             model_caveats = model.caveats
 
         body_table = {}
+        if api_table["display_name"] != model_display_name:
+            body_table["display_name"] = model_display_name
         if api_table["description"] != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
