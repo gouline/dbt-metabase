@@ -500,6 +500,11 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
     help="Flag to append tags to table descriptions in Metabase (default False)",
 )
 @click.option(
+    "--metabase_sync_sources",
+    is_flag=True,
+    help="If True, try to sync dbt sources to Metabase. Defaults to False.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -520,6 +525,7 @@ def models(
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
     metabase_sync: bool = True,
+    metabase_sync_sources: bool = False,
     metabase_sync_timeout: Optional[int] = None,
     dbt_include_tags: bool = True,
     dbt_docs_url: Optional[str] = None,
@@ -543,6 +549,7 @@ def models(
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
         metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
+        metabase_sync_sources (bool, optional): If True, try to sync dbt sources to Metabase. Defaults to False.
         dbt_include_tags (bool, optional): Flag to append tags to table descriptions in Metabase. Defaults to True.
         dbt_docs_url (Optional[str], optional): Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description. Defaults to None.
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
@@ -579,6 +586,7 @@ def models(
         database=metabase_database,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
+        include_sources=metabase_sync_sources,
     )
 
     # Load client
