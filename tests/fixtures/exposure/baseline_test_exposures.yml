@@ -391,5 +391,8 @@ exposures:
   type: analysis
   url: http://localhost:3000/card/3
   maturity: medium
+  owner:
+    name: null
+    email: ''
   depends_on:
   - ref('customers')

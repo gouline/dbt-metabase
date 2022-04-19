@@ -807,7 +807,7 @@ class MetabaseClient:
 
         # Output exposure
 
-        exposure = {
+        return {
             "name": name,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
@@ -815,7 +815,7 @@ class MetabaseClient:
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
-                "email": creator_email,
+                "email": creator_email or "",
             },
             "depends_on": [
                 refable_models[exposure.upper()]
@@ -823,10 +823,6 @@ class MetabaseClient:
                 if exposure.upper() in refable_models
             ],
         }
-        if creator_email is None:
-            del exposure["owner"]
-
-        return exposure
 
     def api(
         self,
