@@ -593,9 +593,12 @@ class MetabaseClient:
                     creator_email = exposure["creator"]["email"]
                     creator_name = exposure["creator"]["common_name"]
                 elif "creator_id" in exposure:
-                    creator = self.api("get", f"/api/user/{exposure['creator_id']}")
-                    creator_email = creator["email"]
-                    creator_name = creator["common_name"]
+                    # If a metabase user is deactivated, the API returns a 404
+                    creator = self.api(
+                        "get", f"/api/user/{exposure['creator_id']}", critical=False
+                    )
+                    creator_email = creator.get("email")
+                    creator_name = creator.get("common_name")
 
                 # No spaces allowed in model names in dbt docs DAG / No duplicate model names
                 exposure_name = exposure_name.replace(" ", "_")
@@ -803,7 +806,8 @@ class MetabaseClient:
         )
 
         # Output exposure
-        return {
+
+        exposure = {
             "name": name,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
@@ -819,6 +823,10 @@ class MetabaseClient:
                 if exposure.upper() in refable_models
             ],
         }
+        if creator_email is None:
+            del exposure["owner"]
+
+        return exposure
 
     def api(
         self,

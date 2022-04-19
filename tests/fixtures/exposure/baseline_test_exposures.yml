@@ -391,8 +391,5 @@ exposures:
   type: analysis
   url: http://localhost:3000/card/3
   maturity: medium
-  owner:
-    name: Alexander Butler
-    email: user@example.com
   depends_on:
   - ref('customers')
