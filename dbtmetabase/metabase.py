@@ -594,9 +594,14 @@ class MetabaseClient:
                     creator_name = exposure["creator"]["common_name"]
                 elif "creator_id" in exposure:
                     # If a metabase user is deactivated, the API returns a 404
-                    creator = self.api(
-                        "get", f"/api/user/{exposure['creator_id']}", critical=False
-                    )
+                    try:
+                        creator = self.api("get", f"/api/user/{exposure['creator_id']}")
+                    except requests.exceptions.HTTPError as error:
+                        if error.response.status_code == 404:
+                            creator = {}
+                        else:
+                            raise
+
                     creator_email = creator.get("email")
                     creator_name = creator.get("common_name")
 
@@ -863,12 +868,12 @@ class MetabaseClient:
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
-                if "password" in kwargs["json"]:
+                if "json" in kwargs and "password" in kwargs["json"]:
                     logger().error("HTTP request failed. Response: %s", response.text)
                 else:
                     logger().error(
                         "HTTP request failed. Payload: %s. Response: %s",
-                        kwargs["json"],
+                        kwargs.get("json"),
                         response.text,
                     )
                 raise
