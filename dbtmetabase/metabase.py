@@ -56,7 +56,9 @@ class MetabaseClient:
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
-        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
+        # This regex is looking for from and join clauses, and extracting the table part.
+        # It won't recognize some valid sql table references, such as `from "table with spaces"`.
+        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
@@ -714,17 +716,17 @@ class MetabaseClient:
             ctes = []
 
             # Parse common table expressions for exclusion
-            for cte in re.findall(self.cte_parser, native_query):
-                ctes.extend(cte)
+            for matched_cte in re.findall(self.cte_parser, native_query):
+                ctes.extend(group.upper() for group in matched_cte if group)
 
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(self.exposure_parser, native_query):
 
                 # Grab just the table / model name
-                clean_exposure = sql_ref.split(".")[-1].strip('"')
+                clean_exposure = sql_ref.split(".")[-1].strip('"').upper()
 
-                # Scrub CTEs
-                if clean_exposure in ctes:
+                # Scrub CTEs (qualified sql_refs can not reference CTEs)
+                if clean_exposure in ctes and "." not in sql_ref:
                     continue
                 # Verify this is one of our parsed refable models so exposures dont break the DAG
                 if not refable_models.get(clean_exposure):
