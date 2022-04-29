@@ -268,7 +268,6 @@ def shared_opts(func: Callable) -> Callable:
 @click.version_option(__version__)
 def cli():
     """Model synchronization from dbt to Metabase."""
-    ...
 
 
 @click.command(cls=CommandController)

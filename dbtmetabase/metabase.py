@@ -713,7 +713,7 @@ class MetabaseClient:
         elif query.get("type") == "native":
             # Metabase native query
             native_query = query.get("native").get("query")
-            ctes = []
+            ctes: List[str] = []
 
             # Parse common table expressions for exclusion
             for matched_cte in re.findall(self.cte_parser, native_query):
