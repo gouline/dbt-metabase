@@ -82,11 +82,17 @@ class ListParam(click.Tuple):
 
 class OptionAcceptableFromConfig(click.Option):
     """This class override should be used on arguments that are marked `required=True` in order to give them
-    more resilence to raising an error when the option exists in the users config"""
+    more resilence to raising an error when the option exists in the users config.
+
+    This also overrides boolean flags (e.g. --use_metabase_http/--use_metabase_https) in options
+    when a value is provided in the config.yml file. (e.g. metabase_use_http: True)"""
 
     def process_value(self, ctx: click.Context, value: Any) -> Any:
         if value is not None:
             value = self.type_cast_value(ctx, value)
+
+        if self.name in CONFIG and isinstance(self.type, click.types.BoolParamType):
+            value = CONFIG[self.name]
 
         if self.required and self.value_is_missing(value):
             if self.name not in CONFIG:
@@ -237,6 +243,7 @@ def shared_opts(func: Callable) -> Callable:
         "--metabase_http/--metabase_https",
         "metabase_use_http",
         default=False,
+        cls=OptionAcceptableFromConfig,
         help="use HTTP or HTTPS to connect to Metabase. Default HTTPS",
     )
     @click.option(
@@ -248,6 +255,7 @@ def shared_opts(func: Callable) -> Callable:
     @click.option(
         "--metabase_sync/--metabase_sync_skip",
         "metabase_sync",
+        cls=OptionAcceptableFromConfig,
         default=True,
         help="Attempt to synchronize Metabase schema with local models. Default sync",
     )
