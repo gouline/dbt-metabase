@@ -91,7 +91,7 @@ class OptionAcceptableFromConfig(click.Option):
         if value is not None:
             value = self.type_cast_value(ctx, value)
 
-        if isinstance(self.type, click.types.BoolParamType) and ctx._parameter_source['metabase_use_http']._name_ =='DEFAULT':
+        if isinstance(self.type, click.types.BoolParamType) and ctx._parameter_source[f'{self.name}']._name_ =='DEFAULT':
             if self.name in CONFIG:
                 value = CONFIG[self.name]
 
