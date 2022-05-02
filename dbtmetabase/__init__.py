@@ -84,15 +84,16 @@ class OptionAcceptableFromConfig(click.Option):
     """This class override should be used on arguments that are marked `required=True` in order to give them
     more resilence to raising an error when the option exists in the users config.
 
-    This also overrides boolean flags (e.g. --use_metabase_http/--use_metabase_https) in options
-    when a value is provided in the config.yml file. (e.g. metabase_use_http: True)"""
+    This also overrides default values for boolean CLI flags (e.g. --use_metabase_http/--use_metabase_https) in options when 
+    no CLI flag is passed, but a value is provided in the config file (e.g. metabase_use_http: True)."""
 
     def process_value(self, ctx: click.Context, value: Any) -> Any:
         if value is not None:
             value = self.type_cast_value(ctx, value)
 
-        if self.name in CONFIG and isinstance(self.type, click.types.BoolParamType):
-            value = CONFIG[self.name]
+        if isinstance(self.type, click.types.BoolParamType) and ctx._parameter_source['metabase_use_http']._name_ =='DEFAULT':
+            if self.name in CONFIG:
+                value = CONFIG[self.name]
 
         if self.required and self.value_is_missing(value):
             if self.name not in CONFIG:
