@@ -91,12 +91,15 @@ class OptionAcceptableFromConfig(click.Option):
         if value is not None:
             value = self.type_cast_value(ctx, value)
 
+        assert self.name, "none config option"
+
         if (
             isinstance(self.type, click.types.BoolParamType)
-            and ctx._parameter_source[f"{self.name}"]._name_ == "DEFAULT"
+            and ctx.get_parameter_source(self.name)
+            == click.core.ParameterSource.DEFAULT
+            and self.name in CONFIG
         ):
-            if self.name in CONFIG:
-                value = CONFIG[self.name]
+            value = CONFIG[self.name]
 
         if self.required and self.value_is_missing(value):
             if self.name not in CONFIG:
