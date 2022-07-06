@@ -589,9 +589,17 @@ class MetabaseClient:
                     creator_email = exposure["creator"]["email"]
                     creator_name = exposure["creator"]["common_name"]
                 elif "creator_id" in exposure:
-                    creator = self.api("get", f"/api/user/{exposure['creator_id']}")
-                    creator_email = creator["email"]
-                    creator_name = creator["common_name"]
+                    # If a metabase user is deactivated, the API returns a 404
+                    try:
+                        creator = self.api("get", f"/api/user/{exposure['creator_id']}")
+                    except requests.exceptions.HTTPError as error:
+                        if error.response.status_code == 404:
+                            creator = {}
+                        else:
+                            raise
+
+                    creator_email = creator.get("email")
+                    creator_name = creator.get("common_name")
 
                 # No spaces allowed in model names in dbt docs DAG / No duplicate model names
                 exposure_name = exposure_name.replace(" ", "_")
@@ -799,6 +807,7 @@ class MetabaseClient:
         )
 
         # Output exposure
+
         return {
             "name": name,
             "description": description,
@@ -807,7 +816,7 @@ class MetabaseClient:
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
-                "email": creator_email,
+                "email": creator_email or "",
             },
             "depends_on": [
                 refable_models[exposure.upper()]
@@ -855,12 +864,12 @@ class MetabaseClient:
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
-                if "password" in kwargs["json"]:
+                if "json" in kwargs and "password" in kwargs["json"]:
                     logger().error("HTTP request failed. Response: %s", response.text)
                 else:
                     logger().error(
                         "HTTP request failed. Payload: %s. Response: %s",
-                        kwargs["json"],
+                        kwargs.get("json"),
                         response.text,
                     )
                 raise
