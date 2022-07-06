@@ -198,9 +198,11 @@ class DbtManifestReader(DbtReader):
                 # would return the ref() written in the test, but if the model has an alias, that's not enough.
                 # It is better to use child['depends_on']['nodes'] and exclude the current model
 
-                depends_on_id = list(
-                    set(child["depends_on"][model_type]) - {model["unique_id"]}
-                )[0]
+                depends_on_ids = set(child["depends_on"][model_type]) - {model["unique_id"]}
+                if not any(depends_on_ids):
+                    continue
+
+                depends_on_id = list(depends_on_ids)[0]
 
                 foreign_key_model = manifest[model_type].get(depends_on_id, {})
                 fk_target_table_alias = foreign_key_model.get(
