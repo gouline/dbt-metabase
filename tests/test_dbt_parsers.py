@@ -21,7 +21,7 @@ class TestDbtFolderReader(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_read_models(self):
-        models = self.interface.parser.read_models(self.interface.get_config())[0]
+        models = self.interface.parser.read_models()[0]
         expectation = [
             MetabaseModel(
                 name="customers",
@@ -286,7 +286,7 @@ class TestDbtManifestReader(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def test_read_models(self):
-        models = self.interface.parser.read_models(self.interface.get_config())[0]
+        models = self.interface.parser.read_models()[0]
         expectation = [
             MetabaseModel(
                 name="orders",

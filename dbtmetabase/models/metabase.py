@@ -5,7 +5,13 @@ from typing import Sequence, Optional, MutableMapping
 
 # Allowed metabase.* fields
 # Should be covered by attributes in the MetabaseColumn class
-METABASE_META_FIELDS = ["special_type", "semantic_type", "visibility_type"]
+METABASE_META_FIELDS = [
+    "special_type",
+    "semantic_type",
+    "visibility_type",
+    "fk_target_table",
+    "fk_target_field",
+]
 
 
 class ModelType(str, Enum):
@@ -39,6 +45,8 @@ class MetabaseModel:
     dbt_name: Optional[str] = None
     source: Optional[str] = None
     unique_id: Optional[str] = None
+
+    visibility_type: Optional[str] = None
 
     @property
     def ref(self) -> Optional[str]:
