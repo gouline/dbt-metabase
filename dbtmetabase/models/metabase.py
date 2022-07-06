@@ -38,7 +38,7 @@ class MetabaseModel:
     name: str
     schema: str
     description: str = ""
-    display_name: str = ""
+    display_name: Optional[str] = None
     points_of_interest: Optional[str] = None
     caveats: Optional[str] = None
 

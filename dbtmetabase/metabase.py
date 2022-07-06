@@ -35,7 +35,7 @@ class MetabaseClient:
         use_http: bool = False,
         verify: Union[str, bool] = None,
         session_id: str = None,
-        include_sources: bool = True,
+        exclude_sources: bool = False,
     ):
         """Constructor.
 
@@ -48,13 +48,14 @@ class MetabaseClient:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
             session_id {str} -- Metabase session ID. (default: {None})
+            exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
 
         self.host = host
         self.protocol = "http" if use_http else "https"
         self.verify = verify
         self.session_id = session_id or self.get_session_id(user, password)
-        self.include_sources = include_sources
+        self.exclude_sources = exclude_sources
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
@@ -144,7 +145,9 @@ class MetabaseClient:
             )
         return sync_successful
 
-    def models_compatible(self, database_id: str, models: Sequence[MetabaseModel]) -> bool:
+    def models_compatible(
+        self, database_id: str, models: Sequence[MetabaseModel]
+    ) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
@@ -159,7 +162,7 @@ class MetabaseClient:
 
         are_models_compatible = True
         for model in models:
-            if model.model_type == ModelType.sources and not self.include_sources:
+            if model.model_type == ModelType.sources and self.exclude_sources:
                 continue
 
             schema_name = model.schema.upper()
@@ -206,10 +209,11 @@ class MetabaseClient:
         table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
-            if self.include_sources or model.model_type != ModelType.sources:
-                self.export_model(model, table_lookup, field_lookup, aliases)
-            else:
-                logger().info(f":fast_forward: Skipping {model.unique_id} because it is a source")
+            if model.model_type == ModelType.sources and self.exclude_sources:
+                logger().info(":fast_forward: Skipping %s source", model.unique_id)
+                continue
+
+            self.export_model(model, table_lookup, field_lookup, aliases)
 
     def export_model(
         self,

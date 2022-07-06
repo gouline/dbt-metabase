@@ -1,5 +1,4 @@
 import logging
-import os
 from logging.handlers import RotatingFileHandler
 from functools import lru_cache
 from pathlib import Path
