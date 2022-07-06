@@ -81,6 +81,7 @@ class MetabaseInterface:
             password=self.password,
             use_http=self.use_http,
             verify=self.verify,
+            session_id=self.session_id,
         )
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
