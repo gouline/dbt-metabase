@@ -56,7 +56,9 @@ class MetabaseClient:
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
-        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
+        # This regex is looking for from and join clauses, and extracting the table part.
+        # It won't recognize some valid sql table references, such as `from "table with spaces"`.
+        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
@@ -229,26 +231,20 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
-        if not model.description:
-            model_description = None
-        else:
-            model_description = model.description
-        if not model.points_of_interest:
-            model_points_of_interest = None
-        else:
-            model_points_of_interest = model.points_of_interest
-        if not model.caveats:
-            model_caveats = None
-        else:
-            model_caveats = model.caveats
+        model_description = model.description or None
+        model_points_of_interest = model.points_of_interest or None
+        model_caveats = model.caveats or None
+        model_visibility = model.visibility_type or "normal"
 
         body_table = {}
-        if api_table["description"] != model_description:
+        if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
             body_table["points_of_interest"] = model_points_of_interest
         if api_table.get("caveats") != model_caveats:
             body_table["caveats"] = model_caveats
+        if api_table.get("visibility_type") != model_visibility:
+            body_table["visibility_type"] = model_visibility
 
         table_id = api_table["id"]
         if bool(body_table):
@@ -719,20 +715,20 @@ class MetabaseClient:
         elif query.get("type") == "native":
             # Metabase native query
             native_query = query.get("native").get("query")
-            ctes = []
+            ctes: List[str] = []
 
             # Parse common table expressions for exclusion
-            for cte in re.findall(self.cte_parser, native_query):
-                ctes.extend(cte)
+            for matched_cte in re.findall(self.cte_parser, native_query):
+                ctes.extend(group.upper() for group in matched_cte if group)
 
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(self.exposure_parser, native_query):
 
                 # Grab just the table / model name
-                clean_exposure = sql_ref.split(".")[-1].strip('"')
+                clean_exposure = sql_ref.split(".")[-1].strip('"').upper()
 
-                # Scrub CTEs
-                if clean_exposure in ctes:
+                # Scrub CTEs (qualified sql_refs can not reference CTEs)
+                if clean_exposure in ctes and "." not in sql_ref:
                     continue
                 # Verify this is one of our parsed refable models so exposures dont break the DAG
                 if not refable_models.get(clean_exposure):
