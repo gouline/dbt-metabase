@@ -155,7 +155,7 @@ MODELS = [
             MetabaseColumn(
                 name="NUMBER_OF_ORDERS",
                 description="Count of the number of orders a customer has placed",
-                meta_fields={},
+                meta_fields={"display_name": "order_count"},
                 semantic_type=None,
                 visibility_type=None,
                 fk_target_table=None,
