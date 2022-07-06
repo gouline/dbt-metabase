@@ -38,6 +38,7 @@ class MetabaseModel:
     name: str
     schema: str
     description: str = ""
+    display_name: Optional[str] = None
     points_of_interest: Optional[str] = None
     caveats: Optional[str] = None
 
@@ -45,6 +46,8 @@ class MetabaseModel:
     dbt_name: Optional[str] = None
     source: Optional[str] = None
     unique_id: Optional[str] = None
+
+    visibility_type: Optional[str] = None
 
     @property
     def ref(self) -> Optional[str]:

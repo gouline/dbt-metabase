@@ -25,6 +25,7 @@ class TestDbtFolderReader(unittest.TestCase):
         expectation = [
             MetabaseModel(
                 name="customers",
+                display_name="clients",
                 schema="PUBLIC",
                 description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
                 model_type=ModelType.nodes,

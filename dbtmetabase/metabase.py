@@ -19,7 +19,7 @@ from typing import (
 from dbtmetabase.models import exceptions
 
 from .logger.logging import logger
-from .models.metabase import MetabaseModel, MetabaseColumn
+from .models.metabase import MetabaseModel, MetabaseColumn, ModelType
 
 
 class MetabaseClient:
@@ -34,6 +34,8 @@ class MetabaseClient:
         password: str,
         use_http: bool = False,
         verify: Union[str, bool] = None,
+        session_id: str = None,
+        exclude_sources: bool = False,
     ):
         """Constructor.
 
@@ -45,12 +47,15 @@ class MetabaseClient:
         Keyword Arguments:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
+            session_id {str} -- Metabase session ID. (default: {None})
+            exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
 
         self.host = host
         self.protocol = "http" if use_http else "https"
         self.verify = verify
-        self.session_id = self.get_session_id(user, password)
+        self.session_id = session_id or self.get_session_id(user, password)
+        self.exclude_sources = exclude_sources
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
@@ -140,7 +145,9 @@ class MetabaseClient:
             )
         return sync_successful
 
-    def models_compatible(self, database_id: str, models: Sequence) -> bool:
+    def models_compatible(
+        self, database_id: str, models: Sequence[MetabaseModel]
+    ) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
@@ -155,6 +162,8 @@ class MetabaseClient:
 
         are_models_compatible = True
         for model in models:
+            if model.model_type == ModelType.sources and self.exclude_sources:
+                continue
 
             schema_name = model.schema.upper()
             model_name = model.name.upper()
@@ -200,6 +209,10 @@ class MetabaseClient:
         table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
+            if model.model_type == ModelType.sources and self.exclude_sources:
+                logger().info(":fast_forward: Skipping %s source", model.unique_id)
+                continue
+
             self.export_model(model, table_lookup, field_lookup, aliases)
 
     def export_model(
@@ -231,26 +244,23 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
-        if not model.description:
-            model_description = None
-        else:
-            model_description = model.description
-        if not model.points_of_interest:
-            model_points_of_interest = None
-        else:
-            model_points_of_interest = model.points_of_interest
-        if not model.caveats:
-            model_caveats = None
-        else:
-            model_caveats = model.caveats
+        model_display_name = model.display_name or None
+        model_description = model.description or None
+        model_points_of_interest = model.points_of_interest or None
+        model_caveats = model.caveats or None
+        model_visibility = model.visibility_type or "normal"
 
         body_table = {}
-        if api_table["description"] != model_description:
+        if api_table.get("display_name") != model_display_name:
+            body_table["display_name"] = model_display_name
+        if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
             body_table["points_of_interest"] = model_points_of_interest
         if api_table.get("caveats") != model_caveats:
             body_table["caveats"] = model_caveats
+        if api_table.get("visibility_type") != model_visibility:
+            body_table["visibility_type"] = model_visibility
 
         table_id = api_table["id"]
         if bool(body_table):
@@ -595,9 +605,16 @@ class MetabaseClient:
                     creator_email = exposure["creator"]["email"]
                     creator_name = exposure["creator"]["common_name"]
                 elif "creator_id" in exposure:
-                    creator = self.api("get", f"/api/user/{exposure['creator_id']}")
-                    creator_email = creator["email"]
-                    creator_name = creator["common_name"]
+                    # If a metabase user is deactivated, the API returns a 404
+                    try:
+                        creator = self.api("get", f"/api/user/{exposure['creator_id']}")
+                    except requests.exceptions.HTTPError as error:
+                        creator = {}
+                        if error.response.status_code != 404:
+                            raise
+
+                    creator_email = creator.get("email")
+                    creator_name = creator.get("common_name")
 
                 # No spaces allowed in model names in dbt docs DAG / No duplicate model names
                 exposure_name = exposure_name.replace(" ", "_")
@@ -805,6 +822,7 @@ class MetabaseClient:
         )
 
         # Output exposure
+
         return {
             "name": name,
             "description": description,
@@ -813,7 +831,7 @@ class MetabaseClient:
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
-                "email": creator_email,
+                "email": creator_email or "",
             },
             "depends_on": [
                 refable_models[exposure.upper()]
@@ -861,12 +879,12 @@ class MetabaseClient:
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
-                if "password" in kwargs["json"]:
+                if "json" in kwargs and "password" in kwargs["json"]:
                     logger().error("HTTP request failed. Response: %s", response.text)
                 else:
                     logger().error(
                         "HTTP request failed. Payload: %s. Response: %s",
-                        kwargs["json"],
+                        kwargs.get("json"),
                         response.text,
                     )
                 raise

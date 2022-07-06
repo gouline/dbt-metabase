@@ -21,10 +21,12 @@ class MetabaseInterface:
         host: str,
         user: str,
         password: str,
+        session_id: Optional[str] = None,
         use_http: bool = False,
         verify: Optional[Union[str, bool]] = True,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
+        exclude_sources: bool = False,
     ):
         """Constructor.
 
@@ -33,10 +35,12 @@ class MetabaseInterface:
             host (str): Metabase hostname.
             user (str): Metabase username.
             password (str): Metabase password.
+            session_id (Optional[str], optional): Session ID. Defaults to None.
             use_http (bool, optional): Use HTTP to connect to Metabase.. Defaults to False.
             verify (Optional[Union[str, bool]], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to True.
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
+            exclude_sources (bool, optional): Exclude exporting sources. Defaults to False.
         """
 
         # Metabase Client
@@ -44,12 +48,14 @@ class MetabaseInterface:
         self.host = host
         self.user = user
         self.password = password
+        self.session_id = session_id
         # Metabase additional connection opts
         self.use_http = use_http
         self.verify = verify
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
+        self.exclude_sources = exclude_sources
 
     @property
     def client(self) -> MetabaseClient:
@@ -81,6 +87,8 @@ class MetabaseInterface:
             password=self.password,
             use_http=self.use_http,
             verify=self.verify,
+            session_id=self.session_id,
+            exclude_sources=self.exclude_sources,
         )
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
