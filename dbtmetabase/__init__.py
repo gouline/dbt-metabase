@@ -23,6 +23,7 @@ ENV_VARS = [
     "MB_PASS",
     "MB_HOST",
     "MB_DATABASE",
+    "MB_SESSION_TOKEN",
 ]
 
 
@@ -245,6 +246,16 @@ def shared_opts(func: Callable) -> Callable:
         cls=OptionAcceptableFromConfig,
         type=click.STRING,
         help="Metabase password",
+    )
+    @click.option(
+        "--metabase_session_id",
+        metavar="TOKEN",
+        envvar="MB_SESSION_ID",
+        show_envvar=True,
+        default=None,
+        cls=OptionAcceptableFromConfig,
+        type=click.STRING,
+        help="Metabase session ID",
     )
     @click.option(
         "--metabase_http/--metabase_https",
