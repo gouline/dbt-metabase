@@ -231,26 +231,20 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
-        if not model.description:
-            model_description = None
-        else:
-            model_description = model.description
-        if not model.points_of_interest:
-            model_points_of_interest = None
-        else:
-            model_points_of_interest = model.points_of_interest
-        if not model.caveats:
-            model_caveats = None
-        else:
-            model_caveats = model.caveats
+        model_description = model.description or None
+        model_points_of_interest = model.points_of_interest or None
+        model_caveats = model.caveats or None
+        model_visibility = model.visibility_type or "normal"
 
         body_table = {}
-        if api_table["description"] != model_description:
+        if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
             body_table["points_of_interest"] = model_points_of_interest
         if api_table.get("caveats") != model_caveats:
             body_table["caveats"] = model_caveats
+        if api_table.get("visibility_type") != model_visibility:
+            body_table["visibility_type"] = model_visibility
 
         table_id = api_table["id"]
         if bool(body_table):
