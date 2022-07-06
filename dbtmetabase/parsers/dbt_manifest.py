@@ -271,10 +271,11 @@ class DbtManifestReader(DbtReader):
             unique_id=unique_id,
             source=source,
             dbt_name=dbt_name,
+            **DbtManifestReader._read_meta_fields(model),
         )
 
+    @staticmethod
     def _read_column(
-        self,
         column: Mapping,
         relationship: Optional[Mapping],
     ) -> MetabaseColumn:
@@ -293,6 +294,7 @@ class DbtManifestReader(DbtReader):
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
+            **DbtManifestReader._read_meta_fields(column),
         )
 
         if relationship:
@@ -306,10 +308,22 @@ class DbtManifestReader(DbtReader):
                 metabase_column.fk_target_field,
             )
 
-        if column["meta"]:
-            meta = column.get("meta", [])
-            for field in METABASE_META_FIELDS:
-                if f"metabase.{field}" in meta:
-                    setattr(metabase_column, field, meta[f"metabase.{field}"])
-
         return metabase_column
+
+    @staticmethod
+    def _read_meta_fields(obj: Mapping) -> Mapping:
+        """Reads meta fields from a schem object.
+
+        Args:
+            obj (Mapping): Schema object.
+
+        Returns:
+            Mapping: Field values.
+        """
+
+        meta = obj.get("meta", [])
+        return {
+            k: meta[f"metabase.{k}"]
+            for k in METABASE_META_FIELDS
+            if f"metabase.{k}" in meta
+        }

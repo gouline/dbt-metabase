@@ -47,6 +47,8 @@ class MetabaseModel:
     source: Optional[str] = None
     unique_id: Optional[str] = None
 
+    visibility_type: Optional[str] = None
+
     @property
     def ref(self) -> Optional[str]:
         if self.model_type == ModelType.nodes:

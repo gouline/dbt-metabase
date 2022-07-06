@@ -34,6 +34,7 @@ class MetabaseClient:
         password: str,
         use_http: bool = False,
         verify: Union[str, bool] = None,
+        session_id: str = None,
         include_sources: bool = True,
     ):
         """Constructor.
@@ -46,19 +47,22 @@ class MetabaseClient:
         Keyword Arguments:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
+            session_id {str} -- Metabase session ID. (default: {None})
         """
 
         self.host = host
         self.protocol = "http" if use_http else "https"
         self.verify = verify
-        self.session_id = self.get_session_id(user, password)
+        self.session_id = session_id or self.get_session_id(user, password)
         self.include_sources = include_sources
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
-        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+\b(\w+)\b")
+        # This regex is looking for from and join clauses, and extracting the table part.
+        # It won't recognize some valid sql table references, such as `from "table with spaces"`.
+        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
@@ -237,29 +241,22 @@ class MetabaseClient:
 
         # Empty strings not accepted by Metabase
         model_display_name = model.display_name or None
-        if not model.description:
-            model_description = None
-        else:
-            # We want to always convert newlines to spaces
-            model_description = model.description.replace("\n", " ")
-        if not model.points_of_interest:
-            model_points_of_interest = None
-        else:
-            model_points_of_interest = model.points_of_interest
-        if not model.caveats:
-            model_caveats = None
-        else:
-            model_caveats = model.caveats
+        model_description = model.description or None
+        model_points_of_interest = model.points_of_interest or None
+        model_caveats = model.caveats or None
+        model_visibility = model.visibility_type or "normal"
 
         body_table = {}
-        if api_table["display_name"] != model_display_name:
+        if api_table.get("display_name") != model_display_name:
             body_table["display_name"] = model_display_name
-        if api_table["description"] != model_description:
+        if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
             body_table["points_of_interest"] = model_points_of_interest
         if api_table.get("caveats") != model_caveats:
             body_table["caveats"] = model_caveats
+        if api_table.get("visibility_type") != model_visibility:
+            body_table["visibility_type"] = model_visibility
 
         table_id = api_table["id"]
         if bool(body_table):
@@ -604,9 +601,16 @@ class MetabaseClient:
                     creator_email = exposure["creator"]["email"]
                     creator_name = exposure["creator"]["common_name"]
                 elif "creator_id" in exposure:
-                    creator = self.api("get", f"/api/user/{exposure['creator_id']}")
-                    creator_email = creator["email"]
-                    creator_name = creator["common_name"]
+                    # If a metabase user is deactivated, the API returns a 404
+                    try:
+                        creator = self.api("get", f"/api/user/{exposure['creator_id']}")
+                    except requests.exceptions.HTTPError as error:
+                        creator = {}
+                        if error.response.status_code != 404:
+                            raise
+
+                    creator_email = creator.get("email")
+                    creator_name = creator.get("common_name")
 
                 # No spaces allowed in model names in dbt docs DAG / No duplicate model names
                 exposure_name = exposure_name.replace(" ", "_")
@@ -722,20 +726,20 @@ class MetabaseClient:
         elif query.get("type") == "native":
             # Metabase native query
             native_query = query.get("native").get("query")
-            ctes = []
+            ctes: List[str] = []
 
             # Parse common table expressions for exclusion
-            for cte in re.findall(self.cte_parser, native_query):
-                ctes.extend(cte)
+            for matched_cte in re.findall(self.cte_parser, native_query):
+                ctes.extend(group.upper() for group in matched_cte if group)
 
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(self.exposure_parser, native_query):
 
                 # Grab just the table / model name
-                clean_exposure = sql_ref.split(".")[-1].strip('"')
+                clean_exposure = sql_ref.split(".")[-1].strip('"').upper()
 
-                # Scrub CTEs
-                if clean_exposure in ctes:
+                # Scrub CTEs (qualified sql_refs can not reference CTEs)
+                if clean_exposure in ctes and "." not in sql_ref:
                     continue
                 # Verify this is one of our parsed refable models so exposures dont break the DAG
                 if not refable_models.get(clean_exposure):
@@ -814,6 +818,7 @@ class MetabaseClient:
         )
 
         # Output exposure
+
         return {
             "name": name,
             "description": description,
@@ -822,7 +827,7 @@ class MetabaseClient:
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
-                "email": creator_email,
+                "email": creator_email or "",
             },
             "depends_on": [
                 refable_models[exposure.upper()]
@@ -870,12 +875,12 @@ class MetabaseClient:
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
-                if "password" in kwargs["json"]:
+                if "json" in kwargs and "password" in kwargs["json"]:
                     logger().error("HTTP request failed. Response: %s", response.text)
                 else:
                     logger().error(
                         "HTTP request failed. Payload: %s. Response: %s",
-                        kwargs["json"],
+                        kwargs.get("json"),
                         response.text,
                     )
                 raise
