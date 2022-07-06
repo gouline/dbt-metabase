@@ -25,6 +25,7 @@ class MetabaseInterface:
         verify: Optional[Union[str, bool]] = True,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
+        include_sources: bool = False,
     ):
         """Constructor.
 
@@ -50,6 +51,7 @@ class MetabaseInterface:
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
+        self.include_sources = include_sources
 
     @property
     def client(self) -> MetabaseClient:
@@ -81,6 +83,7 @@ class MetabaseInterface:
             password=self.password,
             use_http=self.use_http,
             verify=self.verify,
+            include_sources=self.include_sources,
         )
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success

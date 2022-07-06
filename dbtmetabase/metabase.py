@@ -19,7 +19,7 @@ from typing import (
 from dbtmetabase.models import exceptions
 
 from .logger.logging import logger
-from .models.metabase import MetabaseModel, MetabaseColumn
+from .models.metabase import MetabaseModel, MetabaseColumn, ModelType
 
 
 class MetabaseClient:
@@ -34,6 +34,7 @@ class MetabaseClient:
         password: str,
         use_http: bool = False,
         verify: Union[str, bool] = None,
+        include_sources: bool = True,
     ):
         """Constructor.
 
@@ -51,6 +52,7 @@ class MetabaseClient:
         self.protocol = "http" if use_http else "https"
         self.verify = verify
         self.session_id = self.get_session_id(user, password)
+        self.include_sources = include_sources
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
@@ -138,7 +140,7 @@ class MetabaseClient:
             )
         return sync_successful
 
-    def models_compatible(self, database_id: str, models: Sequence) -> bool:
+    def models_compatible(self, database_id: str, models: Sequence[MetabaseModel]) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
@@ -153,6 +155,8 @@ class MetabaseClient:
 
         are_models_compatible = True
         for model in models:
+            if model.model_type == ModelType.sources and not self.include_sources:
+                continue
 
             schema_name = model.schema.upper()
             model_name = model.name.upper()
@@ -198,7 +202,10 @@ class MetabaseClient:
         table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
-            self.export_model(model, table_lookup, field_lookup, aliases)
+            if self.include_sources or model.model_type != ModelType.sources:
+                self.export_model(model, table_lookup, field_lookup, aliases)
+            else:
+                logger().info(f":fast_forward: Skipping {model.unique_id} because it is a source")
 
     def export_model(
         self,
@@ -229,10 +236,12 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
+        model_display_name = model.display_name or None
         if not model.description:
             model_description = None
         else:
-            model_description = model.description
+            # We want to always convert newlines to spaces
+            model_description = model.description.replace("\n", " ")
         if not model.points_of_interest:
             model_points_of_interest = None
         else:
@@ -243,6 +252,8 @@ class MetabaseClient:
             model_caveats = model.caveats
 
         body_table = {}
+        if api_table["display_name"] != model_display_name:
+            body_table["display_name"] = model_display_name
         if api_table["description"] != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
