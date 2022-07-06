@@ -595,9 +595,8 @@ class MetabaseClient:
                     try:
                         creator = self.api("get", f"/api/user/{exposure['creator_id']}")
                     except requests.exceptions.HTTPError as error:
-                        if error.response.status_code == 404:
-                            creator = {}
-                        else:
+                        creator = {}
+                        if error.response.status_code != 404:
                             raise
 
                     creator_email = creator.get("email")
