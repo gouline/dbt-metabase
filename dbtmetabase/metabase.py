@@ -388,12 +388,19 @@ class MetabaseClient:
         else:
             column_description = column.description
 
+        # Empty strings not accepted by Metabase
+        if not column.display_name:
+            display_name = None
+        else:
+            display_name = column.display_name
+
         # Preserve this relationship by default
         if api_field["fk_target_field_id"] is not None and fk_target_field_id is None:
             fk_target_field_id = api_field["fk_target_field_id"]
 
         if (
             api_field["description"] != column_description
+            or api_field["display_name"] != display_name
             or api_field[semantic_type] != column.semantic_type
             or api_field["visibility_type"] != column.visibility_type
             or api_field["fk_target_field_id"] != fk_target_field_id
@@ -404,6 +411,7 @@ class MetabaseClient:
                 f"/api/field/{field_id}",
                 json={
                     "description": column_description,
+                    "display_name": display_name,
                     semantic_type: column.semantic_type,
                     "visibility_type": column.visibility_type,
                     "fk_target_field_id": fk_target_field_id,
