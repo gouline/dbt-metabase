@@ -252,10 +252,10 @@ def shared_opts(func: Callable) -> Callable:
         metavar="TOKEN",
         envvar="MB_SESSION_ID",
         show_envvar=True,
-        required=False,
+        default=None,
         cls=OptionAcceptableFromConfig,
         type=click.STRING,
-        help="Metabase session ID (optional)",
+        help="Metabase session ID",
     )
     @click.option(
         "--metabase_http/--metabase_https",

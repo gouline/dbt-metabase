@@ -21,6 +21,7 @@ class MetabaseInterface:
         host: str,
         user: str,
         password: str,
+        session_id: Optional[str] = None,
         use_http: bool = False,
         verify: Optional[Union[str, bool]] = True,
         sync: bool = True,
@@ -33,6 +34,7 @@ class MetabaseInterface:
             host (str): Metabase hostname.
             user (str): Metabase username.
             password (str): Metabase password.
+            session_id (Optional[str], optional): Session ID. Defaults to None.
             use_http (bool, optional): Use HTTP to connect to Metabase.. Defaults to False.
             verify (Optional[Union[str, bool]], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to True.
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
@@ -44,6 +46,7 @@ class MetabaseInterface:
         self.host = host
         self.user = user
         self.password = password
+        self.session_id = session_id
         # Metabase additional connection opts
         self.use_http = use_http
         self.verify = verify
