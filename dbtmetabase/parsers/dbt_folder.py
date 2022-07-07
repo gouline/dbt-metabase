@@ -178,9 +178,14 @@ class DbtFolderReader(DbtReader):
 
         column_name = column.get("name", "").upper().strip('"')
         column_description = column.get("description")
+
+        meta = column.get("meta", {})
+        display_name = meta.get("metabase.display_name")
+
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
+            display_name=display_name,
         )
 
         tests: Optional[Iterable] = column.get("tests", [])

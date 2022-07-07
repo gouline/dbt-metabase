@@ -263,7 +263,7 @@ class MetabaseClient:
             body_table["visibility_type"] = model_visibility
 
         table_id = api_table["id"]
-        if bool(body_table):
+        if body_table:
             # Update with new values
             self.api(
                 "put",
@@ -313,9 +313,9 @@ class MetabaseClient:
         api_field = self.api("get", f"/api/field/{field_id}")
 
         if "special_type" in api_field:
-            semantic_type = "special_type"
+            semantic_type_key = "special_type"
         else:
-            semantic_type = "semantic_type"
+            semantic_type_key = "semantic_type"
 
         fk_target_field_id = None
         if column.semantic_type == "type/FK":
@@ -369,7 +369,7 @@ class MetabaseClient:
                     self.api(
                         "put",
                         f"/api/field/{fk_target_field_id}",
-                        json={semantic_type: "type/PK"},
+                        json={semantic_type_key: "type/PK"},
                     )
                 else:
                     logger().error(
@@ -378,44 +378,33 @@ class MetabaseClient:
                         target_field,
                     )
 
-        # Nones are not accepted, default to normal
-        if not column.visibility_type:
-            column.visibility_type = "normal"
-
         # Empty strings not accepted by Metabase
-        if not column.description:
-            column_description = None
-        else:
-            column_description = column.description
-
-        # Empty strings not accepted by Metabase
-        if not column.display_name:
-            display_name = None
-        else:
-            display_name = column.display_name
+        column_description = column.description or None
+        column_display_name = column.display_name or None
+        column_visibility = column.visibility_type or "normal"
 
         # Preserve this relationship by default
         if api_field["fk_target_field_id"] is not None and fk_target_field_id is None:
             fk_target_field_id = api_field["fk_target_field_id"]
 
-        if (
-            api_field["description"] != column_description
-            or api_field["display_name"] != display_name
-            or api_field[semantic_type] != column.semantic_type
-            or api_field["visibility_type"] != column.visibility_type
-            or api_field["fk_target_field_id"] != fk_target_field_id
-        ):
+        body_field = {}
+        if api_field.get("display_name") != column_display_name:
+            body_field["display_name"] = column_display_name
+        if api_field.get("description") != column_description:
+            body_field["description"] = column_description
+        if api_field.get("visibility_type") != column_visibility:
+            body_field["visibility_type"] = column_visibility
+        if api_field.get(semantic_type_key) != column.semantic_type:
+            body_field["points_of_interest"] = column.semantic_type
+        if api_field.get("fk_target_field_id") != fk_target_field_id:
+            body_field["fk_target_field_id"] = fk_target_field_id
+
+        if body_field:
             # Update with new values
             self.api(
                 "put",
                 f"/api/field/{field_id}",
-                json={
-                    "description": column_description,
-                    "display_name": display_name,
-                    semantic_type: column.semantic_type,
-                    "visibility_type": column.visibility_type,
-                    "fk_target_field_id": fk_target_field_id,
-                },
+                json=body_field,
             )
             logger().info(
                 ":sparkles: Updated field %s.%s successfully", model_name, column_name

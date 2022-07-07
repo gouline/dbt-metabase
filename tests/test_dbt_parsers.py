@@ -80,8 +80,9 @@ class TestDbtFolderReader(unittest.TestCase):
                     ),
                     MetabaseColumn(
                         name="NUMBER_OF_ORDERS",
+                        display_name="order_count",
                         description="Count of the number of orders a customer has placed",
-                        meta_fields={"display_name": "order_count"},
+                        meta_fields={},
                         semantic_type=None,
                         visibility_type=None,
                         fk_target_table=None,
