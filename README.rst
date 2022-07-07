@@ -57,6 +57,14 @@ You can install dbt-metabase from `PyPI`_:
 
     pip install dbt-metabase
 
+Sections below demonstrate basic usage examples, for all CLI options:
+
+.. code-block:: shell
+
+    dbt-metabase --help
+
+When invoking programmatically, click through to implementation and refer to header comments.
+
 Basic Example
 -------------
 
@@ -218,57 +226,30 @@ Change the ``email`` column as follows:
 Once you run ``dbt-metabase models`` again, you will notice that ``EMAIL`` is
 now marked as "Email".
 
-Here is the list of semantic types (formerly known as special types) currently accepted by Metabase:
+Here are common semantic types (formerly known as special types) accepted by Metabase:
 
 * ``type/PK``
 * ``type/FK``
-* ``type/AvatarURL``
-* ``type/Category``
-* ``type/City``
-* ``type/Country``
+* ``type/Number``
 * ``type/Currency``
+* ``type/Category``
+* ``type/Title``
 * ``type/Description``
-* ``type/Email``
-* ``type/Enum``
-* ``type/ImageURL``
-* ``type/SerializedJSON``
+* ``type/City``
+* ``type/State``
+* ``type/ZipCode``
+* ``type/Country``
 * ``type/Latitude``
 * ``type/Longitude``
-* ``type/Number``
-* ``type/State``
+* ``type/Email``
 * ``type/URL``
-* ``type/ZipCode``
-* ``type/Quantity``
-* ``type/Income``
-* ``type/Discount``
+* ``type/ImageURL``
+* ``type/SerializedJSON``
 * ``type/CreationTimestamp``
-* ``type/CreationTime``
-* ``type/CreationDate``
-* ``type/CancelationTimestamp``
-* ``type/CancelationTime``
-* ``type/CancelationDate``
-* ``type/DeletionTimestamp``
-* ``type/DeletionTime``
-* ``type/DeletionDate``
-* ``type/Product``
-* ``type/User``
-* ``type/Source``
-* ``type/Price``
-* ``type/JoinTimestamp``
-* ``type/JoinTime``
-* ``type/JoinDate``
-* ``type/Share``
-* ``type/Owner``
-* ``type/Company``
-* ``type/Subscription``
-* ``type/Score``
-* ``type/Title``
-* ``type/Comment``
-* ``type/Cost``
-* ``type/GrossMargin``
-* ``type/Birthdate``
 
-If you notice new ones, please submit a PR to update this readme.
+See `documentation`_ for a more complete list.
+
+.. _`documentation`: https://www.metabase.com/docs/latest/users-guide/field-types.html
 
 Foreign Keys
 ------------
@@ -300,7 +281,7 @@ Visibility Types
 ----------------
 
 In addition to semantic types, you can optionally specify visibility for each
-field. This affects whether or not they are displayed in the Metabase UI.
+table and field. This affects whether or not they are displayed in the Metabase UI.
 
 Here is how you would hide that same email:
 
@@ -312,13 +293,16 @@ Here is how you would hide that same email:
         metabase.semantic_type: type/Email
         metabase.visibility_type: sensitive
 
-Here are the visibility types supported by Metabase:
+Here are the field visibility types supported by Metabase:
 
 * ``normal`` (default)
 * ``details-only``
 * ``sensitive``
-* ``hidden`` (supported but not reflected in the UI)
-* ``retired`` (supported but not reflected in the UI)
+
+Tables only support the following:
+
+* No value for visible (default)
+* ``hidden``
 
 If you notice new ones, please submit a PR to update this readme.
 
