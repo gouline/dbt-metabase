@@ -23,6 +23,7 @@ class ModelType(str, Enum):
 class MetabaseColumn:
     name: str
     description: Optional[str] = None
+    display_name: Optional[str] = None
 
     meta_fields: MutableMapping = field(default_factory=dict)
 

@@ -27,6 +27,8 @@ models:
 
       - name: number_of_orders
         description: Count of the number of orders a customer has placed
+        meta:
+          metabase.display_name: order_count
 
       - name: total_order_amount
         description: Total value (AUD) of a customer's orders
