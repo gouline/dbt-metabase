@@ -394,8 +394,11 @@ class MetabaseClient:
             body_field["description"] = column_description
         if api_field.get("visibility_type") != column_visibility:
             body_field["visibility_type"] = column_visibility
-        if api_field.get(semantic_type_key) != column.semantic_type:
-            body_field["points_of_interest"] = column.semantic_type
+        if (
+            column.semantic_type
+            and api_field.get(semantic_type_key) != column.semantic_type
+        ):
+            body_field[semantic_type_key] = column.semantic_type
         if api_field.get("fk_target_field_id") != fk_target_field_id:
             body_field["fk_target_field_id"] = fk_target_field_id
 
