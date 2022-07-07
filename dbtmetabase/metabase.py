@@ -248,7 +248,7 @@ class MetabaseClient:
         model_description = model.description or None
         model_points_of_interest = model.points_of_interest or None
         model_caveats = model.caveats or None
-        model_visibility = model.visibility_type or "normal"
+        model_visibility = model.visibility_type or None
 
         body_table = {}
         if api_table.get("display_name") != model_display_name:
