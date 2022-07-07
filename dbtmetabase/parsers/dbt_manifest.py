@@ -57,7 +57,10 @@ class DbtManifestReader(DbtReader):
             if node["database"].upper() != database.upper():
                 # Skip model not associated with target database
                 logger().debug(
-                    "Skipping %s not in target database %s", model_name, database
+                    "Skipping %s in database %s, not in target database %s",
+                    model_name,
+                    node["database"],
+                    database,
                 )
                 continue
 
