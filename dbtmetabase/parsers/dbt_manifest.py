@@ -201,12 +201,26 @@ class DbtManifestReader(DbtReader):
                 # would return the ref() written in the test, but if the model has an alias, that's not enough.
                 # It is better to use child['depends_on']['nodes'] and exclude the current model
 
-                depends_on_ids = set(child["depends_on"][model_type])
-                depends_on_ids.discard(model["unique_id"])
-                if not depends_on_ids:
+                # From experience, nodes contains at most two tables: the referenced model and the current model.
+                # Note, sometimes only the referenced model is returned.
+                depends_on_nodes = list(child["depends_on"][model_type])
+                if len(depends_on_nodes) > 2:
+                    logger().warning(f'Expected at most two nodes, got {len(depends_on_nodes)} nodes, skipping {model["unique_id"]}')
                     continue
 
-                depends_on_id = depends_on_ids.pop()
+                # Remove the current model from the list. Note, remove() only removes the first occurence. This ensures
+                # the logic also works for self referencing models.
+                try:
+                    depends_on_nodes.remove(model["unique_id"])
+                except KeyError:
+                    logger().warning(f'Expected nodes to contain current model, skipping {model["unique_id"]}')
+                    continue
+
+                if not any(depends_on_nodes):
+                    logger().warning(f'Expected single node after filtering, got {len(depends_on_nodes)} nodes, skipping {model["unique_id"]}')
+                    continue
+
+                depends_on_id = depends_on_nodes[0]
 
                 foreign_key_model = manifest[model_type].get(depends_on_id, {})
                 fk_target_table_alias = foreign_key_model.get(
