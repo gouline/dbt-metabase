@@ -25,6 +25,7 @@ class TestDbtFolderReader(unittest.TestCase):
         expectation = [
             MetabaseModel(
                 name="customers",
+                display_name="clients",
                 schema="PUBLIC",
                 description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
                 model_type=ModelType.nodes,
@@ -80,7 +81,7 @@ class TestDbtFolderReader(unittest.TestCase):
                     MetabaseColumn(
                         name="NUMBER_OF_ORDERS",
                         description="Count of the number of orders a customer has placed",
-                        meta_fields={},
+                        meta_fields={"display_name": "order_count"},
                         semantic_type=None,
                         visibility_type=None,
                         fk_target_table=None,

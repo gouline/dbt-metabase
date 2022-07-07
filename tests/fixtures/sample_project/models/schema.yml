@@ -3,6 +3,8 @@ version: 2
 models:
   - name: customers
     description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
+    meta:
+      metabase.display_name: clients
 
     columns:
       - name: customer_id
@@ -25,6 +27,8 @@ models:
 
       - name: number_of_orders
         description: Count of the number of orders a customer has placed
+        meta:
+          metabase.display_name: order_count
 
       - name: total_order_amount
         description: Total value (AUD) of a customer's orders

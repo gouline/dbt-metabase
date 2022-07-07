@@ -19,7 +19,7 @@ from typing import (
 from dbtmetabase.models import exceptions
 
 from .logger.logging import logger
-from .models.metabase import MetabaseModel, MetabaseColumn
+from .models.metabase import MetabaseModel, MetabaseColumn, ModelType
 
 
 class MetabaseClient:
@@ -35,6 +35,7 @@ class MetabaseClient:
         use_http: bool = False,
         verify: Union[str, bool] = None,
         session_id: str = None,
+        exclude_sources: bool = False,
     ):
         """Constructor.
 
@@ -47,12 +48,14 @@ class MetabaseClient:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
             session_id {str} -- Metabase session ID. (default: {None})
+            exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
 
         self.host = host
         self.protocol = "http" if use_http else "https"
         self.verify = verify
         self.session_id = session_id or self.get_session_id(user, password)
+        self.exclude_sources = exclude_sources
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
@@ -142,7 +145,9 @@ class MetabaseClient:
             )
         return sync_successful
 
-    def models_compatible(self, database_id: str, models: Sequence) -> bool:
+    def models_compatible(
+        self, database_id: str, models: Sequence[MetabaseModel]
+    ) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
@@ -157,6 +162,8 @@ class MetabaseClient:
 
         are_models_compatible = True
         for model in models:
+            if model.model_type == ModelType.sources and self.exclude_sources:
+                continue
 
             schema_name = model.schema.upper()
             model_name = model.name.upper()
@@ -202,6 +209,10 @@ class MetabaseClient:
         table_lookup, field_lookup = self.build_metadata_lookups(database_id)
 
         for model in models:
+            if model.model_type == ModelType.sources and self.exclude_sources:
+                logger().info(":fast_forward: Skipping %s source", model.unique_id)
+                continue
+
             self.export_model(model, table_lookup, field_lookup, aliases)
 
     def export_model(
@@ -233,12 +244,15 @@ class MetabaseClient:
             return
 
         # Empty strings not accepted by Metabase
+        model_display_name = model.display_name or None
         model_description = model.description or None
         model_points_of_interest = model.points_of_interest or None
         model_caveats = model.caveats or None
         model_visibility = model.visibility_type or "normal"
 
         body_table = {}
+        if api_table.get("display_name") != model_display_name:
+            body_table["display_name"] = model_display_name
         if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
@@ -374,12 +388,19 @@ class MetabaseClient:
         else:
             column_description = column.description
 
+        # Empty strings not accepted by Metabase
+        if not column.display_name:
+            display_name = None
+        else:
+            display_name = column.display_name
+
         # Preserve this relationship by default
         if api_field["fk_target_field_id"] is not None and fk_target_field_id is None:
             fk_target_field_id = api_field["fk_target_field_id"]
 
         if (
             api_field["description"] != column_description
+            or api_field["display_name"] != display_name
             or api_field[semantic_type] != column.semantic_type
             or api_field["visibility_type"] != column.visibility_type
             or api_field["fk_target_field_id"] != fk_target_field_id
@@ -390,6 +411,7 @@ class MetabaseClient:
                 f"/api/field/{field_id}",
                 json={
                     "description": column_description,
+                    "display_name": display_name,
                     semantic_type: column.semantic_type,
                     "visibility_type": column.visibility_type,
                     "fk_target_field_id": fk_target_field_id,
@@ -595,9 +617,8 @@ class MetabaseClient:
                     try:
                         creator = self.api("get", f"/api/user/{exposure['creator_id']}")
                     except requests.exceptions.HTTPError as error:
-                        if error.response.status_code == 404:
-                            creator = {}
-                        else:
+                        creator = {}
+                        if error.response.status_code != 404:
                             raise
 
                     creator_email = creator.get("email")

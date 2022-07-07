@@ -26,6 +26,7 @@ class MetabaseInterface:
         verify: Optional[Union[str, bool]] = True,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
+        exclude_sources: bool = False,
     ):
         """Constructor.
 
@@ -39,6 +40,7 @@ class MetabaseInterface:
             verify (Optional[Union[str, bool]], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to True.
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
+            exclude_sources (bool, optional): Exclude exporting sources. Defaults to False.
         """
 
         # Metabase Client
@@ -53,6 +55,7 @@ class MetabaseInterface:
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
+        self.exclude_sources = exclude_sources
 
     @property
     def client(self) -> MetabaseClient:
@@ -85,6 +88,7 @@ class MetabaseInterface:
             use_http=self.use_http,
             verify=self.verify,
             session_id=self.session_id,
+            exclude_sources=self.exclude_sources,
         )
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
