@@ -547,6 +547,7 @@ def models(
     dbt_schema_excludes: Optional[Iterable] = None,
     dbt_includes: Optional[Iterable] = None,
     dbt_excludes: Optional[Iterable] = None,
+    metabase_session_id: Optional[str] = None,
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
     metabase_sync: bool = True,
@@ -563,6 +564,7 @@ def models(
         metabase_user (str): Metabase username.
         metabase_password (str): Metabase password.
         metabase_database (str): Target database name as set in Metabase (typically aliased).
+        metabase_session_id (Optional[str], optional): Session ID. Defaults to None.
         dbt_database (str):  Target database name as specified in dbt models to be actioned.
         dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
         dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
@@ -606,6 +608,7 @@ def models(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
+        session_id=metabase_session_id,
         use_http=metabase_use_http,
         verify=metabase_verify,
         database=metabase_database,
