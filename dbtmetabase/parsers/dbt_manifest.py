@@ -216,16 +216,10 @@ class DbtManifestReader(DbtReader):
 
                 # Remove the current model from the list. Note, remove() only removes the first occurrence. This ensures
                 # the logic also works for self referencing models.
-                try:
+                if len(depends_on_nodes) == 2 and unique_id in depends_on_nodes:
                     depends_on_nodes.remove(unique_id)
-                except KeyError:
-                    logger().warning(
-                        "Expected nodes to contain current model, skipping %s",
-                        unique_id,
-                    )
-                    continue
 
-                if not depends_on_nodes:
+                if len(depends_on_nodes) != 1:
                     logger().warning(
                         "Expected single node after filtering, got %d nodes, skipping %s",
                         len(depends_on_nodes),
