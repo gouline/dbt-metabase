@@ -28,8 +28,8 @@ class DbtManifestReader(DbtReader):
         database = self.database
         schema = self.schema
         schema_excludes = self.schema_excludes
-        includes = [each_string.upper() for each_string in self.includes]
-        excludes = [each_string.upper() for each_string in self.excludes]
+        includes = self.includes
+        excludes = self.excludes
 
         manifest = {}
 
@@ -312,6 +312,9 @@ class DbtManifestReader(DbtReader):
                 column.get("name", "").upper().strip('"'),
                 metabase_column.fk_target_table,
                 metabase_column.fk_target_field,
+            )
+            logger().debug(
+                            "leo",
             )
 
         return metabase_column
