@@ -313,9 +313,6 @@ class DbtManifestReader(DbtReader):
                 metabase_column.fk_target_table,
                 metabase_column.fk_target_field,
             )
-            logger().debug(
-                            "leo",
-            )
 
         return metabase_column
 
