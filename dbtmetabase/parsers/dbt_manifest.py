@@ -29,7 +29,7 @@ class DbtManifestReader(DbtReader):
         schema = self.schema
         schema_excludes = self.schema_excludes
         includes = [each_string.upper() for each_string in self.includes]
-        excludes = self.excludes
+        excludes = [each_string.upper() for each_string in self.excludes]
 
         manifest = {}
 
