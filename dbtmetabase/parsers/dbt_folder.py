@@ -221,7 +221,7 @@ class DbtFolderReader(DbtReader):
                         str(relationships["field"]).upper().strip('"')
                     )
                     logger().debug(
-                        "Relationn from %s to %s.%s",
+                        "Relation from %s to %s.%s",
                         column.get("name", "").upper().strip('"'),
                         metabase_column.fk_target_table,
                         metabase_column.fk_target_field,
