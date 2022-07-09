@@ -28,13 +28,8 @@ class DbtManifestReader(DbtReader):
         database = self.database
         schema = self.schema
         schema_excludes = self.schema_excludes
-        includes = self.includes
-        excludes = self.excludes
-
-        if includes is not None:
-            includes = [each_string.lower() for each_string in includes]
-        if excludes is not None:
-            excludes = [each_string.lower() for each_string in excludes]
+        includes = [x.lower() for x in self.includes] if self.includes else []
+        excludes = [x.lower() for x in self.excludes] if self.excludes else []
 
         manifest = {}
 
