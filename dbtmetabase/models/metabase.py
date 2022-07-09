@@ -27,7 +27,6 @@ class MetabaseColumn:
 
     meta_fields: MutableMapping = field(default_factory=dict)
 
-    special_type: Optional[str] = None
     semantic_type: Optional[str] = None
     visibility_type: Optional[str] = None
 
