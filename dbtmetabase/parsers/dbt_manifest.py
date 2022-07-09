@@ -35,10 +35,6 @@ class DbtManifestReader(DbtReader):
 
         if schema_excludes is None:
             schema_excludes = []
-        if includes is None:
-            includes = []
-        if excludes is None:
-            excludes = []
 
         mb_models: List[MetabaseModel] = []
 
