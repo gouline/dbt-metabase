@@ -28,17 +28,13 @@ class DbtManifestReader(DbtReader):
         database = self.database
         schema = self.schema
         schema_excludes = self.schema_excludes
-        includes = self.includes
-        excludes = self.excludes
+        includes = [x.lower() for x in self.includes] if self.includes else []
+        excludes = [x.lower() for x in self.excludes] if self.excludes else []
 
         manifest = {}
 
         if schema_excludes is None:
             schema_excludes = []
-        if includes is None:
-            includes = []
-        if excludes is None:
-            excludes = []
 
         mb_models: List[MetabaseModel] = []
 
@@ -88,7 +84,9 @@ class DbtManifestReader(DbtReader):
                 )
                 continue
 
-            if (includes and model_name not in includes) or (model_name in excludes):
+            if (includes and model_name.lower() not in includes) or (
+                model_name.lower() in excludes
+            ):
                 # Process only intersect of includes and excludes
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
@@ -141,7 +139,9 @@ class DbtManifestReader(DbtReader):
                 )
                 continue
 
-            if (includes and model_name not in includes) or (model_name in excludes):
+            if (includes and model_name.lower() not in includes) or (
+                model_name.lower() in excludes
+            ):
                 # Process only intersect of includes and excludes
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
