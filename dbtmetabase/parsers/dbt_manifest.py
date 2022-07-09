@@ -32,9 +32,9 @@ class DbtManifestReader(DbtReader):
         excludes = self.excludes
 
         if includes is not None:
-            includes = [each_string.lower() for each_string in self.includes]
+            includes = [each_string.lower() for each_string in includes]
         if excludes is not None:
-            excludes = [each_string.lower() for each_string in self.excludes]
+            excludes = [each_string.lower() for each_string in excludes]
 
         manifest = {}
 
