@@ -30,11 +30,11 @@ class DbtManifestReader(DbtReader):
         schema_excludes = self.schema_excludes
         includes = self.includes
         excludes = self.excludes
-        
+
         if includes is not None:
-          includes = [each_string.lower() for each_string in self.includes]
+            includes = [each_string.lower() for each_string in self.includes]
         if excludes is not None:
-          excludes = [each_string.lower() for each_string in self.excludes]
+            excludes = [each_string.lower() for each_string in self.excludes]
 
         manifest = {}
 
@@ -93,7 +93,9 @@ class DbtManifestReader(DbtReader):
                 )
                 continue
 
-            if (includes and model_name.lower() not in includes) or (model_name.lower() in excludes):
+            if (includes and model_name.lower() not in includes) or (
+                model_name.lower() in excludes
+            ):
                 # Process only intersect of includes and excludes
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
@@ -146,7 +148,9 @@ class DbtManifestReader(DbtReader):
                 )
                 continue
 
-            if (includes and model_name.lower() not in includes) or (model_name.lower() in excludes):
+            if (includes and model_name.lower() not in includes) or (
+                model_name.lower() in excludes
+            ):
                 # Process only intersect of includes and excludes
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
