@@ -572,6 +572,7 @@ def models(
         dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
         dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
         dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
+        metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
@@ -670,6 +671,7 @@ def exposures(
     dbt_schema_excludes: Optional[Iterable] = None,
     dbt_includes: Optional[Iterable] = None,
     dbt_excludes: Optional[Iterable] = None,
+    metabase_session_id: Optional[str] = None,
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
     metabase_sync: bool = True,
@@ -694,6 +696,7 @@ def exposures(
         dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
         dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
         dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
+        metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
@@ -729,6 +732,7 @@ def exposures(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
+        session_id=metabase_session_id,
         use_http=metabase_use_http,
         verify=metabase_verify,
         database=metabase_database,
