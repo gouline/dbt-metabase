@@ -114,7 +114,7 @@ descriptions to Metabase by executing the below command.
         --metabase_user user@example.com \
         --metabase_password Password123 \
         --metabase_database business \
-        --schema public
+        --dbt_schema public
 
 Check your Metabase instance by going into Settings > Admin > Data Model, you
 will notice that ``ID`` in ``STG_USERS`` is now marked as "Entity Key" and
