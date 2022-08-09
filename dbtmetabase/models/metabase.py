@@ -60,3 +60,13 @@ class MetabaseModel:
         return None
 
     columns: Sequence[MetabaseColumn] = field(default_factory=list)
+
+
+class _NullValue(str):
+    """Explicitly null field value."""
+
+    def __eq__(self, other: object) -> bool:
+        return other is None
+
+
+NullValue = _NullValue()

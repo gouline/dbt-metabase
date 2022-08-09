@@ -19,7 +19,7 @@ from typing import (
 from dbtmetabase.models import exceptions
 
 from .logger.logging import logger
-from .models.metabase import MetabaseModel, MetabaseColumn, ModelType
+from .models.metabase import MetabaseModel, MetabaseColumn, ModelType, NullValue
 
 
 class MetabaseClient:
@@ -384,7 +384,7 @@ class MetabaseClient:
         column_visibility = column.visibility_type or "normal"
 
         # Preserve this relationship by default
-        if api_field["fk_target_field_id"] is not None and fk_target_field_id is None:
+        if api_field["fk_target_field_id"] and not fk_target_field_id:
             fk_target_field_id = api_field["fk_target_field_id"]
 
         body_field = {}
@@ -394,13 +394,14 @@ class MetabaseClient:
             body_field["description"] = column_description
         if api_field.get("visibility_type") != column_visibility:
             body_field["visibility_type"] = column_visibility
-        if (
-            column.semantic_type
-            and api_field.get(semantic_type_key) != column.semantic_type
-        ):
-            body_field[semantic_type_key] = column.semantic_type
         if api_field.get("fk_target_field_id") != fk_target_field_id:
             body_field["fk_target_field_id"] = fk_target_field_id
+
+        # Allow explicit null type to override detected one
+        if api_field.get(semantic_type_key) != column.semantic_type and (
+            column.semantic_type or column.semantic_type is NullValue
+        ):
+            body_field[semantic_type_key] = column.semantic_type or None
 
         if body_field:
             # Update with new values

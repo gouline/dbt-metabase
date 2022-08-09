@@ -3,8 +3,7 @@ import yaml
 from pathlib import Path
 from typing import List, Iterable, Mapping, MutableMapping, Optional, Tuple
 
-from ..models.metabase import METABASE_META_FIELDS, ModelType
-from ..models.metabase import MetabaseModel, MetabaseColumn
+from ..models.metabase import MetabaseModel, MetabaseColumn, ModelType
 from ..logger.logging import logger
 from .dbt import DbtReader
 
@@ -227,11 +226,8 @@ class DbtFolderReader(DbtReader):
                         metabase_column.fk_target_field,
                     )
 
-        if "meta" in column:
-            meta = column.get("meta", [])
-            for field in METABASE_META_FIELDS:
-                if f"metabase.{field}" in meta:
-                    setattr(metabase_column, field, meta[f"metabase.{field}"])
+        for field, value in DbtReader.read_meta_fields(column).items():
+            setattr(metabase_column, field, value)
 
         return metabase_column
 
@@ -246,7 +242,6 @@ class DbtFolderReader(DbtReader):
             str -- Name of the reference.
         """
 
-        # matches = re.findall(r"ref\(['\"]([\w\_\-\ ]+)['\"]\)", text)
         # We are catching the rightmost argument of either source or ref which is ultimately the table name
         matches = re.findall(r"['\"]([\w\_\-\ ]+)['\"][ ]*\)$", text.strip())
         if matches:

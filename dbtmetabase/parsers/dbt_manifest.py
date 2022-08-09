@@ -1,8 +1,7 @@
 import json
 from typing import List, Tuple, Mapping, Optional, MutableMapping
 
-from ..models.metabase import METABASE_META_FIELDS, ModelType
-from ..models.metabase import MetabaseModel, MetabaseColumn
+from ..models.metabase import MetabaseModel, MetabaseColumn, ModelType
 from ..logger.logging import logger
 from .dbt import DbtReader
 
@@ -297,7 +296,7 @@ class DbtManifestReader(DbtReader):
             unique_id=unique_id,
             source=source,
             dbt_name=dbt_name,
-            **DbtManifestReader._read_meta_fields(model),
+            **DbtReader.read_meta_fields(model),
         )
 
     @staticmethod
@@ -320,7 +319,7 @@ class DbtManifestReader(DbtReader):
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
-            **DbtManifestReader._read_meta_fields(column),
+            **DbtReader.read_meta_fields(column),
         )
 
         if relationship:
@@ -335,21 +334,3 @@ class DbtManifestReader(DbtReader):
             )
 
         return metabase_column
-
-    @staticmethod
-    def _read_meta_fields(obj: Mapping) -> Mapping:
-        """Reads meta fields from a schem object.
-
-        Args:
-            obj (Mapping): Schema object.
-
-        Returns:
-            Mapping: Field values.
-        """
-
-        meta = obj.get("meta", [])
-        return {
-            k: meta[f"metabase.{k}"]
-            for k in METABASE_META_FIELDS
-            if f"metabase.{k}" in meta
-        }
