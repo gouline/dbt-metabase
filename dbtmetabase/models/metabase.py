@@ -9,6 +9,7 @@ METABASE_META_FIELDS = [
     "special_type",
     "semantic_type",
     "visibility_type",
+    "display_name",
     "fk_target_table",
     "fk_target_field",
 ]
