@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from dbtmetabase.models.interface import DbtInterface
-from dbtmetabase.models.metabase import ModelType
+from dbtmetabase.models.metabase import ModelType, NullValue
 from dbtmetabase.parsers.dbt_folder import (
     MetabaseModel,
     MetabaseColumn,
@@ -440,7 +440,7 @@ class TestDbtManifestReader(unittest.TestCase):
                         name="NUMBER_OF_ORDERS",
                         description="Count of the number of orders a customer has placed",
                         meta_fields={},
-                        semantic_type=None,
+                        semantic_type=NullValue,
                         visibility_type=None,
                         fk_target_table=None,
                         fk_target_field=None,

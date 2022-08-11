@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from os.path import expanduser
-from typing import Optional, MutableMapping, Iterable, Tuple, List
+from typing import Optional, Mapping, MutableMapping, Iterable, Tuple, List
 
-from ..models.metabase import MetabaseModel
+from ..models.metabase import METABASE_META_FIELDS, MetabaseModel, NullValue
 
 
 class DbtReader(metaclass=ABCMeta):
@@ -44,3 +44,22 @@ class DbtReader(metaclass=ABCMeta):
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         pass
+
+    @staticmethod
+    def read_meta_fields(obj: Mapping) -> Mapping:
+        """Reads meta fields from a schem object.
+
+        Args:
+            obj (Mapping): Schema object.
+
+        Returns:
+            Mapping: Field values.
+        """
+
+        vals = {}
+        meta = obj.get("meta", [])
+        for field in METABASE_META_FIELDS:
+            if f"metabase.{field}" in meta:
+                value = meta[f"metabase.{field}"]
+                vals[field] = value if value is not None else NullValue
+        return vals
