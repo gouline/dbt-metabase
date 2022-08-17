@@ -355,7 +355,7 @@ secrets. Listed below are acceptable env vars which correspond to their CLI flag
 * ``DBT_PATH``
 * ``DBT_MANIFEST_PATH``
 * ``MB_USER``
-* ``MB_PASS``
+* ``MB_PASSWORD``
 * ``MB_HOST``
 * ``MB_DATABASE``
 
