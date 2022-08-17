@@ -303,6 +303,8 @@ Tables only support the following:
 
 * No value for visible (default)
 * ``hidden``
+* ``technical``
+* ``cruft``
 
 If you notice new ones, please submit a PR to update this readme.
 
