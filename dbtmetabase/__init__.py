@@ -20,7 +20,7 @@ ENV_VARS = [
     "DBT_PATH",
     "DBT_MANIFEST_PATH",
     "MB_USER",
-    "MB_PASS",
+    "MB_PASSWORD",
     "MB_HOST",
     "MB_DATABASE",
     "MB_SESSION_TOKEN",
