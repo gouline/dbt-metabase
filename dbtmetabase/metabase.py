@@ -98,9 +98,7 @@ class MetabaseClient:
         Arguments:
             database {str} -- Metabase database name.
             models {list} -- List of dbt models read from project.
-
-        Keyword Arguments:
-            timeout {int} -- Timeout before giving up in seconds. (default: {30})
+            timeout {int} -- Timeout before giving up in seconds.
 
         Returns:
             bool -- True if schema compatible with models, false if still incompatible.
@@ -111,11 +109,10 @@ class MetabaseClient:
                 - the database cannot be found
                 - a timeout was provided but sync was unsuccessful
         """
-        if timeout is None:
+        allow_sync_failure = False
+        if not timeout:
             timeout = 30
             allow_sync_failure = True
-        else:
-            allow_sync_failure = False
 
         if timeout < self._SYNC_PERIOD_SECS:
             raise exceptions.MetabaseUnableToSync(
