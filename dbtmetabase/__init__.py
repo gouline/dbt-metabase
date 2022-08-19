@@ -486,8 +486,8 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
     )
     if config_file["metabase_sync"]:
         config_file["metabase_sync_timeout"] = click.prompt(
-            "Synchronization timeout in seconds. If set, we will fail hard on synchronization failure; \nIf set to 0 or a negative number, we will proceed after attempting sync regardless of success",
-            default=config_file.get("metabase_sync_timeout", -1),
+            "Synchronization timeout in seconds. If set, we will fail hard on synchronization failure; \nIf set to 0, we will proceed after attempting sync regardless of success",
+            default=config_file.get("metabase_sync_timeout", 0),
             show_default=True,
             value_proc=lambda i: None if int(i) <= 0 else int(i),
             type=click.INT,
