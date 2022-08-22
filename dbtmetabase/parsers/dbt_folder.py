@@ -1,7 +1,7 @@
 import re
 import yaml
 from pathlib import Path
-from typing import List, Iterable, Mapping, MutableMapping, Optional, Tuple
+from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 from ..models.metabase import MetabaseModel, MetabaseColumn, ModelType
 from ..logger.logging import logger
@@ -181,50 +181,45 @@ class DbtFolderReader(DbtReader):
         meta = column.get("meta", {})
         display_name = meta.get("metabase.display_name")
 
+        # Set explicitly (relationships override this)
+        fk_to = meta.get("metabase.foreign_key_to")
+        fk_field = meta.get("metabase.foreign_key_field")
+
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
             display_name=display_name,
         )
 
-        tests: Optional[Iterable] = column.get("tests", [])
-        if tests is None:
-            tests = []
-
-        for test in tests:
+        for test in column.get("tests") or []:
             if isinstance(test, dict):
                 if "relationships" in test:
                     relationships = test["relationships"]
-                    parsed_table_ref = self.parse_ref(relationships["to"])
-                    if not parsed_table_ref:
-                        logger().warning(
-                            "Could not resolve foreign key target table for column %s",
-                            metabase_column.name,
-                        )
-                        continue
+                    fk_to = relationships["to"]
+                    fk_field = relationships["field"]
 
-                    parsed_ref = ".".join(
-                        map(
-                            lambda s: s.strip('"'),
-                            column.get("meta", {})
-                            .get("metabase.foreign_key_target_table", "")
-                            .split("."),
-                        )
-                    )
-                    if not parsed_ref or "." not in parsed_ref:
-                        parsed_ref = f"{schema}.{parsed_table_ref}"
-
-                    metabase_column.semantic_type = "type/FK"
-                    metabase_column.fk_target_table = parsed_ref.upper()
-                    metabase_column.fk_target_field = (
-                        str(relationships["field"]).upper().strip('"')
-                    )
-                    logger().debug(
-                        "Relation from %s to %s.%s",
-                        column.get("name", "").upper().strip('"'),
-                        metabase_column.fk_target_table,
-                        metabase_column.fk_target_field,
-                    )
+        if fk_to and fk_field:
+            fk_table = self.parse_ref(fk_to)
+            if fk_table:
+                metabase_column.semantic_type = "type/FK"
+                metabase_column.fk_target_table = f"{schema}.{fk_table}".upper()
+                metabase_column.fk_target_field = str(fk_field).upper().strip('"')
+                logger().debug(
+                    "Relation from %s to %s.%s",
+                    column.get("name", "").upper().strip('"'),
+                    metabase_column.fk_target_table,
+                    metabase_column.fk_target_field,
+                )
+            else:
+                logger().warning(
+                    "Could not resolve foreign key target table for column %s",
+                    metabase_column.name,
+                )
+        elif fk_to or fk_field:
+            logger().warning(
+                "Foreign key 'to' and 'field' must be provided for column %s",
+                metabase_column.name,
+            )
 
         for field, value in DbtReader.read_meta_fields(column).items():
             setattr(metabase_column, field, value)
