@@ -31,7 +31,7 @@ class DbtReader(metaclass=ABCMeta):
         """
 
         self.path = expanduser(path)
-        self.database = database.upper() if schema else None
+        self.database = database.upper() if database else None
         self.schema = schema.upper() if schema else "PUBLIC"
         self.schema_excludes = [x.upper() for x in schema_excludes or []]
         self.includes = [x.upper() for x in includes or []]
