@@ -4,14 +4,16 @@ from enum import Enum
 from typing import Sequence, Optional, MutableMapping
 
 # Allowed metabase.* fields
-# Should be covered by attributes in the MetabaseColumn class
-METABASE_META_FIELDS = [
-    "special_type",
-    "semantic_type",
-    "visibility_type",
+# Must be covered by MetabaseModel attributes
+METABASE_MODEL_META_FIELDS = [
     "display_name",
-    "fk_target_table",
-    "fk_target_field",
+    "visibility_type",
+    "points_of_interest",
+    "caveats",
+]
+# Must be covered by MetabaseColumn attributes
+METABASE_COLUMN_META_FIELDS = METABASE_MODEL_META_FIELDS + [
+    "semantic_type",
 ]
 
 
