@@ -169,8 +169,9 @@ class DbtManifestReader(DbtReader):
             dict -- One dbt model in Metabase-friendly format.
         """
 
-        metabase_column: List[MetabaseColumn] = []
+        metabase_columns: List[MetabaseColumn] = []
 
+        schema = model["schema"].upper()
         unique_id = model["unique_id"]
 
         children = manifest["child_map"][unique_id]
@@ -239,9 +240,10 @@ class DbtManifestReader(DbtReader):
                 }
 
         for _, column in model.get("columns", {}).items():
-            metabase_column.append(
+            metabase_columns.append(
                 self._read_column(
                     column=column,
+                    schema=schema,
                     relationship=relationship_tests.get(column["name"]),
                 )
             )
@@ -271,9 +273,9 @@ class DbtManifestReader(DbtReader):
 
         return MetabaseModel(
             name=resolved_name,
-            schema=model["schema"].upper(),
+            schema=schema,
             description=description,
-            columns=metabase_column,
+            columns=metabase_columns,
             model_type=model_type,
             unique_id=unique_id,
             source=source,
@@ -284,12 +286,14 @@ class DbtManifestReader(DbtReader):
     def _read_column(
         self,
         column: Mapping,
+        schema: str,
         relationship: Optional[Mapping],
     ) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:
             column {dict} -- One dbt column to read.
+            schema {str} -- Schema as passed down from CLI args or parsed from `source`
             relationship {Mapping, optional} -- Mapping of columns to their foreign key relationships
 
         Returns:
@@ -309,7 +313,7 @@ class DbtManifestReader(DbtReader):
             metabase_column=metabase_column,
             table=relationship["fk_target_table"] if relationship else None,
             field=relationship["fk_target_field"] if relationship else None,
-            schema=self.schema,
+            schema=schema,
         )
 
         return metabase_column

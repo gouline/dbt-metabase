@@ -174,7 +174,7 @@ class DbtFolderReader(DbtReader):
 
         Arguments:
             column {dict} -- One dbt column to read.
-            schema {str} -- Schema as passed doen from CLI args or parsed from `source`
+            schema {str} -- Schema as passed down from CLI args or parsed from `source`
 
         Returns:
             dict -- One dbt column in Metabase-friendly format.
