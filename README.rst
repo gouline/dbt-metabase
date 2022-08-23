@@ -185,10 +185,9 @@ There are two approaches provided by this library to read your dbt project:
 1. Artifacts
 ^^^^^^^^^^^^
 
-The recommended approach is to instruct dbt-metabase to read your ``manifest.json``, a
-`dbt artifact`_ containing the full representation of your dbt project's resources. If
-your dbt project uses multiple schemas, multiple databases or model aliases, you must use
-this approach.
+You can instruct dbt-metabase to read your ``manifest.json``, a `dbt artifact`_ containing 
+the full representation of your dbt project's resources. If your dbt project uses multiple schemas, 
+multiple databases or model aliases, you must use this approach.
 
 Note that you you have to run ``dbt compile --target prod`` or any of the other dbt commands
 listed in the dbt documentation above to get a fresh copy of your ``manifest.json``. Remember
@@ -203,10 +202,9 @@ project).
 2. Direct parsing
 ^^^^^^^^^^^^^^^^^
 
-The second alternative is to provide the path to your dbt project root folder
-using the argument ``--dbt_path``. dbt-metabase will then look for all .yml files
-and parse your documentation and tests directly from there. It will not support
-dbt projects with custom schemas.
+Alternatively, you can provide the path to your dbt project root folder using the argument
+``--dbt_path``. dbt-metabase will then look for all .yml files and parse your documentation
+and tests directly from there. It does not support dbt projects with custom schemas.
 
 Semantic Types
 --------------
@@ -254,15 +252,10 @@ See `documentation`_ for a more complete list.
 Foreign Keys
 ------------
 
-By default, dbt-metabase parses the relationship tests to figure out PK-FK
-relationships between two tables. Alternatively, you can also use the meta
-fields ``fk_target_table`` and ``fk_target_field`` to set the relationships
-just like semantic types. You can set the ``semantic_type`` as ``type/FK``
-without setting those two fields, but you cannot set those two fields
-without the ``semantic_type`` set to ``type/FK``. If both, meta fields
-and relationship test, are set for a field, meta fields take precedence.
-
-Here is an example of how you could to this:
+Built-in relationship tests are the recommended way of defining foreign keys,
+however you can alternatively use ``fk_target_table`` and ``fk_target_field``
+meta fields (``semantic_type`` is optional and will be inferred). If both are 
+set for a column, meta fields take precedence.
 
 .. code-block:: yaml
 
@@ -273,9 +266,9 @@ Here is an example of how you could to this:
         metabase.fk_target_table: analytics_dims.dim_countries
         metabase.fk_target_field: id
 
-Importantly, the ``fk_target_table`` needs to be in the format
-``schema_name.table_name``. If the model has an alias, use the alias, not
-the original model name here.
+You can provide ``fk_target_table`` in the format ``schema_name.table_name`` or
+just ``table_name`` to use the current schema. If your model has an alias, provide
+that alias (rather than the original name).
 
 Visibility Types
 ----------------

@@ -1,8 +1,14 @@
 import json
 from typing import List, Tuple, Mapping, Optional, MutableMapping
 
-from ..models.metabase import MetabaseModel, MetabaseColumn, ModelType
 from ..logger.logging import logger
+from ..models.metabase import (
+    MetabaseModel,
+    MetabaseColumn,
+    ModelType,
+    METABASE_MODEL_META_FIELDS,
+    METABASE_COLUMN_META_FIELDS,
+)
 from .dbt import DbtReader
 
 
@@ -260,9 +266,6 @@ class DbtManifestReader(DbtReader):
             )
 
         description = model.get("description", "")
-        meta = model.get("meta", {})
-        points_of_interest = meta.get("metabase.points_of_interest")
-        caveats = meta.get("metabase.caveats")
 
         if include_tags:
             tags = model.get("tags", [])
@@ -289,18 +292,16 @@ class DbtManifestReader(DbtReader):
             name=resolved_name,
             schema=model["schema"].upper(),
             description=description,
-            points_of_interest=points_of_interest,
-            caveats=caveats,
             columns=metabase_column,
             model_type=model_type,
             unique_id=unique_id,
             source=source,
             dbt_name=dbt_name,
-            **DbtReader.read_meta_fields(model),
+            **self.read_meta_fields(model, METABASE_MODEL_META_FIELDS),
         )
 
-    @staticmethod
     def _read_column(
+        self,
         column: Mapping,
         relationship: Optional[Mapping],
     ) -> MetabaseColumn:
@@ -319,18 +320,15 @@ class DbtManifestReader(DbtReader):
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
-            **DbtReader.read_meta_fields(column),
+            **self.read_meta_fields(column, METABASE_COLUMN_META_FIELDS),
         )
 
-        if relationship:
-            metabase_column.semantic_type = "type/FK"
-            metabase_column.fk_target_table = relationship["fk_target_table"].upper()
-            metabase_column.fk_target_field = relationship["fk_target_field"].upper()
-            logger().debug(
-                "Relation from %s to %s.%s",
-                column.get("name", "").upper().strip('"'),
-                metabase_column.fk_target_table,
-                metabase_column.fk_target_field,
-            )
+        self.set_column_foreign_key(
+            column=column,
+            metabase_column=metabase_column,
+            table=relationship["fk_target_table"] if relationship else None,
+            field=relationship["fk_target_field"] if relationship else None,
+            schema=self.schema,
+        )
 
         return metabase_column

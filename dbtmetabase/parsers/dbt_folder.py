@@ -3,8 +3,14 @@ import yaml
 from pathlib import Path
 from typing import List, Mapping, MutableMapping, Optional, Tuple
 
-from ..models.metabase import MetabaseModel, MetabaseColumn, ModelType
 from ..logger.logging import logger
+from ..models.metabase import (
+    MetabaseModel,
+    MetabaseColumn,
+    ModelType,
+    METABASE_MODEL_META_FIELDS,
+    METABASE_COLUMN_META_FIELDS,
+)
 from .dbt import DbtReader
 
 
@@ -130,10 +136,6 @@ class DbtFolderReader(DbtReader):
             metabase_columns.append(self._read_column(column, schema))
 
         description = model.get("description", "")
-        meta = model.get("meta", {})
-        points_of_interest = meta.get("metabase.points_of_interest")
-        caveats = meta.get("metabase.caveats")
-
         if include_tags:
             tags = model.get("tags", [])
             if tags:
@@ -144,7 +146,6 @@ class DbtFolderReader(DbtReader):
 
         # Resolved name is what the name will be in the database
         resolved_name = model.get("alias", model.get("identifier"))
-        display_name = meta.get("metabase.display_name")
         dbt_name = None
         if not resolved_name:
             resolved_name = model["name"]
@@ -153,15 +154,13 @@ class DbtFolderReader(DbtReader):
 
         return MetabaseModel(
             name=resolved_name,
-            display_name=display_name,
             schema=schema,
             description=description,
-            points_of_interest=points_of_interest,
-            caveats=caveats,
             columns=metabase_columns,
             model_type=model_type,
             source=source,
             dbt_name=dbt_name,
+            **self.read_meta_fields(model, METABASE_MODEL_META_FIELDS),
         )
 
     def _read_column(self, column: Mapping, schema: str) -> MetabaseColumn:
@@ -178,51 +177,35 @@ class DbtFolderReader(DbtReader):
         column_name = column.get("name", "").upper().strip('"')
         column_description = column.get("description")
 
-        meta = column.get("meta", {})
-        display_name = meta.get("metabase.display_name")
-
-        # Set explicitly (relationships override this)
-        fk_to = meta.get("metabase.foreign_key_to")
-        fk_field = meta.get("metabase.foreign_key_field")
-
         metabase_column = MetabaseColumn(
             name=column_name,
             description=column_description,
-            display_name=display_name,
+            **self.read_meta_fields(column, METABASE_COLUMN_META_FIELDS),
         )
+
+        fk_target_table = None
+        fk_target_field = None
 
         for test in column.get("tests") or []:
             if isinstance(test, dict):
                 if "relationships" in test:
                     relationships = test["relationships"]
-                    fk_to = relationships["to"]
-                    fk_field = relationships["field"]
+                    fk_target_table = self.parse_ref(relationships["to"])
+                    if not fk_target_table:
+                        logger().warning(
+                            "Could not resolve foreign key target table for column %s",
+                            metabase_column.name,
+                        )
+                        continue
+                    fk_target_field = relationships["field"]
 
-        if fk_to and fk_field:
-            fk_table = self.parse_ref(fk_to)
-            if fk_table:
-                metabase_column.semantic_type = "type/FK"
-                metabase_column.fk_target_table = f"{schema}.{fk_table}".upper()
-                metabase_column.fk_target_field = str(fk_field).upper().strip('"')
-                logger().debug(
-                    "Relation from %s to %s.%s",
-                    column.get("name", "").upper().strip('"'),
-                    metabase_column.fk_target_table,
-                    metabase_column.fk_target_field,
-                )
-            else:
-                logger().warning(
-                    "Could not resolve foreign key target table for column %s",
-                    metabase_column.name,
-                )
-        elif fk_to or fk_field:
-            logger().warning(
-                "Foreign key 'to' and 'field' must be provided for column %s",
-                metabase_column.name,
-            )
-
-        for field, value in DbtReader.read_meta_fields(column).items():
-            setattr(metabase_column, field, value)
+        self.set_column_foreign_key(
+            column=column,
+            metabase_column=metabase_column,
+            table=fk_target_table,
+            field=fk_target_field,
+            schema=schema,
+        )
 
         return metabase_column
 

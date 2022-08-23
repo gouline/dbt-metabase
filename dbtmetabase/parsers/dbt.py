@@ -2,7 +2,8 @@ from abc import ABCMeta, abstractmethod
 from os.path import expanduser
 from typing import Optional, Mapping, MutableMapping, Iterable, Tuple, List
 
-from ..models.metabase import METABASE_META_FIELDS, MetabaseModel, NullValue
+from ..logger.logging import logger
+from ..models.metabase import MetabaseModel, MetabaseColumn, NullValue
 
 
 class DbtReader(metaclass=ABCMeta):
@@ -45,12 +46,59 @@ class DbtReader(metaclass=ABCMeta):
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         pass
 
+    def set_column_foreign_key(
+        self,
+        column: Mapping,
+        metabase_column: MetabaseColumn,
+        table: Optional[str],
+        field: Optional[str],
+        schema: Optional[str],
+    ):
+        """Sets foreign key target on a column.
+
+        Args:
+            column (Mapping): Schema column definition.
+            metabase_column (MetabaseColumn): Metabase column definition.
+            table (str): Foreign key target table.
+            field (str): Foreign key target field.
+            schema (str): Current schema name.
+        """
+        # Meta fields take precedence
+        meta = column.get("meta", {})
+        table = meta.get("metabase.fk_target_table", table)
+        field = meta.get("metabase.fk_target_field", field)
+
+        if not table or not field:
+            if table or field:
+                logger().warning(
+                    "Foreign key requires table and field for column %s",
+                    metabase_column.name,
+                )
+            return
+
+        table_path = table.split(".")
+        if len(table_path) == 1 and schema:
+            table_path.insert(0, schema)
+
+        metabase_column.semantic_type = "type/FK"
+        metabase_column.fk_target_table = ".".join(
+            [x.strip('"').upper() for x in table_path]
+        )
+        metabase_column.fk_target_field = field.strip('"').upper()
+        logger().debug(
+            "Relation from %s to %s.%s",
+            metabase_column.name,
+            metabase_column.fk_target_table,
+            metabase_column.fk_target_field,
+        )
+
     @staticmethod
-    def read_meta_fields(obj: Mapping) -> Mapping:
+    def read_meta_fields(obj: Mapping, fields: List) -> Mapping:
         """Reads meta fields from a schem object.
 
         Args:
             obj (Mapping): Schema object.
+            fields (List): List of fields to read.
 
         Returns:
             Mapping: Field values.
@@ -58,7 +106,7 @@ class DbtReader(metaclass=ABCMeta):
 
         vals = {}
         meta = obj.get("meta", [])
-        for field in METABASE_META_FIELDS:
+        for field in fields:
             if f"metabase.{field}" in meta:
                 value = meta[f"metabase.{field}"]
                 vals[field] = value if value is not None else NullValue
