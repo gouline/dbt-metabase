@@ -24,16 +24,7 @@ class DbtManifestReader(DbtReader):
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        database = self.database
-        schema = self.schema
-        schema_excludes = self.schema_excludes
-        includes = [x.lower() for x in self.includes] if self.includes else []
-        excludes = [x.lower() for x in self.excludes] if self.excludes else []
-
         manifest = {}
-
-        if schema_excludes is None:
-            schema_excludes = []
 
         mb_models: List[MetabaseModel] = []
 
@@ -42,6 +33,12 @@ class DbtManifestReader(DbtReader):
 
         for _, node in manifest["nodes"].items():
             model_name = node["name"].upper()
+            model_schema = node["schema"].upper()
+            model_database = node["database"].upper()
+
+            if node["resource_type"] != "model":
+                logger().debug("Skipping %s not of resource type model", model_name)
+                continue
 
             if node["config"]["materialized"] == "ephemeral":
                 logger().debug(
@@ -49,44 +46,33 @@ class DbtManifestReader(DbtReader):
                 )
                 continue
 
-            if node["database"].upper() != database.upper():
-                # Skip model not associated with target database
+            if model_database != self.database:
                 logger().debug(
                     "Skipping %s in database %s, not in target database %s",
                     model_name,
-                    node["database"],
-                    database,
+                    model_database,
+                    self.database,
                 )
                 continue
 
-            if node["resource_type"] != "model":
-                # Target only model nodes
-                logger().debug("Skipping %s not of resource type model", model_name)
-                continue
-
-            if schema and node["schema"].upper() != schema.upper():
-                # Skip any models not in target schema
+            if self.schema and model_schema != self.schema:
                 logger().debug(
                     "Skipping %s in schema %s not in target schema %s",
                     model_name,
-                    node["schema"],
-                    schema,
+                    model_schema,
+                    self.schema,
                 )
                 continue
 
-            if schema_excludes and node["schema"].upper() in schema_excludes:
-                # Skip any model in a schema marked for exclusion
+            if model_schema in self.schema_excludes:
                 logger().debug(
                     "Skipping %s in schema %s marked for exclusion",
                     model_name,
-                    node["schema"],
+                    model_schema,
                 )
                 continue
 
-            if (includes and model_name.lower() not in includes) or (
-                model_name.lower() in excludes
-            ):
-                # Process only intersect of includes and excludes
+            if not self.model_selected(model_name):
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
                     model_name,
@@ -105,46 +91,41 @@ class DbtManifestReader(DbtReader):
             )
 
         for _, node in manifest["sources"].items():
-            model_name = node.get("identifier", node.get("name")).upper()
-
-            if node["database"].upper() != database.upper():
-                # Skip model not associated with target database
-                logger().debug(
-                    "Skipping %s not in target database %s", model_name, database
-                )
-                continue
+            source_name = node.get("identifier", node.get("name")).upper()
+            source_schema = node["schema"].upper()
+            source_database = node["database"].upper()
 
             if node["resource_type"] != "source":
-                # Target only source nodes
-                logger().debug("Skipping %s not of resource type source", model_name)
+                logger().debug("Skipping %s not of resource type source", source_name)
                 continue
 
-            if schema and node["schema"].upper() != schema.upper():
-                # Skip any models not in target schema
+            if source_database != self.database:
+                logger().debug(
+                    "Skipping %s not in target database %s", source_name, self.database
+                )
+                continue
+
+            if self.schema and source_schema != self.schema:
                 logger().debug(
                     "Skipping %s in schema %s not in target schema %s",
-                    model_name,
-                    node["schema"],
-                    schema,
+                    source_name,
+                    source_schema,
+                    self.schema,
                 )
                 continue
 
-            if schema_excludes and node["schema"].upper() in schema_excludes:
-                # Skip any model in a schema marked for exclusion
+            if source_schema in self.schema_excludes:
                 logger().debug(
                     "Skipping %s in schema %s marked for exclusion",
-                    model_name,
-                    node["schema"],
+                    source_name,
+                    source_schema,
                 )
                 continue
 
-            if (includes and model_name.lower() not in includes) or (
-                model_name.lower() in excludes
-            ):
-                # Process only intersect of includes and excludes
+            if not self.model_selected(source_name):
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
-                    model_name,
+                    source_name,
                 )
                 continue
 

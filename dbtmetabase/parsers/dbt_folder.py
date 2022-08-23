@@ -28,78 +28,84 @@ class DbtFolderReader(DbtReader):
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        database = self.database
-        schema = self.schema
-        schema_excludes = self.schema_excludes
-        includes = self.includes
-        excludes = self.excludes
-
-        if schema_excludes is None:
-            schema_excludes = []
-        if includes is None:
-            includes = []
-        if excludes is None:
-            excludes = []
-        if schema is None:
-            schema = "public"
-
-        # Args that allow API interface for both readers to be interchangeable while passing CI
-        del database, docs_url
-
         mb_models: List[MetabaseModel] = []
 
         for path in (Path(self.path) / "models").rglob("*.yml"):
             with open(path, "r", encoding="utf-8") as stream:
                 schema_file = yaml.safe_load(stream)
-                if schema_file is None:
+                if not schema_file:
                     logger().warning("Skipping empty or invalid YAML: %s", path)
                     continue
+
                 for model in schema_file.get("models", []):
-                    name = model.get("alias", model["name"])
+                    model_name = model.get("alias", model["name"]).upper()
+
                     # Refs will still use file name -- this alias mapping is good for getting the right name in the database
                     if "alias" in model:
-                        self.alias_mapping[name] = model["name"]
+                        self.alias_mapping[model_name] = model["name"].upper()
+
                     logger().info("\nProcessing model: %s", path)
-                    if (not includes or name in includes) and (name not in excludes):
+
+                    if not self.model_selected(model_name):
+                        logger().debug(
+                            "Skipping %s not included in includes or excluded by excludes",
+                            model_name,
+                        )
+                        continue
+
+                    mb_models.append(
+                        self._read_model(
+                            model=model,
+                            schema=self.schema,
+                            model_type=ModelType.nodes,
+                            include_tags=include_tags,
+                        )
+                    )
+
+                for source in schema_file.get("sources", []):
+                    source_schema_name = source.get("schema", source["name"]).upper()
+
+                    if "{{" in source_schema_name and "}}" in source_schema_name:
+                        logger().warning(
+                            "dbt folder reader cannot resolve Jinja expressions, defaulting to current schema"
+                        )
+                        source_schema_name = self.schema
+
+                    elif source_schema_name != self.schema:
+                        logger().debug(
+                            "Skipping schema %s not in target schema %s",
+                            source_schema_name,
+                            self.schema,
+                        )
+                        continue
+
+                    for model in source.get("tables", []):
+                        model_name = model.get("identifier", model["name"]).upper()
+
+                        # These will be used to resolve our regex parsed source() references
+                        if "identifier" in model:
+                            self.alias_mapping[model_name] = model["name"].upper()
+
+                        logger().info(
+                            "\nProcessing source: %s -- table: %s", path, model_name
+                        )
+
+                        if not self.model_selected(model_name):
+                            logger().debug(
+                                "Skipping %s not included in includes or excluded by excludes",
+                                model_name,
+                            )
+                            continue
+
                         mb_models.append(
                             self._read_model(
                                 model=model,
-                                schema=schema.upper(),
-                                model_type=ModelType.nodes,
+                                source=source["name"],
+                                model_type=ModelType.sources,
+                                schema=source_schema_name,
                                 include_tags=include_tags,
                             )
                         )
-                        logger().debug(mb_models[-1].ref)
-                for source in schema_file.get("sources", []):
-                    source_schema_name = source.get("schema", source["name"])
-                    if "{{" in source_schema_name and "}}" in source_schema_name:
-                        logger().warning(
-                            "dbt Folder Reader cannot resolve jinja expressions- use the Manifest Reader instead."
-                        )
-                        source_schema_name = schema
-                    if source_schema_name.upper() != schema.upper():
-                        continue
-                    for model in source.get("tables", []):
-                        name = model.get("identifier", model["name"])
-                        # These will be used to resolve our regex parsed source() references
-                        if "identifier" in model:
-                            self.alias_mapping[name] = model["name"]
-                        logger().info(
-                            "\nProcessing source: %s -- table: %s", path, name
-                        )
-                        if (not includes or name in includes) and (
-                            name not in excludes
-                        ):
-                            mb_models.append(
-                                self._read_model(
-                                    model=model,
-                                    source=source["name"],
-                                    model_type=ModelType.sources,
-                                    schema=source_schema_name.upper(),
-                                    include_tags=include_tags,
-                                )
-                            )
-                            logger().debug(mb_models[-1].ref)
 
         return mb_models, self.alias_mapping
 

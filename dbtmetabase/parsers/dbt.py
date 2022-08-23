@@ -30,11 +30,11 @@ class DbtReader(metaclass=ABCMeta):
         """
 
         self.path = expanduser(path)
-        self.database = database
-        self.schema = schema
-        self.schema_excludes = schema_excludes
-        self.includes = includes
-        self.excludes = excludes
+        self.database = database.upper() if schema else None
+        self.schema = schema.upper() if schema else "PUBLIC"
+        self.schema_excludes = [x.upper() for x in schema_excludes or []]
+        self.includes = [x.upper() for x in includes or []]
+        self.excludes = [x.upper() for x in excludes or []]
         self.alias_mapping: MutableMapping = {}
 
     @abstractmethod
@@ -44,6 +44,18 @@ class DbtReader(metaclass=ABCMeta):
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         pass
+
+    def model_selected(self, name: str) -> bool:
+        """Checks whether model passes inclusion/exclusion criteria.
+
+        Args:
+            name (str): Model name.
+
+        Returns:
+            bool: True if included, false otherwise.
+        """
+        n = name.upper()
+        return n not in self.excludes and (not self.includes or n in self.includes)
 
     @staticmethod
     def read_meta_fields(obj: Mapping) -> Mapping:
