@@ -1,15 +1,17 @@
 import re
-import yaml
 from pathlib import Path
 from typing import List, Mapping, MutableMapping, Optional, Tuple
 
+import yaml
+
 from ..logger.logging import logger
 from ..models.metabase import (
-    MetabaseModel,
-    MetabaseColumn,
-    ModelType,
-    METABASE_MODEL_META_FIELDS,
     METABASE_COLUMN_META_FIELDS,
+    METABASE_MODEL_DEFAULT_SCHEMA,
+    METABASE_MODEL_META_FIELDS,
+    MetabaseColumn,
+    MetabaseModel,
+    ModelType,
 )
 from .dbt import DbtReader
 
@@ -35,6 +37,8 @@ class DbtFolderReader(DbtReader):
         """
 
         mb_models: List[MetabaseModel] = []
+
+        schema = self.schema or METABASE_MODEL_DEFAULT_SCHEMA
 
         for path in (Path(self.path) / "models").rglob("*.yml"):
             with open(path, "r", encoding="utf-8") as stream:
@@ -62,7 +66,7 @@ class DbtFolderReader(DbtReader):
                     mb_models.append(
                         self._read_model(
                             model=model,
-                            schema=self.schema,
+                            schema=schema,
                             model_type=ModelType.nodes,
                             include_tags=include_tags,
                         )
@@ -75,13 +79,13 @@ class DbtFolderReader(DbtReader):
                         logger().warning(
                             "dbt folder reader cannot resolve Jinja expressions, defaulting to current schema"
                         )
-                        source_schema_name = self.schema
+                        source_schema_name = schema
 
-                    elif source_schema_name != self.schema:
+                    elif source_schema_name != schema:
                         logger().debug(
                             "Skipping schema %s not in target schema %s",
                             source_schema_name,
-                            self.schema,
+                            schema,
                         )
                         continue
 

@@ -1,13 +1,14 @@
 import json
-from typing import List, Tuple, Mapping, Optional, MutableMapping
+from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 from ..logger.logging import logger
 from ..models.metabase import (
-    MetabaseModel,
-    MetabaseColumn,
-    ModelType,
-    METABASE_MODEL_META_FIELDS,
     METABASE_COLUMN_META_FIELDS,
+    METABASE_MODEL_DEFAULT_SCHEMA,
+    METABASE_MODEL_META_FIELDS,
+    MetabaseColumn,
+    MetabaseModel,
+    ModelType,
 )
 from .dbt import DbtReader
 
@@ -230,7 +231,7 @@ class DbtManifestReader(DbtReader):
                     continue
 
                 fk_target_schema = manifest[model_type][depends_on_id].get(
-                    "schema", "public"
+                    "schema", METABASE_MODEL_DEFAULT_SCHEMA
                 )
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
 

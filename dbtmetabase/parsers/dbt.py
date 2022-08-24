@@ -1,9 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from os.path import expanduser
-from typing import Optional, Mapping, MutableMapping, Iterable, Tuple, List
+from typing import Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 from ..logger.logging import logger
-from ..models.metabase import MetabaseModel, MetabaseColumn, NullValue
+from ..models.metabase import MetabaseColumn, MetabaseModel, NullValue
 
 
 class DbtReader(metaclass=ABCMeta):
@@ -32,7 +32,7 @@ class DbtReader(metaclass=ABCMeta):
 
         self.path = expanduser(path)
         self.database = database.upper() if database else None
-        self.schema = schema.upper() if schema else "PUBLIC"
+        self.schema = schema.upper() if schema else None
         self.schema_excludes = [x.upper() for x in schema_excludes or []]
         self.includes = [x.upper() for x in includes or []]
         self.excludes = [x.upper() for x in excludes or []]
