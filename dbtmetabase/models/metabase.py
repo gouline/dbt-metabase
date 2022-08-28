@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-
-from typing import Sequence, Optional, MutableMapping
+from typing import MutableMapping, Optional, Sequence
 
 # Allowed metabase.* fields
 # Must be covered by MetabaseModel attributes
@@ -15,6 +14,9 @@ METABASE_MODEL_META_FIELDS = [
 METABASE_COLUMN_META_FIELDS = METABASE_MODEL_META_FIELDS + [
     "semantic_type",
 ]
+
+# Default model schema (only schema in BigQuery)
+METABASE_MODEL_DEFAULT_SCHEMA = "PUBLIC"
 
 
 class ModelType(str, Enum):

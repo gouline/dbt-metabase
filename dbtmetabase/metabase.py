@@ -1,25 +1,30 @@
-import re
 import json
-import requests
-import time
-import yaml
 import os
-
+import re
+import time
 from typing import (
-    Sequence,
-    Optional,
-    Tuple,
     Iterable,
-    MutableMapping,
-    Union,
     List,
     Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
 )
 
-from dbtmetabase.models import exceptions
+import requests
+import yaml
 
 from .logger.logging import logger
-from .models.metabase import MetabaseModel, MetabaseColumn, ModelType, NullValue
+from .models import exceptions
+from .models.metabase import (
+    METABASE_MODEL_DEFAULT_SCHEMA,
+    MetabaseColumn,
+    MetabaseModel,
+    ModelType,
+    NullValue,
+)
 
 
 class MetabaseClient:
@@ -458,7 +463,9 @@ class MetabaseClient:
             table_schema = table.get("schema")
             # table["schema"] is null for bigquery datasets
             bigquery_schema = metadata.get("details", {}).get("dataset-id")
-            table_schema = (table_schema or bigquery_schema or "public").upper()
+            table_schema = (
+                table_schema or bigquery_schema or METABASE_MODEL_DEFAULT_SCHEMA
+            ).upper()
             table_name = table["name"].upper()
 
             if schemas_to_exclude:

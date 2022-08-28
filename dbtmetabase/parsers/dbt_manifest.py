@@ -1,13 +1,14 @@
 import json
-from typing import List, Tuple, Mapping, Optional, MutableMapping
+from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 from ..logger.logging import logger
 from ..models.metabase import (
-    MetabaseModel,
-    MetabaseColumn,
-    ModelType,
-    METABASE_MODEL_META_FIELDS,
     METABASE_COLUMN_META_FIELDS,
+    METABASE_MODEL_DEFAULT_SCHEMA,
+    METABASE_MODEL_META_FIELDS,
+    MetabaseColumn,
+    MetabaseModel,
+    ModelType,
 )
 from .dbt import DbtReader
 
@@ -30,16 +31,7 @@ class DbtManifestReader(DbtReader):
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        database = self.database
-        schema = self.schema
-        schema_excludes = self.schema_excludes
-        includes = [x.lower() for x in self.includes] if self.includes else []
-        excludes = [x.lower() for x in self.excludes] if self.excludes else []
-
         manifest = {}
-
-        if schema_excludes is None:
-            schema_excludes = []
 
         mb_models: List[MetabaseModel] = []
 
@@ -48,6 +40,12 @@ class DbtManifestReader(DbtReader):
 
         for _, node in manifest["nodes"].items():
             model_name = node["name"].upper()
+            model_schema = node["schema"].upper()
+            model_database = node["database"].upper()
+
+            if node["resource_type"] != "model":
+                logger().debug("Skipping %s not of resource type model", model_name)
+                continue
 
             if node["config"]["materialized"] == "ephemeral":
                 logger().debug(
@@ -55,44 +53,33 @@ class DbtManifestReader(DbtReader):
                 )
                 continue
 
-            if node["database"].upper() != database.upper():
-                # Skip model not associated with target database
+            if model_database != self.database:
                 logger().debug(
                     "Skipping %s in database %s, not in target database %s",
                     model_name,
-                    node["database"],
-                    database,
+                    model_database,
+                    self.database,
                 )
                 continue
 
-            if node["resource_type"] != "model":
-                # Target only model nodes
-                logger().debug("Skipping %s not of resource type model", model_name)
-                continue
-
-            if schema and node["schema"].upper() != schema.upper():
-                # Skip any models not in target schema
+            if self.schema and model_schema != self.schema:
                 logger().debug(
                     "Skipping %s in schema %s not in target schema %s",
                     model_name,
-                    node["schema"],
-                    schema,
+                    model_schema,
+                    self.schema,
                 )
                 continue
 
-            if schema_excludes and node["schema"].upper() in schema_excludes:
-                # Skip any model in a schema marked for exclusion
+            if model_schema in self.schema_excludes:
                 logger().debug(
                     "Skipping %s in schema %s marked for exclusion",
                     model_name,
-                    node["schema"],
+                    model_schema,
                 )
                 continue
 
-            if (includes and model_name.lower() not in includes) or (
-                model_name.lower() in excludes
-            ):
-                # Process only intersect of includes and excludes
+            if not self.model_selected(model_name):
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
                     model_name,
@@ -111,46 +98,41 @@ class DbtManifestReader(DbtReader):
             )
 
         for _, node in manifest["sources"].items():
-            model_name = node.get("identifier", node.get("name")).upper()
-
-            if node["database"].upper() != database.upper():
-                # Skip model not associated with target database
-                logger().debug(
-                    "Skipping %s not in target database %s", model_name, database
-                )
-                continue
+            source_name = node.get("identifier", node.get("name")).upper()
+            source_schema = node["schema"].upper()
+            source_database = node["database"].upper()
 
             if node["resource_type"] != "source":
-                # Target only source nodes
-                logger().debug("Skipping %s not of resource type source", model_name)
+                logger().debug("Skipping %s not of resource type source", source_name)
                 continue
 
-            if schema and node["schema"].upper() != schema.upper():
-                # Skip any models not in target schema
+            if source_database != self.database:
+                logger().debug(
+                    "Skipping %s not in target database %s", source_name, self.database
+                )
+                continue
+
+            if self.schema and source_schema != self.schema:
                 logger().debug(
                     "Skipping %s in schema %s not in target schema %s",
-                    model_name,
-                    node["schema"],
-                    schema,
+                    source_name,
+                    source_schema,
+                    self.schema,
                 )
                 continue
 
-            if schema_excludes and node["schema"].upper() in schema_excludes:
-                # Skip any model in a schema marked for exclusion
+            if source_schema in self.schema_excludes:
                 logger().debug(
                     "Skipping %s in schema %s marked for exclusion",
-                    model_name,
-                    node["schema"],
+                    source_name,
+                    source_schema,
                 )
                 continue
 
-            if (includes and model_name.lower() not in includes) or (
-                model_name.lower() in excludes
-            ):
-                # Process only intersect of includes and excludes
+            if not self.model_selected(source_name):
                 logger().debug(
                     "Skipping %s not included in includes or excluded by excludes",
-                    model_name,
+                    source_name,
                 )
                 continue
 
@@ -188,8 +170,9 @@ class DbtManifestReader(DbtReader):
             dict -- One dbt model in Metabase-friendly format.
         """
 
-        metabase_column: List[MetabaseColumn] = []
+        metabase_columns: List[MetabaseColumn] = []
 
+        schema = model["schema"].upper()
         unique_id = model["unique_id"]
 
         children = manifest["child_map"][unique_id]
@@ -248,7 +231,7 @@ class DbtManifestReader(DbtReader):
                     continue
 
                 fk_target_schema = manifest[model_type][depends_on_id].get(
-                    "schema", "public"
+                    "schema", METABASE_MODEL_DEFAULT_SCHEMA
                 )
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
 
@@ -258,9 +241,10 @@ class DbtManifestReader(DbtReader):
                 }
 
         for _, column in model.get("columns", {}).items():
-            metabase_column.append(
+            metabase_columns.append(
                 self._read_column(
                     column=column,
+                    schema=schema,
                     relationship=relationship_tests.get(column["name"]),
                 )
             )
@@ -290,9 +274,9 @@ class DbtManifestReader(DbtReader):
 
         return MetabaseModel(
             name=resolved_name,
-            schema=model["schema"].upper(),
+            schema=schema,
             description=description,
-            columns=metabase_column,
+            columns=metabase_columns,
             model_type=model_type,
             unique_id=unique_id,
             source=source,
@@ -303,12 +287,14 @@ class DbtManifestReader(DbtReader):
     def _read_column(
         self,
         column: Mapping,
+        schema: str,
         relationship: Optional[Mapping],
     ) -> MetabaseColumn:
         """Reads one dbt column in Metabase-friendly format.
 
         Arguments:
             column {dict} -- One dbt column to read.
+            schema {str} -- Schema as passed down from CLI args or parsed from `source`
             relationship {Mapping, optional} -- Mapping of columns to their foreign key relationships
 
         Returns:
@@ -328,7 +314,7 @@ class DbtManifestReader(DbtReader):
             metabase_column=metabase_column,
             table=relationship["fk_target_table"] if relationship else None,
             field=relationship["fk_target_field"] if relationship else None,
-            schema=self.schema,
+            schema=schema,
         )
 
         return metabase_column
