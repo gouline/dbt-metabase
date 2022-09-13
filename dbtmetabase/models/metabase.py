@@ -15,6 +15,7 @@ METABASE_COLUMN_META_FIELDS = METABASE_MODEL_META_FIELDS + [
     "semantic_type",
     "has_field_values",
     "coercion_strategy",
+    "number_style",
 ]
 
 # Default model schema (only schema in BigQuery)
@@ -38,6 +39,7 @@ class MetabaseColumn:
     visibility_type: Optional[str] = None
     has_field_values: Optional[str] = None
     coercion_strategy: Optional[str] = None
+    number_style: Optional[str] = None
 
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None

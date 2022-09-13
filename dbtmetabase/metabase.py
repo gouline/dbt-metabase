@@ -389,7 +389,10 @@ class MetabaseClient:
         if api_field["fk_target_field_id"] and not fk_target_field_id:
             fk_target_field_id = api_field["fk_target_field_id"]
 
-        body_field = {}
+        api_settings = api_field.get("settings") or {}
+        body_field = {
+            "settings": api_settings.copy(),
+        }
         if api_field.get("display_name") != column_display_name:
             body_field["display_name"] = column_display_name
         if api_field.get("description") != column_description:
@@ -402,6 +405,8 @@ class MetabaseClient:
             body_field["has_field_values"] = column.has_field_values
         if api_field.get("coercion_strategy") != column.coercion_strategy and column.coercion_strategy:
             body_field["coercion_strategy"] = column.coercion_strategy
+        if api_settings.get("number_style") != column.number_style and column.number_style:
+            body_field["settings"]["number_style"] = column.number_style
 
         # Allow explicit null type to override detected one
         if api_field.get(semantic_type_key) != column.semantic_type and (
