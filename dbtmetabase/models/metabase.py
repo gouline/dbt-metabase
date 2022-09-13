@@ -13,6 +13,7 @@ METABASE_MODEL_META_FIELDS = [
 # Must be covered by MetabaseColumn attributes
 METABASE_COLUMN_META_FIELDS = METABASE_MODEL_META_FIELDS + [
     "semantic_type",
+    "has_field_values",
 ]
 
 # Default model schema (only schema in BigQuery)
@@ -34,6 +35,7 @@ class MetabaseColumn:
 
     semantic_type: Optional[str] = None
     visibility_type: Optional[str] = None
+    has_field_values: Optional[str] = None
 
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None

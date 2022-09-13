@@ -398,6 +398,8 @@ class MetabaseClient:
             body_field["visibility_type"] = column_visibility
         if api_field.get("fk_target_field_id") != fk_target_field_id:
             body_field["fk_target_field_id"] = fk_target_field_id
+        if api_field.get("has_field_values") != column.has_field_values and column.has_field_values:
+            body_field["has_field_values"] = column.has_field_values
 
         # Allow explicit null type to override detected one
         if api_field.get(semantic_type_key) != column.semantic_type and (
