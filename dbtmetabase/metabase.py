@@ -242,7 +242,7 @@ class MetabaseClient:
         api_table = table_lookup.get(lookup_key)
         if not api_table:
             logger().error(
-                "\n:cross_mark: Table %s does not exist in Metabase", lookup_key
+                ":cross_mark: Table %s does not exist in Metabase", lookup_key
             )
             return
 
@@ -279,13 +279,13 @@ class MetabaseClient:
                 json=body_table,
             )
             api_table.update(body_table)
-            logger().info("\n:raising_hands: Updated table %s successfully", lookup_key)
+            logger().info(":raising_hands: Updated table %s successfully", lookup_key)
         elif not model_description:
             logger().info(
-                "\n:bow: No model description provided for table %s", lookup_key
+                ":bow: No model description provided for table %s", lookup_key
             )
         else:
-            logger().info("\n:thumbs_up: Table %s is up-to-date", lookup_key)
+            logger().info(":thumbs_up: Table %s is up-to-date", lookup_key)
 
         for column in model.columns:
             self.export_column(schema_name, model_name, column, field_lookup, aliases)
@@ -382,7 +382,7 @@ class MetabaseClient:
                         fk_target_field.update(body_fk_target_field)
                     else:
                         logger().info(
-                            ":thumbs_up: Target field %s is already PK for %s column",
+                            ":thumbs_up: Target field %s is already PK, needed for %s column",
                             fk_target_field_id,
                             column_name,
                         )
@@ -584,7 +584,7 @@ class MetabaseClient:
                 continue
 
             # Iter through collection
-            logger().info("\n\n:sparkles: Exploring collection %s", collection["name"])
+            logger().info(":sparkles: Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
 
                 # Ensure collection item is of parsable type
