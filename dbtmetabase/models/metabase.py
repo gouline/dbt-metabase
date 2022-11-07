@@ -3,19 +3,21 @@ from enum import Enum
 from typing import MutableMapping, Optional, Sequence
 
 # Allowed metabase.* fields
-# Must be covered by MetabaseModel attributes
-METABASE_MODEL_META_FIELDS = [
+_METABASE_COMMON_META_FIELDS = [
     "display_name",
     "visibility_type",
-    "points_of_interest",
-    "caveats",
 ]
 # Must be covered by MetabaseColumn attributes
-METABASE_COLUMN_META_FIELDS = METABASE_MODEL_META_FIELDS + [
+METABASE_COLUMN_META_FIELDS = _METABASE_COMMON_META_FIELDS + [
     "semantic_type",
     "has_field_values",
     "coercion_strategy",
     "number_style",
+]
+# Must be covered by MetabaseModel attributes
+METABASE_MODEL_META_FIELDS = _METABASE_COMMON_META_FIELDS + [
+    "points_of_interest",
+    "caveats",
 ]
 
 # Default model schema (only schema in BigQuery)
@@ -31,12 +33,10 @@ class ModelType(str, Enum):
 class MetabaseColumn:
     name: str
     description: Optional[str] = None
+
     display_name: Optional[str] = None
-
-    meta_fields: MutableMapping = field(default_factory=dict)
-
-    semantic_type: Optional[str] = None
     visibility_type: Optional[str] = None
+    semantic_type: Optional[str] = None
     has_field_values: Optional[str] = None
     coercion_strategy: Optional[str] = None
     number_style: Optional[str] = None
@@ -44,13 +44,17 @@ class MetabaseColumn:
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None
 
+    meta_fields: MutableMapping = field(default_factory=dict)
+
 
 @dataclass
 class MetabaseModel:
     name: str
     schema: str
     description: str = ""
+
     display_name: Optional[str] = None
+    visibility_type: Optional[str] = None
     points_of_interest: Optional[str] = None
     caveats: Optional[str] = None
 
@@ -58,8 +62,6 @@ class MetabaseModel:
     dbt_name: Optional[str] = None
     source: Optional[str] = None
     unique_id: Optional[str] = None
-
-    visibility_type: Optional[str] = None
 
     @property
     def ref(self) -> Optional[str]:
