@@ -309,17 +309,14 @@ class MetabaseClient:
         table_lookup_key = f"{schema_name}.{model_name}"
         column_name = column.name.upper()
 
-        field = field_lookup.get(table_lookup_key, {}).get(column_name)
-        if not field:
+        api_field = field_lookup.get(table_lookup_key, {}).get(column_name)
+        if not api_field:
             logger().error(
                 "Field %s.%s does not exist in Metabase", table_lookup_key, column_name
             )
             return
 
-        field_id = field["id"]
-
-        api_field = self.api("get", f"/api/field/{field_id}")
-
+        field_id = api_field["id"]
         if "special_type" in api_field:
             semantic_type_key = "special_type"
         else:
@@ -364,21 +361,26 @@ class MetabaseClient:
                     target_table,
                 )
 
-                fk_target_field_id = (
-                    field_lookup.get(target_table, {}).get(target_field, {}).get("id")
-                )
-
-                if fk_target_field_id:
-                    logger().info(
-                        ":key: Setting target field %s to PK in order to facilitate FK ref for %s column",
-                        fk_target_field_id,
-                        column_name,
-                    )
-                    self.api(
-                        "put",
-                        f"/api/field/{fk_target_field_id}",
-                        json={semantic_type_key: "type/PK"},
-                    )
+                fk_target_field = field_lookup.get(target_table, {}).get(target_field)
+                if fk_target_field:
+                    fk_target_field_id = fk_target_field.get("id")
+                    if fk_target_field.get(semantic_type_key) != "type/PK":
+                        logger().info(
+                            ":key: Setting target field %s to PK in order to facilitate FK ref for %s column",
+                            fk_target_field_id,
+                            column_name,
+                        )
+                        self.api(
+                            "put",
+                            f"/api/field/{fk_target_field_id}",
+                            json={semantic_type_key: "type/PK"},
+                        )
+                    else:
+                        logger().info(
+                            ":thumbs_up: Target field %s is already PK for %s column",
+                            fk_target_field_id,
+                            column_name,
+                        )
                 else:
                     logger().error(
                         ":cross_mark: Unable to find foreign key target %s.%s",
@@ -486,7 +488,7 @@ class MetabaseClient:
         metadata = self.api(
             "get",
             f"/api/database/{database_id}/metadata",
-            params=dict(include_hidden=True),
+            params={"include_hidden": True},
         )
         for table in metadata.get("tables", []):
             table_schema = table.get("schema")
