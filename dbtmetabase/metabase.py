@@ -3,6 +3,7 @@ import os
 import re
 import time
 from typing import (
+    Any,
     Iterable,
     List,
     Mapping,
@@ -394,7 +395,7 @@ class MetabaseClient:
         if api_field["fk_target_field_id"] and not fk_target_field_id:
             fk_target_field_id = api_field["fk_target_field_id"]
 
-        body_field = {}
+        body_field: MutableMapping[str, Optional[Any]] = {}
 
         # Update if specified, otherwise reset one that had been set
         if api_field.get("display_name") != column_display_name and (
@@ -905,7 +906,11 @@ class MetabaseClient:
             headers["X-Metabase-Session"] = self.session_id
 
         response = requests.request(
-            method, f"{self.protocol}://{self.host}{path}", verify=self.verify, **kwargs
+            method,
+            f"{self.protocol}://{self.host}{path}",
+            verify=self.verify,
+            timeout=30,
+            **kwargs,
         )
 
         if critical:
