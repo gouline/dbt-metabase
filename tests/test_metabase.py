@@ -277,10 +277,14 @@ class TestMetabaseClient(unittest.TestCase):
             output_path="tests/fixtures/exposure/",
         )
         # Baseline in SCM
-        with open("tests/fixtures/exposure/baseline_test_exposures.yml", "r") as f:
+        with open(
+            "tests/fixtures/exposure/baseline_test_exposures.yml", "r", encoding="utf-8"
+        ) as f:
             baseline = yaml.safe_load(f)
         # Load from YAML and tear down
-        with open("tests/fixtures/exposure/unittest_exposures.yml", "r") as f:
+        with open(
+            "tests/fixtures/exposure/unittest_exposures.yml", "r", encoding="utf-8"
+        ) as f:
             sample = yaml.safe_load(f)
 
         baseline_exposures = sorted(baseline["exposures"], key=lambda ele: ele["name"])
@@ -300,8 +304,8 @@ class TestMetabaseClient(unittest.TestCase):
             "PUBLIC.STG_ORDERS",
             "PUBLIC.STG_PAYMENTS",
         ]
-        table_lookups, field_lookups = mbc.build_metadata_lookups(database_id=2)
-        self.assertEqual(baseline_tables, list(table_lookups.keys()))
+        metadata = mbc.build_metadata(database_id=2)
+        self.assertEqual(baseline_tables, list(metadata.tables.keys()))
         baseline_columns = [
             [
                 "CUSTOMER_ID",
@@ -331,12 +335,4 @@ class TestMetabaseClient(unittest.TestCase):
             ["PAYMENT_ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
         ]
         for table, columns in zip(baseline_tables, baseline_columns):
-            self.assertEqual(columns, list(field_lookups[table].keys()))
-        baseline_table_lookups = json.load(
-            open(f"tests/fixtures/lookups/table_lookups.json")
-        )
-        baseline_field_lookups = json.load(
-            open(f"tests/fixtures/lookups/field_lookups.json")
-        )
-        self.assertEqual(baseline_table_lookups, table_lookups)
-        self.assertEqual(baseline_field_lookups, field_lookups)
+            self.assertEqual(columns, list(metadata.tables[table]["fields"].keys()))

@@ -54,7 +54,7 @@ class DbtFolderReader(DbtReader):
                     if "alias" in model:
                         self.alias_mapping[model_name] = model["name"].upper()
 
-                    logger().info("\nProcessing model: %s", path)
+                    logger().info("Processing model: %s", path)
 
                     if not self.model_selected(model_name):
                         logger().debug(
@@ -97,7 +97,7 @@ class DbtFolderReader(DbtReader):
                             self.alias_mapping[model_name] = model["name"].upper()
 
                         logger().info(
-                            "\nProcessing source: %s -- table: %s", path, model_name
+                            "Processing source: %s -- table: %s", path, model_name
                         )
 
                         if not self.model_selected(model_name):

@@ -4,13 +4,13 @@ import re
 import time
 from typing import (
     Any,
+    Dict,
     Iterable,
     List,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Tuple,
     Union,
 )
 
@@ -32,6 +32,87 @@ class MetabaseClient:
     """Metabase API client."""
 
     _SYNC_PERIOD_SECS = 5
+
+    class _Metadata:
+        """Mutable state of metadata (tables/fields) for lookups and updates."""
+
+        def __init__(self, tables: Optional[Iterable[Dict]] = None):
+            self.tables = {}
+            self.updates: MutableMapping[str, MutableMapping[str, Any]] = {}
+
+            if tables:
+                for table in tables:
+                    fields = {}
+                    for field in table.get("fields", []):
+                        new_field = field.copy()
+                        new_field["kind"] = "field"
+
+                        field_name = field["name"].upper()
+                        fields[field_name] = new_field
+
+                    new_table = table.copy()
+                    new_table["kind"] = "table"
+                    new_table["fields"] = fields
+
+                    schema_name = table["schema"].upper()
+                    table_name = table["name"].upper()
+                    self.tables[f"{schema_name}.{table_name}"] = new_table
+
+        def get_table(self, table_key: str) -> Optional[MutableMapping]:
+            """Looks up table by key.
+
+            Args:
+                table_key (str): Table key of form SCHEMA.TABLE.
+
+            Returns:
+                Optional[MutableMapping]: Table description or none.
+            """
+            return self.tables.get(table_key)
+
+        def get_field(self, table_key: str, field_key: str) -> Optional[MutableMapping]:
+            """Looks up field by table and key.
+
+            Args:
+                table_key (str): Table key of form SCHEMA.TABLE.
+                field_key (str): Field key.
+
+            Returns:
+                Optional[MutableMapping]: Field description or none.
+            """
+            return self.tables.get(table_key, {}).get("fields", {}).get(field_key)
+
+        def update(self, entity: MutableMapping, delta: Mapping):
+            """Updates entity (table or field) with arguments and stages API update.
+
+            Args:
+                entity (MutableMapping): Current state of entity.
+                delta (Mapping): Fields that need to change.
+            """
+            entity.update(delta)
+
+            key = f"{entity['kind']}.{entity['id']}"
+            update = self.updates.get(key, {})
+            update["kind"] = entity["kind"]
+            update["id"] = entity["id"]
+
+            body = update.get("body", {})
+            body.update(delta)
+            update["body"] = body
+
+            self.updates[key] = update
+
+        def pop_updates(self) -> Iterable[MutableMapping]:
+            """Clears and returns currently staged updates.
+
+            Returns:
+                Iterable[MutableMapping]: List of updates.
+            """
+            updates = self.updates.values()
+            self.updates = {}
+            return updates
+
+        def __bool__(self) -> bool:
+            return bool(self.tables)
 
     def __init__(
         self,
@@ -73,6 +154,7 @@ class MetabaseClient:
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
+        self.metadata = self._Metadata()
         logger().info(":ok_hand: Session established successfully")
 
     def get_session_id(self, user: str, password: str) -> str:
@@ -125,6 +207,8 @@ class MetabaseClient:
                 f"Timeout provided {timeout} secs, must be at least {self._SYNC_PERIOD_SECS}"
             )
 
+        self.metadata = MetabaseClient._Metadata()
+
         database_id = self.find_database_id(database)
         if not database_id:
             raise exceptions.MetabaseUnableToSync(
@@ -136,7 +220,8 @@ class MetabaseClient:
         deadline = int(time.time()) + timeout
         sync_successful = False
         while True:
-            sync_successful = self.models_compatible(database_id, models)
+            self.metadata = self.build_metadata(database_id)
+            sync_successful = self.models_compatible(models)
             time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
             if not sync_successful and time_after_wait <= deadline:
                 time.sleep(self._SYNC_PERIOD_SECS)
@@ -148,20 +233,15 @@ class MetabaseClient:
             )
         return sync_successful
 
-    def models_compatible(
-        self, database_id: str, models: Sequence[MetabaseModel]
-    ) -> bool:
+    def models_compatible(self, models: Sequence[MetabaseModel]) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
-            database_id {str} -- Metabase database ID.
             models {list} -- List of dbt models read from project.
 
         Returns:
             bool -- True if schema compatible with models, false otherwise.
         """
-
-        _, field_lookup = self.build_metadata_lookups(database_id)
 
         are_models_compatible = True
         for model in models:
@@ -173,20 +253,23 @@ class MetabaseClient:
 
             lookup_key = f"{schema_name}.{model_name}"
 
-            if lookup_key not in field_lookup:
+            table = self.metadata.get_table(lookup_key)
+            if not table:
                 logger().warning(
                     "Model %s not found in %s schema", lookup_key, schema_name
                 )
                 are_models_compatible = False
-            else:
-                table_lookup = field_lookup[lookup_key]
-                for column in model.columns:
-                    column_name = column.name.upper()
-                    if column_name not in table_lookup:
-                        logger().warning(
-                            "Column %s not found in %s model", column_name, lookup_key
-                        )
-                        are_models_compatible = False
+                continue
+
+            for column in model.columns:
+                column_name = column.name.upper()
+
+                field = self.metadata.get_field(lookup_key, column_name)
+                if not field:
+                    logger().warning(
+                        "Column %s not found in %s model", column_name, lookup_key
+                    )
+                    are_models_compatible = False
 
         return are_models_compatible
 
@@ -204,33 +287,37 @@ class MetabaseClient:
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
 
-        database_id = self.find_database_id(database)
-        if not database_id:
-            logger().critical("Cannot find database by name %s", database)
-            return
-
-        table_lookup, field_lookup = self.build_metadata_lookups(database_id)
+        if not self.metadata:
+            database_id = self.find_database_id(database)
+            if not database_id:
+                logger().critical("Cannot find database by name %s", database)
+                return
+            self.metadata = self.build_metadata(database_id)
 
         for model in models:
             if model.model_type == ModelType.sources and self.exclude_sources:
                 logger().info(":fast_forward: Skipping %s source", model.unique_id)
                 continue
 
-            self.export_model(model, table_lookup, field_lookup, aliases)
+            self.export_model(model, aliases)
 
-    def export_model(
-        self,
-        model: MetabaseModel,
-        table_lookup: dict,
-        field_lookup: dict,
-        aliases: dict,
-    ):
+        for update in self.metadata.pop_updates():
+            self.api(
+                "put",
+                f"/api/{update['kind']}/{update['id']}",
+                json=update["body"],
+            )
+            logger().info(
+                ":satellite: Update to %s %s applied successfully",
+                update["kind"],
+                update["id"],
+            )
+
+    def export_model(self, model: MetabaseModel, aliases: dict):
         """Exports one dbt model to Metabase database schema.
 
         Arguments:
             model {dict} -- One dbt model read from project.
-            table_lookup {dict} -- Dictionary of Metabase tables indexed by name.
-            field_lookup {dict} -- Dictionary of Metabase fields indexed by name, indexed by table name.
             aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
         """
 
@@ -239,10 +326,10 @@ class MetabaseClient:
 
         lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
 
-        api_table = table_lookup.get(lookup_key)
+        api_table = self.metadata.get_table(lookup_key)
         if not api_table:
             logger().error(
-                "\n:cross_mark: Table %s does not exist in Metabase", lookup_key
+                ":cross_mark: Table %s does not exist in Metabase", lookup_key
             )
             return
 
@@ -270,31 +357,20 @@ class MetabaseClient:
         if api_table.get("visibility_type") != model_visibility:
             body_table["visibility_type"] = model_visibility
 
-        table_id = api_table["id"]
         if body_table:
-            # Update with new values
-            self.api(
-                "put",
-                f"/api/table/{table_id}",
-                json=body_table,
-            )
-            logger().info("\n:raising_hands: Updated table %s successfully", lookup_key)
-        elif not model_description:
-            logger().info(
-                "\n:bow: No model description provided for table %s", lookup_key
-            )
+            self.metadata.update(entity=api_table, delta=body_table)
+            logger().info(":raising_hands: Table %s will be updated", lookup_key)
         else:
-            logger().info("\n:thumbs_up: Table %s is up-to-date", lookup_key)
+            logger().info(":thumbs_up: Table %s is up-to-date", lookup_key)
 
         for column in model.columns:
-            self.export_column(schema_name, model_name, column, field_lookup, aliases)
+            self.export_column(schema_name, model_name, column, aliases)
 
     def export_column(
         self,
         schema_name: str,
         model_name: str,
         column: MetabaseColumn,
-        field_lookup: dict,
         aliases: dict,
     ):
         """Exports one dbt column to Metabase database schema.
@@ -302,23 +378,18 @@ class MetabaseClient:
         Arguments:
             model_name {str} -- One dbt model name read from project.
             column {dict} -- One dbt column read from project.
-            field_lookup {dict} -- Dictionary of Metabase fields indexed by name, indexed by table name.
             aliases {dict} -- Provided by reader class. Used to resolve FK refs against relations to aliased source tables
         """
 
         table_lookup_key = f"{schema_name}.{model_name}"
         column_name = column.name.upper()
 
-        field = field_lookup.get(table_lookup_key, {}).get(column_name)
-        if not field:
+        api_field = self.metadata.get_field(table_lookup_key, column_name)
+        if not api_field:
             logger().error(
                 "Field %s.%s does not exist in Metabase", table_lookup_key, column_name
             )
             return
-
-        field_id = field["id"]
-
-        api_field = self.api("get", f"/api/field/{field_id}")
 
         if "special_type" in api_field:
             semantic_type_key = "special_type"
@@ -364,21 +435,27 @@ class MetabaseClient:
                     target_table,
                 )
 
-                fk_target_field_id = (
-                    field_lookup.get(target_table, {}).get(target_field, {}).get("id")
-                )
-
-                if fk_target_field_id:
-                    logger().info(
-                        ":key: Setting target field %s to PK in order to facilitate FK ref for %s column",
-                        fk_target_field_id,
-                        column_name,
-                    )
-                    self.api(
-                        "put",
-                        f"/api/field/{fk_target_field_id}",
-                        json={semantic_type_key: "type/PK"},
-                    )
+                fk_target_field = self.metadata.get_field(target_table, target_field)
+                if fk_target_field:
+                    fk_target_field_id = fk_target_field.get("id")
+                    if fk_target_field.get(semantic_type_key) != "type/PK":
+                        logger().info(
+                            ":key: Target field %s will be set to PK for %s column FK",
+                            fk_target_field_id,
+                            column_name,
+                        )
+                        body_fk_target_field = {
+                            semantic_type_key: "type/PK",
+                        }
+                        self.metadata.update(
+                            entity=fk_target_field, delta=body_fk_target_field
+                        )
+                    else:
+                        logger().info(
+                            ":thumbs_up: Target field %s is already PK, needed for %s column",
+                            fk_target_field_id,
+                            column_name,
+                        )
                 else:
                     logger().error(
                         ":cross_mark: Unable to find foreign key target %s.%s",
@@ -435,14 +512,9 @@ class MetabaseClient:
             body_field[semantic_type_key] = column.semantic_type or None
 
         if body_field:
-            # Update with new values
-            self.api(
-                "put",
-                f"/api/field/{field_id}",
-                json=body_field,
-            )
+            self.metadata.update(entity=api_field, delta=body_field)
             logger().info(
-                ":sparkles: Updated field %s.%s successfully", model_name, column_name
+                ":sparkles: Field %s.%s will be updated", model_name, column_name
             )
         else:
             logger().info(
@@ -464,64 +536,35 @@ class MetabaseClient:
                 return database["id"]
         return None
 
-    def build_metadata_lookups(
-        self, database_id: str, schemas_to_exclude: Iterable = None
-    ) -> Tuple[dict, dict]:
-        """Builds table and field lookups.
+    def build_metadata(self, database_id: str) -> _Metadata:
+        """Builds metadata lookups.
 
         Arguments:
             database_id {str} -- Metabase database ID.
 
         Returns:
-            dict -- Dictionary of tables indexed by name.
-            dict -- Dictionary of fields indexed by name, indexed by table name.
+            _Metadata -- Metadata lookup object.
         """
 
-        if schemas_to_exclude is None:
-            schemas_to_exclude = []
-
-        table_lookup = {}
-        field_lookup = {}
+        tables = []
 
         metadata = self.api(
             "get",
             f"/api/database/{database_id}/metadata",
-            params=dict(include_hidden=True),
+            params={"include_hidden": True},
         )
+
+        bigquery_schema = metadata.get("details", {}).get("dataset-id")
+
         for table in metadata.get("tables", []):
-            table_schema = table.get("schema")
-            # table["schema"] is null for bigquery datasets
-            bigquery_schema = metadata.get("details", {}).get("dataset-id")
-            table_schema = (
-                table_schema or bigquery_schema or METABASE_MODEL_DEFAULT_SCHEMA
+            # table[schema] is null for bigquery datasets
+            table["schema"] = (
+                table.get("schema") or bigquery_schema or METABASE_MODEL_DEFAULT_SCHEMA
             ).upper()
-            table_name = table["name"].upper()
 
-            if schemas_to_exclude:
-                schemas_to_exclude = {
-                    exclusion.upper() for exclusion in schemas_to_exclude
-                }
+            tables.append(table)
 
-                if table_schema in schemas_to_exclude:
-                    logger().debug(
-                        "Ignoring Metabase table %s in schema %s. It belongs to excluded schemas %s",
-                        table_name,
-                        table_schema,
-                        schemas_to_exclude,
-                    )
-                    continue
-
-            lookup_key = f"{table_schema}.{table_name}"
-            table_lookup[lookup_key] = table
-            table_field_lookup = {}
-
-            for field in table.get("fields", []):
-                field_name = field["name"].upper()
-                table_field_lookup[field_name] = field
-
-            field_lookup[lookup_key] = table_field_lookup
-
-        return table_lookup, field_lookup
+        return MetabaseClient._Metadata(tables)
 
     def extract_exposures(
         self,
@@ -576,7 +619,7 @@ class MetabaseClient:
                 continue
 
             # Iter through collection
-            logger().info("\n\n:sparkles: Exploring collection %s", collection["name"])
+            logger().info(":sparkles: Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
 
                 # Ensure collection item is of parsable type
