@@ -3,6 +3,7 @@ import os
 import re
 import time
 from typing import (
+    Any,
     Iterable,
     List,
     Mapping,
@@ -253,8 +254,13 @@ class MetabaseClient:
         model_visibility = model.visibility_type or None
 
         body_table = {}
-        if api_table.get("display_name") != model_display_name:
+
+        # Update if specified, otherwise reset one that had been set
+        if api_table.get("display_name") != model_display_name and (
+            model_display_name or api_table.get("display_name") != api_table.get("name")
+        ):
             body_table["display_name"] = model_display_name
+
         if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
@@ -389,12 +395,15 @@ class MetabaseClient:
         if api_field["fk_target_field_id"] and not fk_target_field_id:
             fk_target_field_id = api_field["fk_target_field_id"]
 
-        api_settings = api_field.get("settings") or {}
-        body_field = {
-            "settings": api_settings.copy(),
-        }
-        if api_field.get("display_name") != column_display_name:
+        body_field: MutableMapping[str, Optional[Any]] = {}
+
+        # Update if specified, otherwise reset one that had been set
+        if api_field.get("display_name") != column_display_name and (
+            column_display_name
+            or api_field.get("display_name") != api_field.get("name")
+        ):
             body_field["display_name"] = column_display_name
+
         if api_field.get("description") != column_description:
             body_field["description"] = column_description
         if api_field.get("visibility_type") != column_visibility:
@@ -411,11 +420,13 @@ class MetabaseClient:
             and column.coercion_strategy
         ):
             body_field["coercion_strategy"] = column.coercion_strategy
-        if (
-            api_settings.get("number_style") != column.number_style
-            and column.number_style
-        ):
-            body_field["settings"]["number_style"] = column.number_style
+
+        settings = api_field.get("settings") or {}
+        if settings.get("number_style") != column.number_style and column.number_style:
+            settings["number_style"] = column.number_style
+
+        if settings:
+            body_field["settings"] = settings
 
         # Allow explicit null type to override detected one
         if api_field.get(semantic_type_key) != column.semantic_type and (
@@ -895,7 +906,11 @@ class MetabaseClient:
             headers["X-Metabase-Session"] = self.session_id
 
         response = requests.request(
-            method, f"{self.protocol}://{self.host}{path}", verify=self.verify, **kwargs
+            method,
+            f"{self.protocol}://{self.host}{path}",
+            verify=self.verify,
+            timeout=30,
+            **kwargs,
         )
 
         if critical:
