@@ -278,6 +278,7 @@ class MetabaseClient:
                 f"/api/table/{table_id}",
                 json=body_table,
             )
+            api_table.update(body_table)
             logger().info("\n:raising_hands: Updated table %s successfully", lookup_key)
         elif not model_description:
             logger().info(
@@ -370,11 +371,15 @@ class MetabaseClient:
                             fk_target_field_id,
                             column_name,
                         )
+                        body_fk_target_field = {
+                            semantic_type_key: "type/PK",
+                        }
                         self.api(
                             "put",
                             f"/api/field/{fk_target_field_id}",
-                            json={semantic_type_key: "type/PK"},
+                            json=body_fk_target_field,
                         )
+                        fk_target_field.update(body_fk_target_field)
                     else:
                         logger().info(
                             ":thumbs_up: Target field %s is already PK for %s column",
@@ -443,6 +448,7 @@ class MetabaseClient:
                 f"/api/field/{field_id}",
                 json=body_field,
             )
+            api_field.update(body_field)
             logger().info(
                 ":sparkles: Updated field %s.%s successfully", model_name, column_name
             )
