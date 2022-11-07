@@ -24,83 +24,10 @@ def test_mock_api(method: str, path: str):
     BASE_PATH = "tests/fixtures/mock_api/"
     if method == "get":
         if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
-            return json.load(open(f"{BASE_PATH}/{path.lstrip('/')}.json"))
-        else:
-            return {}
-
-
-def rebuild_mock_api():
-    object_models = [
-        "card",
-        "collection",
-        "dashboard",
-        "database",
-        "field",
-        "metric",
-        "table",
-        "user",
-    ]
-    for object in object_models:
-        if not os.path.exists(
-            f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}"
-        ):
-            os.mkdir(f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}")
-        if not object == "field":
-            meta = mbc.api("get", f"/api/{object}")
-            with open(
-                f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}.json",
-                "w",
-            ) as f:
-                f.write(json.dumps(meta))
-        for i in range(100):
-            meta = mbc.api("get", f"/api/{object}/{i}", critical=False)
-            if meta:
-                with open(
-                    f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}.json",
-                    "w",
-                ) as f:
-                    f.write(json.dumps(meta))
-            if object == "collection":
-                meta = mbc.api("get", f"/api/{object}/{i}/items", critical=False)
-                if meta:
-                    if not os.path.exists(
-                        f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}"
-                    ):
-                        os.mkdir(
-                            f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}"
-                        )
-                    with open(
-                        f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}/items.json",
-                        "w",
-                    ) as f:
-                        f.write(json.dumps(meta))
-                meta = mbc.api("get", f"/api/{object}/root/items", critical=False)
-                if meta:
-                    if not os.path.exists(
-                        f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/root"
-                    ):
-                        os.mkdir(
-                            f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/root"
-                        )
-                    with open(
-                        f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/root/items.json",
-                        "w",
-                    ) as f:
-                        f.write(json.dumps(meta))
-            if object == "database":
-                meta = mbc.api("get", f"/api/{object}/{i}/metadata", critical=False)
-                if meta:
-                    if not os.path.exists(
-                        f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}"
-                    ):
-                        os.mkdir(
-                            f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}"
-                        )
-                    with open(
-                        f"/home/alexb/dbt-metabase/tests/fixtures/mock_api/api/{object}/{i}/metadata.json",
-                        "w",
-                    ) as f:
-                        f.write(json.dumps(meta))
+            return json.load(
+                open(f"{BASE_PATH}/{path.lstrip('/')}.json", encoding="utf-8")
+            )
+        return {}
 
 
 def rebuild_baseline_exposure_yaml():
@@ -110,7 +37,6 @@ def rebuild_baseline_exposure_yaml():
             schema="PUBLIC",
             description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
             model_type=ModelType.nodes,
-            ref="ref('customers')",
             columns=[
                 MetabaseColumn(
                     name="CUSTOMER_ID",
@@ -182,7 +108,6 @@ def rebuild_baseline_exposure_yaml():
             schema="PUBLIC",
             description="This table has basic information about orders, as well as some derived facts based on payments",
             model_type=ModelType.nodes,
-            ref="ref('orders')",
             columns=[
                 MetabaseColumn(
                     name="ORDER_ID",
@@ -272,7 +197,6 @@ def rebuild_baseline_exposure_yaml():
             schema="PUBLIC",
             description="",
             model_type=ModelType.nodes,
-            ref="ref('stg_customers')",
             columns=[
                 MetabaseColumn(
                     name="CUSTOMER_ID",
@@ -290,7 +214,6 @@ def rebuild_baseline_exposure_yaml():
             schema="PUBLIC",
             description="",
             model_type=ModelType.nodes,
-            ref="ref('stg_orders')",
             columns=[
                 MetabaseColumn(
                     name="ORDER_ID",
@@ -317,7 +240,6 @@ def rebuild_baseline_exposure_yaml():
             schema="PUBLIC",
             description="",
             model_type=ModelType.nodes,
-            ref="ref('stg_payments')",
             columns=[
                 MetabaseColumn(
                     name="PAYMENT_ID",
@@ -345,19 +267,3 @@ def rebuild_baseline_exposure_yaml():
         output_name="baseline_test_exposures",
         output_path="tests/fixtures/exposure",
     )
-
-
-def rebuild_lookup_artifacts():
-    tables, fields = mbc.build_metadata_lookups(database_id=2)
-    if not os.path.exists(f"/home/alexb/dbt-metabase/tests/fixtures/lookups"):
-        os.mkdir(f"/home/alexb/dbt-metabase/tests/fixtures/lookups")
-    with open(
-        f"/home/alexb/dbt-metabase/tests/fixtures/lookups/table_lookups.json",
-        "w",
-    ) as f:
-        f.write(json.dumps(tables))
-    with open(
-        f"/home/alexb/dbt-metabase/tests/fixtures/lookups/field_lookups.json",
-        "w",
-    ) as f:
-        f.write(json.dumps(fields))
