@@ -253,8 +253,13 @@ class MetabaseClient:
         model_visibility = model.visibility_type or None
 
         body_table = {}
-        if api_table.get("display_name") != model_display_name:
+
+        # Update if specified, otherwise reset one that had been set
+        if api_table.get("display_name") != model_display_name and (
+            model_display_name or api_table.get("display_name") != api_table.get("name")
+        ):
             body_table["display_name"] = model_display_name
+
         if api_table.get("description") != model_description:
             body_table["description"] = model_description
         if api_table.get("points_of_interest") != model_points_of_interest:
