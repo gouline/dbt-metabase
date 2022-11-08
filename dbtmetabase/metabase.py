@@ -16,6 +16,7 @@ from typing import (
 
 import requests
 import yaml
+from requests.adapters import HTTPAdapter, Retry
 
 from .logger.logging import logger
 from .models import exceptions
@@ -137,17 +138,21 @@ class MetabaseClient:
             session_id {str} -- Metabase session ID. (default: {None})
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
+        self.base_url = f"{'http' if use_http else 'https'}://{host}"
+        self.session = requests.Session()
+        self.session.verify = verify
+        adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
+        self.session.mount(self.base_url, adaptor)
+        session_header = session_id or self.get_session_id(user, password)
+        self.session.headers["X-Metabase-Session"] = session_header
 
-        self.host = host
-        self.protocol = "http" if use_http else "https"
-        self.verify = verify
-        self.session_id = session_id or self.get_session_id(user, password)
         self.exclude_sources = exclude_sources
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
+
         # This regex is looking for from and join clauses, and extracting the table part.
         # It won't recognize some valid sql table references, such as `from "table with spaces"`.
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
@@ -155,6 +160,7 @@ class MetabaseClient:
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
         self.metadata = self._Metadata()
+
         logger().info(":ok_hand: Session established successfully")
 
     def get_session_id(self, user: str, password: str) -> str:
@@ -171,7 +177,6 @@ class MetabaseClient:
         return self.api(
             "post",
             "/api/session",
-            authenticated=False,
             json={"username": user, "password": password},
         )["id"]
 
@@ -904,7 +909,7 @@ class MetabaseClient:
             "name": name,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
-            "url": f"{self.protocol}://{self.host}/{exposure_type}/{exposure_id}",
+            "url": f"{self.base_url}/{exposure_type}/{exposure_id}",
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
@@ -921,7 +926,6 @@ class MetabaseClient:
         self,
         method: str,
         path: str,
-        authenticated: bool = True,
         critical: bool = True,
         **kwargs,
     ) -> Mapping:
@@ -939,20 +943,10 @@ class MetabaseClient:
             Any -- JSON payload of the endpoint.
         """
 
-        headers: MutableMapping = {}
-        if "headers" not in kwargs:
-            kwargs["headers"] = headers
-        else:
-            headers = kwargs["headers"].copy()
-
-        if authenticated:
-            headers["X-Metabase-Session"] = self.session_id
-
-        response = requests.request(
+        response = self.session.request(
             method,
-            f"{self.protocol}://{self.host}{path}",
-            verify=self.verify,
-            timeout=30,
+            f"{self.base_url}{path}",
+            timeout=15,
             **kwargs,
         )
 
