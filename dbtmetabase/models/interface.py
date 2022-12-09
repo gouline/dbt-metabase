@@ -88,16 +88,14 @@ class MetabaseInterface:
             use_http=self.use_http,
             verify=self.verify,
             session_id=self.session_id,
+            sync=self.sync,
+            sync_timeout=self.sync_timeout,
             exclude_sources=self.exclude_sources,
         )
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
         if self.sync:
-            self._client.sync_and_wait(
-                self.database,
-                dbt_models,
-                self.sync_timeout,
-            )
+            self._client.sync_and_wait(self.database, dbt_models)
 
 
 class DbtInterface:
