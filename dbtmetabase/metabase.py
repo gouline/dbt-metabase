@@ -10,7 +10,6 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
-    Sequence,
     Union,
 )
 
@@ -120,9 +119,9 @@ class MetabaseClient:
         host: str,
         user: str,
         password: str,
+        verify: Optional[Union[str, bool]] = None,
+        session_id: Optional[str] = None,
         use_http: bool = False,
-        verify: Union[str, bool] = None,
-        session_id: str = None,
         sync: Optional[bool] = True,
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
@@ -167,7 +166,7 @@ class MetabaseClient:
         )
         self.metadata = self._Metadata()
 
-        self._synced_models: Optional[Sequence] = None
+        self._synced_models: Optional[List[MetabaseModel]] = None
 
         logger().info(":ok_hand: Session established successfully")
 
@@ -191,7 +190,7 @@ class MetabaseClient:
     def sync_and_wait(
         self,
         database: str,
-        models: Sequence[MetabaseModel],
+        models: List[MetabaseModel],
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
@@ -246,7 +245,7 @@ class MetabaseClient:
 
         return sync_successful
 
-    def models_compatible(self, models: Sequence[MetabaseModel]) -> bool:
+    def models_compatible(self, models: List[MetabaseModel]) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
         Arguments:
@@ -289,7 +288,7 @@ class MetabaseClient:
     def export_models(
         self,
         database: str,
-        models: Sequence[MetabaseModel],
+        models: List[MetabaseModel],
         aliases,
     ):
         """Exports dbt models to Metabase database schema.
@@ -601,16 +600,16 @@ class MetabaseClient:
 
     def extract_exposures(
         self,
-        models: Sequence[MetabaseModel],
+        models: List[MetabaseModel],
         output_path: str = ".",
         output_name: str = "metabase_exposures",
         include_personal_collections: bool = True,
-        collection_excludes: Iterable = None,
+        collection_excludes: Optional[Iterable] = None,
     ) -> Mapping:
         """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader
 
         Arguments:
-            models {Sequence[MetabaseModel]} -- List of models as output by dbt reader
+            models {List[MetabaseModel]} -- List of models as output by dbt reader
 
         Keyword Arguments:
             output_path {str} -- The path to output the generated yaml. (default: ".")
