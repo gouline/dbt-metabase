@@ -8,3 +8,7 @@ class NoDbtSchemaSupplied(Exception):
 
 class MetabaseUnableToSync(Exception):
     """Thrown when Metabase cannot sync / align models with dbt model"""
+
+
+class MetabaseRuntimeError(Exception):
+    """Thrown when Metabase execution failed."""
