@@ -202,6 +202,16 @@ class DbtManifestReader(DbtReader):
                     )
                     continue
 
+                # Skip the incoming relationship tests, in which the fk_target_table is the model currently being read.
+                # Otherwise, the primary key of the current model would be (incorrectly) determined to be a foreign key.
+                is_incoming_relationship_test = depends_on_nodes[1] != unique_id
+                if len(depends_on_nodes) == 2 and is_incoming_relationship_test:
+                    logger().debug(
+                        "Skip this incoming relationship test, concerning nodes %s.",
+                        depends_on_nodes,
+                    )
+                    continue
+
                 # Remove the current model from the list. Note, remove() only removes the first occurrence. This ensures
                 # the logic also works for self referencing models.
                 if len(depends_on_nodes) == 2 and unique_id in depends_on_nodes:
