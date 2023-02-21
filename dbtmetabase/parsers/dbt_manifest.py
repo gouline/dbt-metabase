@@ -208,7 +208,7 @@ class DbtManifestReader(DbtReader):
                 if len(depends_on_nodes) == 2 and is_incoming_relationship_test:
                     logger().debug(
                         "Skip this incoming relationship test, concerning nodes %s.",
-                        depends_on_nodes
+                        depends_on_nodes,
                     )
                     continue
 
