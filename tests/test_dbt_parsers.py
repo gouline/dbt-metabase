@@ -395,10 +395,10 @@ class TestDbtManifestReader(unittest.TestCase):
                         name="CUSTOMER_ID",
                         description="This is a unique identifier for a customer",
                         meta_fields={},
-                        semantic_type="type/FK",
+                        semantic_type=None,  # This is a PK field, should not be detected as FK
                         visibility_type=None,
-                        fk_target_table="PUBLIC.ORDERS",
-                        fk_target_field="CUSTOMER_ID",
+                        fk_target_table=None,
+                        fk_target_field=None,
                     ),
                     MetabaseColumn(
                         name="FIRST_NAME",
