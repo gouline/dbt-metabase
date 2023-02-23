@@ -355,7 +355,11 @@ class MetabaseClient:
 
         # Empty strings not accepted by Metabase
         model_display_name = model.display_name or None
-        model_description = model.description or None
+        if not model.description:
+            model_description = None
+        else:
+            # We want to always convert newlines to spaces
+            model_description = model.description.replace("\n", " ")
         model_points_of_interest = model.points_of_interest or None
         model_caveats = model.caveats or None
         model_visibility = model.visibility_type or None
