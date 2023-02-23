@@ -156,6 +156,7 @@ class DbtFolderReader(DbtReader):
 
         # Resolved name is what the name will be in the database
         resolved_name = model.get("alias", model.get("identifier"))
+        display_name = meta.get("metabase.display_name")
         dbt_name = None
         if not resolved_name:
             resolved_name = model["name"]
@@ -164,6 +165,7 @@ class DbtFolderReader(DbtReader):
 
         return MetabaseModel(
             name=resolved_name,
+            display_name=display_name,
             schema=schema,
             description=description,
             columns=metabase_columns,
