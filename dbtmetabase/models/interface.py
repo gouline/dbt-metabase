@@ -3,7 +3,7 @@ from os.path import expandvars
 from typing import Optional, Union, List, Tuple, MutableMapping, Iterable
 
 from .metabase import MetabaseModel
-from .exceptions import NoDbtPathSupplied, NoDbtSchemaSupplied
+from .exceptions import NoDbtPathSupplied, NoDbtSchemaSupplied, NoMetabaseCredentialsOrSessionIdSupplied
 from ..parsers.dbt import DbtReader
 from ..parsers.dbt_folder import DbtFolderReader
 from ..parsers.dbt_manifest import DbtManifestReader
@@ -72,6 +72,7 @@ class MetabaseInterface:
 
         Raises:
             MetabaseUnableToSync: This error is raised if sync is enabled and a timeout is explicitly set in the `Metabase` object config
+            NoMetabaseCredentialsOrSessionIdSupplied: This error is raised if credentials or session_id is not supplied
         """
 
         if self._client is not None:
@@ -80,6 +81,11 @@ class MetabaseInterface:
 
         if dbt_models is None:
             dbt_models = []
+
+        if not (self.user and self.password) and not self.session_id:
+            raise NoMetabaseCredentialsOrSessionIdSupplied(
+                f"Credentials or Session ID is not supplied"
+            )
 
         self._client = MetabaseClient(
             host=self.host,
