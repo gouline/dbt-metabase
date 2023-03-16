@@ -6,7 +6,7 @@ class NoDbtSchemaSupplied(Exception):
     """Thrown when using folder parser without supplying a schema"""
 
 
-class NoMetabaseCredentialsOrSessionIdSupplied(Exception):
+class NoMetabaseCredentialsSupplied(Exception):
     """Thrown when credentials or session id not supplied"""
 
 
