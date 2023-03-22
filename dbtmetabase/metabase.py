@@ -226,7 +226,6 @@ class MetabaseClient:
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
         deadline = int(time.time()) + timeout
-        sync_successful = False
         while True:
             self.metadata = self.build_metadata(database_id)
             sync_successful = self.models_compatible(models)
