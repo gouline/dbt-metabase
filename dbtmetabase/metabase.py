@@ -10,6 +10,7 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -120,6 +121,7 @@ class MetabaseClient:
         user: str,
         password: str,
         verify: Optional[Union[str, bool]] = None,
+        cert: Optional[Union[str, Tuple[str, str]]] = None,
         session_id: Optional[str] = None,
         use_http: bool = False,
         sync: Optional[bool] = True,
@@ -136,6 +138,7 @@ class MetabaseClient:
         Keyword Arguments:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
+            cert {Union[str, Tuple[str, str]]} -- Path to a custom certificate to be used by the Metabase client. (default: {None})
             session_id {str} -- Metabase session ID. (default: {None})
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
@@ -144,6 +147,7 @@ class MetabaseClient:
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
         self.session = requests.Session()
         self.session.verify = verify
+        self.session.cert = cert
         adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
         self.session.mount(self.base_url, adaptor)
         session_header = session_id or self.get_session_id(user, password)
