@@ -91,7 +91,7 @@ class MetabaseInterface:
 
         if not (self.user and self.password) and not self.session_id:
             raise NoMetabaseCredentialsSupplied(
-                f"Credentials or Session ID is not supplied"
+                f"Credentials or session ID not supplied"
             )
 
         self._client = MetabaseClient(
