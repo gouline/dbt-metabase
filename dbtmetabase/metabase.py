@@ -118,8 +118,8 @@ class MetabaseClient:
     def __init__(
         self,
         host: str,
-        user: str,
-        password: str,
+        user: Optional[str],
+        password: Optional[str],
         verify: Optional[Union[str, bool]] = None,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
         session_id: Optional[str] = None,
@@ -174,7 +174,7 @@ class MetabaseClient:
 
         logger().info(":ok_hand: Session established successfully")
 
-    def get_session_id(self, user: str, password: str) -> str:
+    def get_session_id(self, user: Optional[str], password: Optional[str]) -> str:
         """Obtains new session ID from API.
 
         Arguments:
