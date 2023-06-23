@@ -750,6 +750,91 @@ def exposures(
     )
 
 
+@cli.command(cls=CommandController)
+@shared_opts
+def analyses(
+    metabase_host: str,
+    metabase_user: str,
+    metabase_password: str,
+    metabase_database: str,
+    dbt_database: str,
+    dbt_path: Optional[str] = None,
+    dbt_manifest_path: Optional[str] = None,
+    dbt_schema: Optional[str] = None,
+    dbt_schema_excludes: Optional[Iterable] = None,
+    dbt_includes: Optional[Iterable] = None,
+    dbt_excludes: Optional[Iterable] = None,
+    metabase_session_id: Optional[str] = None,
+    metabase_use_http: bool = False,
+    metabase_verify: Optional[str] = None,
+    metabase_sync: bool = True,
+    metabase_sync_timeout: Optional[int] = None,
+    metabase_exclude_sources: bool = False,
+    dbt_include_tags: bool = True,
+    dbt_docs_url: Optional[str] = None,
+    verbose: bool = False,
+):
+    """Exports exposures mapping an ephemeral dbt model to an existing Metabase card.
+    The exposure name must start with MB to be considered for export.
+
+    Args:
+        metabase_host (str): Metabase hostname.
+        metabase_user (str): Metabase username.
+        metabase_password (str): Metabase password.
+        metabase_database (str): Target database name as set in Metabase (typically aliased).
+        metabase_session_id (Optional[str], optional): Session ID. Defaults to None.
+        dbt_database (str):  Target database name as specified in dbt models to be actioned.
+        dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
+        dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
+        dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.
+        dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
+        dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
+        dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
+        metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
+        metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
+        metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
+        metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
+        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
+        metabase_exclude_sources (bool, optional): Flag to skip exporting sources to Metabase. Defaults to False.
+        dbt_include_tags (bool, optional): Flag to append tags to table descriptions in Metabase. Defaults to True.
+        dbt_docs_url (Optional[str], optional): Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description. Defaults to None.
+        verbose (bool, optional): Flag which signals verbose output. Defaults to False.
+    """    
+    # Set global logging level if verbose
+    if verbose:
+        package_logger.LOGGING_LEVEL = logging.DEBUG
+
+    # Instantiate dbt interface
+    dbt = DbtInterface(
+        path=dbt_path,
+        manifest_path=dbt_manifest_path,
+        database=dbt_database,
+        schema=dbt_schema,
+        schema_excludes=dbt_schema_excludes,
+        includes=dbt_includes,
+        excludes=dbt_excludes,
+    )
+    
+    analyses =  dbt.read_analyses()
+
+    # Instantiate Metabase interface
+    metabase = MetabaseInterface(
+        host=metabase_host,
+        user=metabase_user,
+        password=metabase_password,
+        session_id=metabase_session_id,
+        use_http=metabase_use_http,
+        verify=metabase_verify,
+        database=metabase_database,
+        sync=metabase_sync,
+        sync_timeout=metabase_sync_timeout,
+        exclude_sources=metabase_exclude_sources,
+    )
+
+    for analysis in analyses:
+        metabase.client.export_analysis(dbt_database, analysis)
+
+
 def main():
     # Valid kwarg
     cli(max_content_width=600)  # pylint: disable=unexpected-keyword-arg
