@@ -2,7 +2,7 @@ import logging
 from os.path import expandvars
 from typing import Optional, Union, List, Tuple, MutableMapping, Iterable
 
-from .metabase import MetabaseModel
+from .metabase import MetabaseModel, MetabaseCard
 from .exceptions import (
     NoDbtPathSupplied,
     NoDbtSchemaSupplied,
@@ -225,3 +225,6 @@ class DbtInterface:
         docs_url: Optional[str] = None,
     ) -> Tuple[List[MetabaseModel], MutableMapping]:
         return self.parser.read_models(include_tags, docs_url)
+
+    def read_analyses(self) -> List[MetabaseCard]:
+        return self.parser.read_analyses()
