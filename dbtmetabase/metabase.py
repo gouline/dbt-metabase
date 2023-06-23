@@ -24,6 +24,7 @@ from .models.metabase import (
     METABASE_MODEL_DEFAULT_SCHEMA,
     MetabaseColumn,
     MetabaseModel,
+    MetabaseCard,
     ModelType,
     NullValue,
 )
@@ -1004,3 +1005,36 @@ class MetabaseClient:
             return response_json["data"]
 
         return response_json
+
+    def export_analysis(
+        self,
+        database: str,
+        analysis: MetabaseCard,
+    ):
+        """Exports one dbt analysis as a Metabase card.
+
+        Arguments:
+            database {str} -- dbt target database name.
+            analysis {MetabaseCard} -- an exposure mapping an ephemeral model to a Metabase card.
+
+        Returns:
+            bool -- True if exported successfully, false if there were errors.
+        """
+
+        success = True
+        database_id = self.find_database_id(database)
+        payload = analysis.json(database_id)
+        
+        card_uri = f"/api/card/{analysis.id}"
+        
+        try:
+            self.api("get", card_uri)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logger().info("Card %s does not exist!", analysis.id)
+            else:
+                raise
+
+        self.api("put", card_uri, json=payload)
+
+        return success
