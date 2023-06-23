@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 from ..logger.logging import logger
@@ -8,9 +9,21 @@ from ..models.metabase import (
     METABASE_MODEL_META_FIELDS,
     MetabaseColumn,
     MetabaseModel,
+    MetabaseCard,
     ModelType,
 )
 from .dbt import DbtReader
+
+
+@dataclass
+class DbtExposure:
+    name: str
+    description: str
+    depends_on: List[str]
+
+    @property
+    def is_metabase_card(self):
+        return self.name.startswith("MB")
 
 
 class DbtManifestReader(DbtReader):
@@ -328,3 +341,29 @@ class DbtManifestReader(DbtReader):
         )
 
         return metabase_column
+
+    def read_analyses(self) -> List[MetabaseCard]:
+        """Reads dbt models whose exposure name starts with MB."""
+        mb_cards: List[MetabaseCard] = []
+
+        with open(self.path, "r", encoding="utf-8") as manifest_file:
+            manifest = json.load(manifest_file)
+
+        for _, node in manifest["exposures"].items():
+            exposure = DbtExposure(
+                name=node["name"],
+                depends_on=node["depends_on"],
+                description=node["description"],
+            )
+            if exposure.is_metabase_card:
+                mb_card = MetabaseCard(
+                    exposure_name=exposure.name,
+                    depends_on=exposure.depends_on,
+                    description=exposure.description,
+                )
+                for _, node in manifest["nodes"].items():
+                    if node["unique_id"] == mb_card.analysis_id:
+                        mb_card.compiled_code = node["compiled_code"]
+                        break
+                mb_cards.append(mb_card)
+        return mb_cards
