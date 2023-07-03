@@ -74,7 +74,6 @@ class MetabaseModel:
     columns: Sequence[MetabaseColumn] = field(default_factory=list)
 
 
-
 @dataclass
 class MetabaseCard:
     visualization_settings: MutableMapping = field(default_factory=dict)
@@ -95,17 +94,19 @@ class MetabaseCard:
     @property
     def id(self):
         return int(self.exposure_name.split("-")[0].replace("MB", "").strip())
-    
+
     @property
     def name(self):
         return self.exposure_name.split("-")[1].strip()
-    
+
     @property
     def analysis_id(self):
         nodes = self.depends_on.get("nodes", [])
-        assert len(nodes) == 1, "Metabase card should only depend on one analysis model."
+        assert (
+            len(nodes) == 1
+        ), "Metabase card should only depend on one analysis model."
         return nodes[0]
-    
+
     def json(self, database_id: int):
         return {
             "name": self.name,
@@ -119,7 +120,7 @@ class MetabaseCard:
                     "template_tags": {},
                 },
                 "database": database_id,
-            }
+            },
         }
 
 
