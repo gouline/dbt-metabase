@@ -730,8 +730,8 @@ class MetabaseClient:
                     creator_name = creator.get("common_name")
 
                 exposure_label = exposure_name
-                # Only lower case letters and underscores allowed in model names in dbt docs DAG / No duplicate model names
-                exposure_name = re.sub("[^a-z0-9]", "_", exposure_name.lower())
+                # Only letters, numbers, underscores and hyphens allowed in model names in dbt docs DAG / No duplicate model names
+                exposure_name = re.sub("[^\w-]", "_", exposure_name)
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
