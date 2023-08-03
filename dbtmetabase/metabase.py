@@ -729,8 +729,9 @@ class MetabaseClient:
                     creator_email = creator.get("email")
                     creator_name = creator.get("common_name")
 
-                # No spaces allowed in model names in dbt docs DAG / No duplicate model names
-                exposure_name = exposure_name.replace(" ", "_")
+                exposure_label = exposure_name
+                # Only letters, numbers, underscores and hyphens allowed in model names in dbt docs DAG / No duplicate model names
+                exposure_name = re.sub(r"[^\w-]", "_", exposure_name)
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
@@ -742,6 +743,7 @@ class MetabaseClient:
                         exposure_type=exposure_type,
                         exposure_id=exposure_id,
                         name=exposure_name,
+                        label=exposure_label,
                         header=header,
                         created_at=exposure["created_at"],
                         creator_name=creator_name,
@@ -875,6 +877,7 @@ class MetabaseClient:
         exposure_type: str,
         exposure_id: int,
         name: str,
+        label: str,
         header: str,
         created_at: str,
         creator_name: str,
@@ -888,7 +891,8 @@ class MetabaseClient:
         Arguments:
             exposure_type {str} -- Model type in Metabase being either `card` or `dashboard`
             exposure_id {str} -- Card or Dashboard id in Metabase
-            name {str} -- Name of exposure as the title of the card or dashboard in Metabase
+            name {str} -- Name of exposure
+            label {str} -- Title of the card or dashboard in Metabase
             header {str} -- The header goes at the top of the description and is useful for prefixing metadata
             created_at {str} -- Timestamp of exposure creation derived from Metabase
             creator_name {str} -- Creator name derived from Metabase
@@ -938,6 +942,7 @@ class MetabaseClient:
 
         return {
             "name": name,
+            "label": label,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
             "url": f"{self.base_url}/{exposure_type}/{exposure_id}",

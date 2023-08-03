@@ -1,6 +1,8 @@
 version: 2
 exposures:
-- name: Customers,_Sum_of_Number_Of_Orders_and_Average_of_Number_Of_Orders,_Grouped_by_Most_Recent_Order_(day)
+- name: Customers__Sum_of_Number_Of_Orders_and_Average_of_Number_Of_Orders__Grouped_by_Most_Recent_Order__day_
+  label: Customers, Sum of Number Of Orders and Average of Number Of Orders, Grouped
+    by Most Recent Order (day)
   description: '### Visualization: Line
 
 
@@ -22,7 +24,8 @@ exposures:
     email: user@example.com
   depends_on:
   - ref('customers')
-- name: Orders,_Count
+- name: Orders__Count
+  label: Orders, Count
   description: '### Visualization: Scalar
 
 
@@ -45,6 +48,7 @@ exposures:
   depends_on:
   - ref('orders')
 - name: A_look_at_your_customers_table
+  label: A look at your customers table
   description: '### Dashboard Cards: 18
 
 
@@ -67,6 +71,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Customer_lifetime_value_over_time
+  label: Customer_lifetime_value over time
   description: '### Visualization: Line
 
 
@@ -89,6 +94,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Customer_lifetime_value_over_time_1
+  label: Customer_lifetime_value over time
   description: '### Visualization: Line
 
 
@@ -111,6 +117,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Customers_added_in_the_last_30_days
+  label: Customers added in the last 30 days
   description: '### Visualization: Scalar
 
 
@@ -133,6 +140,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Customers_added_in_the_last_30_days_1
+  label: Customers added in the last 30 days
   description: '### Visualization: Scalar
 
 
@@ -155,6 +163,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Customers_by_customer_lifetime_value
+  label: Customers by customer_lifetime_value
   description: '### Visualization: Bar
 
 
@@ -177,6 +186,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Customers_by_number_of_orders
+  label: Customers by number_of_orders
   description: '### Visualization: Bar
 
 
@@ -199,6 +209,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Number_of_orders_over_time
+  label: Number_of_orders over time
   description: '### Visualization: Line
 
 
@@ -221,6 +232,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Number_of_orders_over_time_1
+  label: Number_of_orders over time
   description: '### Visualization: Line
 
 
@@ -243,6 +255,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Timestamp_by_day_of_the_week
+  label: Timestamp by day of the week
   description: '### Visualization: Bar
 
 
@@ -265,6 +278,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Timestamp_by_day_of_the_week_1
+  label: Timestamp by day of the week
   description: '### Visualization: Bar
 
 
@@ -287,6 +301,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Timestamp_by_month_of_the_year
+  label: Timestamp by month of the year
   description: '### Visualization: Bar
 
 
@@ -309,6 +324,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Timestamp_by_month_of_the_year_1
+  label: Timestamp by month of the year
   description: '### Visualization: Bar
 
 
@@ -331,6 +347,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Timestamp_by_quarter_of_the_year
+  label: Timestamp by quarter of the year
   description: '### Visualization: Bar
 
 
@@ -353,6 +370,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Timestamp_by_quarter_of_the_year_1
+  label: Timestamp by quarter of the year
   description: '### Visualization: Bar
 
 
@@ -375,6 +393,7 @@ exposures:
   depends_on:
   - ref('customers')
 - name: Total_customers
+  label: Total customers
   description: '### Visualization: Scalar
 
 
