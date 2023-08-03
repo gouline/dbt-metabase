@@ -731,7 +731,7 @@ class MetabaseClient:
 
                 exposure_label = exposure_name
                 # Only letters, numbers, underscores and hyphens allowed in model names in dbt docs DAG / No duplicate model names
-                exposure_name = re.sub("[^\w-]", "_", exposure_name)
+                exposure_name = re.sub(r"[^\w-]", "_", exposure_name)
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
