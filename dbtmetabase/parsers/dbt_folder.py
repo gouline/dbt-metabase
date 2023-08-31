@@ -40,7 +40,12 @@ class DbtFolderReader(DbtReader):
 
         schema = self.schema or METABASE_MODEL_DEFAULT_SCHEMA
 
-        for path in (Path(self.path) / "models").rglob("*.yml"):
+        models_dir_path = Path(self.path) / "models"
+        property_yaml_paths = [
+            *models_dir_path.rglob("*.yml"),
+            *models_dir_path.rglob("*.yaml"),
+        ]
+        for path in property_yaml_paths:
             with open(path, "r", encoding="utf-8") as stream:
                 schema_file = yaml.safe_load(stream)
                 if not schema_file:
