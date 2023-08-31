@@ -1,8 +1,8 @@
+import subprocess
 import re
-from pathlib import Path
 from typing import List, Mapping, MutableMapping, Optional, Tuple
 
-import yaml
+import json
 
 from ..logger.logging import logger
 from ..models.metabase import (
@@ -37,92 +37,96 @@ class DbtFolderReader(DbtReader):
         """
 
         mb_models: List[MetabaseModel] = []
-
         schema = self.schema or METABASE_MODEL_DEFAULT_SCHEMA
+        resource_type_to_model_type = {
+            "model": ModelType.nodes,
+            "source": ModelType.sources,
+        }
 
-        models_dir_path = Path(self.path) / "models"
-        property_yaml_paths = [
-            *models_dir_path.rglob("*.yml"),
-            *models_dir_path.rglob("*.yaml"),
-        ]
-        for path in property_yaml_paths:
-            with open(path, "r", encoding="utf-8") as stream:
-                schema_file = yaml.safe_load(stream)
-                if not schema_file:
-                    logger().warning("Skipping empty or invalid YAML: %s", path)
-                    continue
+        for dbt_table in self._get_dbt_tables():
+            table_name = dbt_table.get("name")
+            table_schema = dbt_table.get("schema")
+            table_resource_type = dbt_table.get("resource_type")
 
-                for model in schema_file.get("models", []):
-                    model_name = model.get("alias", model["name"]).upper()
+            logger().info("Processing dbt table: %s", table_name)
 
-                    # Refs will still use file name -- this alias mapping is good for getting the right name in the database
-                    if "alias" in model:
-                        self.alias_mapping[model_name] = model["name"].upper()
+            if not self.model_selected(table_name):
+                logger().info(
+                    "Skipping %s not included in includes or excluded by excludes",
+                    table_name,
+                )
+                continue
 
-                    logger().info("Processing model: %s", path)
+            if (
+                table_resource_type == "source"
+                and table_schema.lower() != schema.lower()
+            ):
+                logger().debug(
+                    "Skipping schema %s not in target schema %s",
+                    table_schema,
+                    schema,
+                )
+                continue
 
-                    if not self.model_selected(model_name):
-                        logger().debug(
-                            "Skipping %s not included in includes or excluded by excludes",
-                            model_name,
-                        )
-                        continue
-
-                    mb_models.append(
-                        self._read_model(
-                            model=model,
-                            schema=schema,
-                            model_type=ModelType.nodes,
-                            include_tags=include_tags,
-                        )
-                    )
-
-                for source in schema_file.get("sources", []):
-                    source_schema_name = source.get("schema", source["name"]).upper()
-
-                    if "{{" in source_schema_name and "}}" in source_schema_name:
-                        logger().warning(
-                            "dbt folder reader cannot resolve Jinja expressions, defaulting to current schema"
-                        )
-                        source_schema_name = schema
-
-                    elif source_schema_name != schema:
-                        logger().debug(
-                            "Skipping schema %s not in target schema %s",
-                            source_schema_name,
-                            schema,
-                        )
-                        continue
-
-                    for model in source.get("tables", []):
-                        model_name = model.get("identifier", model["name"]).upper()
-
-                        # These will be used to resolve our regex parsed source() references
-                        if "identifier" in model:
-                            self.alias_mapping[model_name] = model["name"].upper()
-
-                        logger().info(
-                            "Processing source: %s -- table: %s", path, model_name
-                        )
-
-                        if not self.model_selected(model_name):
-                            logger().debug(
-                                "Skipping %s not included in includes or excluded by excludes",
-                                model_name,
-                            )
-                            continue
-
-                        mb_models.append(
-                            self._read_model(
-                                model=model,
-                                source=source["name"],
-                                model_type=ModelType.sources,
-                                schema=source_schema_name,
-                                include_tags=include_tags,
-                            )
-                        )
+            mb_models.append(
+                self._read_model(
+                    model=dbt_table,
+                    source=dbt_table.get("source_name"),
+                    schema=schema,
+                    model_type=resource_type_to_model_type[table_resource_type],
+                    include_tags=include_tags,
+                )
+            )
 
         return mb_models, self.alias_mapping
+
+    def _get_dbt_tables(self) -> List[str]:
+        get_dbt_tables_cli_args = [
+            "dbt",
+            "ls",
+            "--resource-types",
+            "model",
+            "source",
+            "--output",
+            "json",
+            "--output-keys",
+            "resource_type",
+            "name",
+            "alias",
+            "identifier",
+            "schema",
+            "description",
+            "columns",
+            "tags",
+            "source_name",
+        ]
+        try:
+            dbt_tables = (
+                subprocess.run(
+                    get_dbt_tables_cli_args,
+                    cwd=self.path,
+                    capture_output=True,
+                    check=True,
+                )
+                .stdout.decode("utf-8")
+                .splitlines()
+            )
+        except subprocess.CalledProcessError as e:
+            logger().error(
+                "Error running dbt ls command. Please make sure dbt is installed and configured correctly: %s",
+                e.stdout.decode("utf-8"),
+            )
+            raise e
+        dbt_table_jsons = []
+        for dbt_table in dbt_tables:
+            try:
+                dbt_table_json = json.loads(dbt_table)
+                if type(dbt_table_json) == dict:
+                    dbt_table_jsons.append(dbt_table_json)
+            # This could happen because dbt sends some other stuff to stdout ("Running dbt=1.7.0", etc.).
+            except json.decoder.JSONDecodeError:
+                continue
+        return dbt_table_jsons
 
     def _read_model(
         self,
@@ -147,7 +151,8 @@ class DbtFolderReader(DbtReader):
 
         metabase_columns: List[MetabaseColumn] = []
 
-        for column in model.get("columns", []):
+        columns = model.get("columns", {}).values()
+        for column in columns:
             metabase_columns.append(self._read_column(column, schema))
 
         description = model.get("description", "")
