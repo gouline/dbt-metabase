@@ -101,7 +101,7 @@ class DbtFolderReader(DbtReader):
             "source_name",
         ]
         try:
-            dbt_tables = (
+            dbt_table_json_lines = (
                 subprocess.run(
                     get_dbt_tables_cli_args,
                     cwd=self.path,
@@ -118,7 +118,7 @@ class DbtFolderReader(DbtReader):
             )
             raise e
         dbt_table_jsons = []
-        for dbt_table in dbt_tables:
+        for dbt_table in dbt_table_json_lines:
             try:
                 dbt_table_json = json.loads(dbt_table)
                 if type(dbt_table_json) == dict:
