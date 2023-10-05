@@ -952,13 +952,11 @@ class MetabaseClient:
                 "email": creator_email or "",
             },
             "depends_on": list(
-                set(
-                    [
-                        refable_models[exposure.upper()]
-                        for exposure in list({m for m in self.models_exposed})
-                        if exposure.upper() in refable_models
-                    ]
-                )
+                {
+                    refable_models[exposure.upper()]
+                    for exposure in list({m for m in self.models_exposed})
+                    if exposure.upper() in refable_models
+                }
             ),
         }
 
