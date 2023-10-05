@@ -645,7 +645,6 @@ class MetabaseClient:
         parsed_exposures = []
 
         for collection in self.collections:
-
             # Exclude collections by name
             if collection["name"] in collection_excludes:
                 continue
@@ -657,7 +656,6 @@ class MetabaseClient:
             # Iter through collection
             logger().info(":sparkles: Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
-
                 # Ensure collection item is of parsable type
                 exposure_type = item["model"]
                 exposure_id = item["id"]
@@ -678,7 +676,6 @@ class MetabaseClient:
 
                 # Process exposure
                 if exposure_type == "card":
-
                     # Build header for card and extract models to self.models_exposed
                     header = "### Visualization: {}\n\n".format(
                         exposure.get("display", "Unknown").title()
@@ -689,7 +686,6 @@ class MetabaseClient:
                     native_query = self.native_query
 
                 elif exposure_type == "dashboard":
-
                     # We expect this dict key in order to iter through questions
                     if "ordered_cards" not in exposure:
                         continue
@@ -730,8 +726,8 @@ class MetabaseClient:
                     creator_name = creator.get("common_name")
 
                 exposure_label = exposure_name
-                # Only letters, numbers, underscores and hyphens allowed in model names in dbt docs DAG / No duplicate model names
-                exposure_name = re.sub(r"[^\w-]", "_", exposure_name)
+                # Only letters, numbers, underscores are allowed in model names in dbt docs DAG / No duplicate model names
+                exposure_name = re.sub(r"[^\w]", "_", exposure_name).lower()
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
@@ -824,7 +820,6 @@ class MetabaseClient:
 
             # Find models exposed through joins
             for query_join in query.get("query", {}).get("joins", []):
-
                 # Handle questions based on other question in virtual db
                 if str(query_join.get("source-table", "")).startswith("card__"):
                     self._extract_card_exposures(
@@ -853,7 +848,6 @@ class MetabaseClient:
 
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(self.exposure_parser, native_query):
-
                 # Grab just the table / model name
                 clean_exposure = sql_ref.split(".")[-1].strip('"').upper()
 
@@ -951,11 +945,15 @@ class MetabaseClient:
                 "name": creator_name,
                 "email": creator_email or "",
             },
-            "depends_on": [
-                refable_models[exposure.upper()]
-                for exposure in list({m for m in self.models_exposed})
-                if exposure.upper() in refable_models
-            ],
+            "depends_on": list(
+                set(
+                    [
+                        refable_models[exposure.upper()]
+                        for exposure in list({m for m in self.models_exposed})
+                        if exposure.upper() in refable_models
+                    ]
+                )
+            ),
         }
 
     def api(
