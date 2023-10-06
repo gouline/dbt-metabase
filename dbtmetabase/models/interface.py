@@ -32,6 +32,7 @@ class MetabaseInterface:
         sync: bool = True,
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
+        http_extra_headers: Optional[dict] = None,
     ):
         """Constructor.
 
@@ -47,6 +48,7 @@ class MetabaseInterface:
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             exclude_sources (bool, optional): Exclude exporting sources. Defaults to False.
+            http_extra_headers (Optional[dict], optional): HTTP headers to be used by the Metabase client. Defaults to None.
         """
 
         # Metabase Client
@@ -59,6 +61,7 @@ class MetabaseInterface:
         self.use_http = use_http
         self.verify = verify
         self.cert = cert
+        self.http_extra_headers = dict(http_extra_headers) if http_extra_headers else {}
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
@@ -101,6 +104,7 @@ class MetabaseInterface:
             use_http=self.use_http,
             verify=self.verify,
             cert=self.cert,
+            http_extra_headers=self.http_extra_headers,
             session_id=self.session_id,
             sync=self.sync,
             sync_timeout=self.sync_timeout,
