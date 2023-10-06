@@ -128,6 +128,7 @@ class MetabaseClient:
         sync: Optional[bool] = True,
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
+        http_extra_headers: Optional[dict] = None,
     ):
         """Constructor.
 
@@ -143,12 +144,15 @@ class MetabaseClient:
             session_id {str} -- Metabase session ID. (default: {None})
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
+            http_extra_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
+        if http_extra_headers is not None:
+            self.session.headers.update(http_extra_headers)
         adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
         self.session.mount(self.base_url, adaptor)
         session_header = session_id or self.get_session_id(user, password)
@@ -726,8 +730,9 @@ class MetabaseClient:
                     creator_email = creator.get("email")
                     creator_name = creator.get("common_name")
 
-                # No spaces allowed in model names in dbt docs DAG / No duplicate model names
-                exposure_name = exposure_name.replace(" ", "_")
+                exposure_label = exposure_name
+                # Only letters, numbers and underscores allowed in model names in dbt docs DAG / No duplicate model names
+                exposure_name = re.sub(r"[^\w]", "_", exposure_name).lower()
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
@@ -739,6 +744,7 @@ class MetabaseClient:
                         exposure_type=exposure_type,
                         exposure_id=exposure_id,
                         name=exposure_name,
+                        label=exposure_label,
                         header=header,
                         created_at=exposure["created_at"],
                         creator_name=creator_name,
@@ -870,6 +876,7 @@ class MetabaseClient:
         exposure_type: str,
         exposure_id: int,
         name: str,
+        label: str,
         header: str,
         created_at: str,
         creator_name: str,
@@ -883,7 +890,8 @@ class MetabaseClient:
         Arguments:
             exposure_type {str} -- Model type in Metabase being either `card` or `dashboard`
             exposure_id {str} -- Card or Dashboard id in Metabase
-            name {str} -- Name of exposure as the title of the card or dashboard in Metabase
+            name {str} -- Name of exposure
+            label {str} -- Title of the card or dashboard in Metabase
             header {str} -- The header goes at the top of the description and is useful for prefixing metadata
             created_at {str} -- Timestamp of exposure creation derived from Metabase
             creator_name {str} -- Creator name derived from Metabase
@@ -933,6 +941,7 @@ class MetabaseClient:
 
         return {
             "name": name,
+            "label": label,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
             "url": f"{self.base_url}/{exposure_type}/{exposure_id}",
@@ -941,11 +950,13 @@ class MetabaseClient:
                 "name": creator_name,
                 "email": creator_email or "",
             },
-            "depends_on": [
-                refable_models[exposure.upper()]
-                for exposure in list({m for m in self.models_exposed})
-                if exposure.upper() in refable_models
-            ],
+            "depends_on": list(
+                {
+                    refable_models[exposure.upper()]
+                    for exposure in list({m for m in self.models_exposed})
+                    if exposure.upper() in refable_models
+                }
+            ),
         }
 
     def api(

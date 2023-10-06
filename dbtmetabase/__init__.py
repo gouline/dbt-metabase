@@ -1,7 +1,7 @@
 import logging
 import functools
 from pathlib import Path
-from typing import Iterable, Optional, Callable, Any
+from typing import Iterable, Optional, Callable, Any, Dict
 import os
 
 import click
@@ -282,6 +282,13 @@ def shared_opts(func: Callable) -> Callable:
         type=int,
         help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled",
     )
+    @click.option(
+        "--http_extra_headers",
+        cls=OptionAcceptableFromConfig,
+        type=(str, str),
+        multiple=True,
+        help="Additional HTTP request header to be sent to Metabase.",
+    )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -555,6 +562,7 @@ def models(
     dbt_include_tags: bool = True,
     dbt_docs_url: Optional[str] = None,
     verbose: bool = False,
+    http_extra_headers: Optional[Dict[Any, Any]] = None,
 ):
     """Exports model documentation and semantic types from dbt to Metabase.
 
@@ -579,6 +587,7 @@ def models(
         metabase_exclude_sources (bool, optional): Flag to skip exporting sources to Metabase. Defaults to False.
         dbt_include_tags (bool, optional): Flag to append tags to table descriptions in Metabase. Defaults to True.
         dbt_docs_url (Optional[str], optional): Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description. Defaults to None.
+        http_extra_headers (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
     """
 
@@ -615,6 +624,7 @@ def models(
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
         exclude_sources=metabase_exclude_sources,
+        http_extra_headers=http_extra_headers,
     )
 
     # Load client
@@ -679,6 +689,7 @@ def exposures(
     output_name: str = "metabase_exposures.yml",
     include_personal_collections: bool = False,
     collection_excludes: Optional[Iterable] = None,
+    http_extra_headers: Optional[Dict[Any, Any]] = None,
     verbose: bool = False,
 ) -> None:
     """Extracts and imports exposures from Metabase to dbt.
@@ -704,6 +715,7 @@ def exposures(
         output_name (str): Output name for generated exposure yaml. Defaults to metabase_exposures.yml.
         include_personal_collections (bool, optional): Flag to include Personal Collections during exposure parsing. Defaults to False.
         collection_excludes (Iterable, optional): Collection names to exclude. Defaults to None.
+        http_extra_headers (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
         verbose (bool, optional): Flag which signals verbose output. Defaults to False.
     """
 
@@ -736,6 +748,7 @@ def exposures(
         database=metabase_database,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
+        http_extra_headers=http_extra_headers,
     )
 
     # Load client

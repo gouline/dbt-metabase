@@ -1,8 +1,8 @@
 setuptools>=45
 wheel
-pylint
-mypy
+pylint>=2.13.9
+mypy>=0.971
 types-requests
 types-PyYAML
-black
-restructuredtext-lint
+black>=22.8.0
+restructuredtext-lint>=1.4.0
