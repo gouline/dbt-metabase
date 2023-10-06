@@ -730,8 +730,8 @@ class MetabaseClient:
                     creator_name = creator.get("common_name")
 
                 exposure_label = exposure_name
-                # Only letters, numbers, underscores and hyphens allowed in model names in dbt docs DAG / No duplicate model names
-                exposure_name = re.sub(r"[^\w-]", "_", exposure_name)
+                # Only letters, numbers and underscores allowed in model names in dbt docs DAG / No duplicate model names
+                exposure_name = re.sub(r"[^\w]", "_", exposure_name).lower()
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
@@ -949,11 +949,13 @@ class MetabaseClient:
                 "name": creator_name,
                 "email": creator_email or "",
             },
-            "depends_on": [
-                refable_models[exposure.upper()]
-                for exposure in list({m for m in self.models_exposed})
-                if exposure.upper() in refable_models
-            ],
+            "depends_on": list(
+                {
+                    refable_models[exposure.upper()]
+                    for exposure in list({m for m in self.models_exposed})
+                    if exposure.upper() in refable_models
+                }
+            ),
         }
 
     def api(
