@@ -86,7 +86,8 @@ class OptionAcceptableFromConfig(click.Option):
     more resilence to raising an error when the option exists in the users config.
 
     This also overrides default values for boolean CLI flags (e.g. --use_metabase_http/--use_metabase_https) in options when
-    no CLI flag is passed, but a value is provided in the config file (e.g. metabase_use_http: True)."""
+    no CLI flag is passed, but a value is provided in the config file (e.g. metabase_use_http: True).
+    """
 
     def process_value(self, ctx: click.Context, value: Any) -> Any:
         if value is not None:
@@ -115,10 +116,10 @@ class OptionAcceptableFromConfig(click.Option):
 
 class CommandController(click.Command):
     """This class inherets from click.Command and supplies custom help text renderer to
-    render our docstrings a little prettier as well as a hook in the invoke to load from a config file if it exists."""
+    render our docstrings a little prettier as well as a hook in the invoke to load from a config file if it exists.
+    """
 
     def invoke(self, ctx: click.Context):
-
         if CONFIG:
             for param, value in ctx.params.items():
                 if value is None and param in CONFIG:
