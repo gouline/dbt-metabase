@@ -150,7 +150,7 @@ emails & names, links to exposures, and even native SQL propagated over from Met
 .. code-block:: yaml
 
     exposures:
-      - name: Number_of_orders_over_time
+      - name: number_of_orders_over_time
         description: '
           ### Visualization: Line
 
