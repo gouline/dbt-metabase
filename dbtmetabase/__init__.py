@@ -24,6 +24,7 @@ ENV_VARS = [
     "MB_HOST",
     "MB_DATABASE",
     "MB_SESSION_TOKEN",
+    "MB_HTTP_TIMEOUT",
 ]
 
 
@@ -288,6 +289,15 @@ def shared_opts(func: Callable) -> Callable:
         type=(str, str),
         multiple=True,
         help="Additional HTTP request header to be sent to Metabase.",
+    )
+    @click.option(
+        "--metabase_http_timeout",
+        cls=OptionAcceptableFromConfig,
+        type=int,
+        default=15,
+        envvar="MB_HTTP_TIMEOUT",
+        show_envvar=True,
+        help="Set the value for single requests timeout",
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -559,6 +569,7 @@ def models(
     metabase_sync: bool = True,
     metabase_sync_timeout: Optional[int] = None,
     metabase_exclude_sources: bool = False,
+    metabase_http_timeout: int = 15,
     dbt_include_tags: bool = True,
     dbt_docs_url: Optional[str] = None,
     verbose: bool = False,
@@ -585,6 +596,7 @@ def models(
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
         metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
         metabase_exclude_sources (bool, optional): Flag to skip exporting sources to Metabase. Defaults to False.
+        metabase_http_timeout (int, optional): Set the timeout for the single Metabase requests. Defaults to 15.
         dbt_include_tags (bool, optional): Flag to append tags to table descriptions in Metabase. Defaults to True.
         dbt_docs_url (Optional[str], optional): Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description. Defaults to None.
         http_extra_headers (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
@@ -625,6 +637,7 @@ def models(
         sync_timeout=metabase_sync_timeout,
         exclude_sources=metabase_exclude_sources,
         http_extra_headers=http_extra_headers,
+        http_timeout=metabase_http_timeout,
     )
 
     # Load client
@@ -685,6 +698,7 @@ def exposures(
     metabase_verify: Optional[str] = None,
     metabase_sync: bool = True,
     metabase_sync_timeout: Optional[int] = None,
+    metabase_http_timeout: int = 15,
     output_path: str = ".",
     output_name: str = "metabase_exposures.yml",
     include_personal_collections: bool = False,
@@ -711,6 +725,7 @@ def exposures(
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
         metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
+        metabase_http_timeout (int, optional): Set the timeout for the single Metabase requests. Default 15
         output_path (str): Output path for generated exposure yaml. Defaults to "." local dir.
         output_name (str): Output name for generated exposure yaml. Defaults to metabase_exposures.yml.
         include_personal_collections (bool, optional): Flag to include Personal Collections during exposure parsing. Defaults to False.
@@ -749,6 +764,7 @@ def exposures(
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
         http_extra_headers=http_extra_headers,
+        http_timeout=metabase_http_timeout,
     )
 
     # Load client

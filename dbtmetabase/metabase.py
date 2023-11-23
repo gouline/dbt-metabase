@@ -128,6 +128,7 @@ class MetabaseClient:
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
+        http_timeout: int = 15,
     ):
         """Constructor.
 
@@ -165,7 +166,7 @@ class MetabaseClient:
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
-
+        self.http_timeout = http_timeout
         # This regex is looking for from and join clauses, and extracting the table part.
         # It won't recognize some valid sql table references, such as `from "table with spaces"`.
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
@@ -723,7 +724,7 @@ class MetabaseClient:
                         creator = self.api("get", f"/api/user/{exposure['creator_id']}")
                     except requests.exceptions.HTTPError as error:
                         creator = {}
-                        if error.response.status_code != 404:
+                        if error.response is None or error.response.status_code != 404:
                             raise
 
                     creator_email = creator.get("email")
@@ -982,7 +983,7 @@ class MetabaseClient:
         response = self.session.request(
             method,
             f"{self.base_url}{path}",
-            timeout=15,
+            timeout=self.http_timeout,
             **kwargs,
         )
 
