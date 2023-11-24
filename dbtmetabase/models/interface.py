@@ -33,6 +33,7 @@ class MetabaseInterface:
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
+        http_timeout: int = 15,
     ):
         """Constructor.
 
@@ -62,6 +63,7 @@ class MetabaseInterface:
         self.verify = verify
         self.cert = cert
         self.http_extra_headers = dict(http_extra_headers) if http_extra_headers else {}
+        self.http_timeout = http_timeout
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
@@ -109,6 +111,7 @@ class MetabaseInterface:
             sync=self.sync,
             sync_timeout=self.sync_timeout,
             exclude_sources=self.exclude_sources,
+            http_timeout=self.http_timeout,
         )
 
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
