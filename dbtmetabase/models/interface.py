@@ -7,6 +7,7 @@ from .exceptions import (
     NoDbtPathSupplied,
     NoDbtSchemaSupplied,
     NoMetabaseCredentialsSupplied,
+    MetabaseCertificateImplementationError,
 )
 from ..parsers.dbt import DbtReader
 from ..parsers.dbt_folder import DbtFolderReader
@@ -29,6 +30,7 @@ class MetabaseInterface:
         use_http: bool = False,
         verify: Optional[Union[str, bool]] = True,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
+        pkcs12_data: Optional[Union[str, Tuple[str, str]]] = None,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
@@ -46,6 +48,7 @@ class MetabaseInterface:
             use_http (bool, optional): Use HTTP to connect to Metabase.. Defaults to False.
             verify (Optional[Union[str, bool]], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to True.
             cert (Optional[Union[str, Tuple[str, str]]], optional): Path to a custom certificate to be used by the Metabase client, or a tuple containing the path to the certificate and key. Defaults to None.
+            pkcs12_data (Optional[Tuple[str, str]], optional): PKCS#12 Certificate content with its password. If the certificate is not physically present on the running host. (default: {None})
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             exclude_sources (bool, optional): Exclude exporting sources. Defaults to False.
@@ -62,6 +65,7 @@ class MetabaseInterface:
         self.use_http = use_http
         self.verify = verify
         self.cert = cert
+        self.pkcs12_data = pkcs12_data
         self.http_extra_headers = dict(http_extra_headers) if http_extra_headers else {}
         self.http_timeout = http_timeout
         # Metabase Sync
@@ -98,6 +102,10 @@ class MetabaseInterface:
             raise NoMetabaseCredentialsSupplied(
                 "Credentials or session ID not supplied"
             )
+        if self.cert and self.pkcs12_data:
+            raise MetabaseCertificateImplementationError(
+                "cert and pkcs12_data arguments can't be both defined"
+            )
 
         self._client = MetabaseClient(
             host=self.host,
@@ -106,6 +114,7 @@ class MetabaseInterface:
             use_http=self.use_http,
             verify=self.verify,
             cert=self.cert,
+            pkcs12_data=self.pkcs12_data,
             http_extra_headers=self.http_extra_headers,
             session_id=self.session_id,
             sync=self.sync,
@@ -113,7 +122,6 @@ class MetabaseInterface:
             exclude_sources=self.exclude_sources,
             http_timeout=self.http_timeout,
         )
-
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
         if self.sync:
             self._client.sync_and_wait(self.database, dbt_models)

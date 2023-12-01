@@ -28,6 +28,8 @@ from .models.metabase import (
     NullValue,
 )
 
+from requests_pkcs12 import Pkcs12Adapter
+
 
 class MetabaseClient:
     """Metabase API client."""
@@ -122,13 +124,14 @@ class MetabaseClient:
         password: Optional[str],
         verify: Optional[Union[str, bool]] = None,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
+        pkcs12_data: Optional[Tuple[str, str]] = None,
         session_id: Optional[str] = None,
         use_http: bool = False,
         sync: Optional[bool] = True,
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
-        http_timeout: int = 15,
+        http_timeout: Optional[int] = 15,
     ):
         """Constructor.
 
@@ -141,20 +144,31 @@ class MetabaseClient:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
             cert {Union[str, Tuple[str, str]]} -- Path to a custom certificate to be used by the Metabase client. (default: {None})
+            pkcs12_data (Optional[Tuple[str, str]], optional): PKCS#12 Certificate content with its password. If the certificate is not physically present on the running host. (default: {None})
             session_id {str} -- Metabase session ID. (default: {None})
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             http_extra_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
+
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
+
         if http_extra_headers is not None:
             self.session.headers.update(http_extra_headers)
+
         adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
+
+        if pkcs12_data is not None:
+            adaptor = Pkcs12Adapter(
+                pkcs12_data=pkcs12_data[0],
+                pkcs12_password=pkcs12_data[1],
+            )
         self.session.mount(self.base_url, adaptor)
+        self.http_timeout = http_timeout
         session_header = session_id or self.get_session_id(user, password)
         self.session.headers["X-Metabase-Session"] = session_header
 
@@ -166,7 +180,6 @@ class MetabaseClient:
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
-        self.http_timeout = http_timeout
         # This regex is looking for from and join clauses, and extracting the table part.
         # It won't recognize some valid sql table references, such as `from "table with spaces"`.
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")

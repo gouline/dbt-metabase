@@ -16,3 +16,7 @@ class MetabaseUnableToSync(Exception):
 
 class MetabaseRuntimeError(Exception):
     """Thrown when Metabase execution failed."""
+
+
+class MetabaseCertificateImplementationError(Exception):
+    """Thrown when cert argument and cert_data argument are both defined"""
