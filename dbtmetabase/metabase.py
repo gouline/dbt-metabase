@@ -28,8 +28,6 @@ from .models.metabase import (
     NullValue,
 )
 
-from requests_pkcs12 import Pkcs12Adapter
-
 
 class MetabaseClient:
     """Metabase API client."""
@@ -124,14 +122,14 @@ class MetabaseClient:
         password: Optional[str],
         verify: Optional[Union[str, bool]] = None,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
-        pkcs12_data: Optional[Tuple[str, str]] = None,
+        pkcs12_data: Optional[Union[str, Tuple[str, str]]] = None,
         session_id: Optional[str] = None,
         use_http: bool = False,
         sync: Optional[bool] = True,
         sync_timeout: Optional[int] = None,
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
-        http_timeout: Optional[int] = 15,
+        http_timeout: int = 15,
     ):
         """Constructor.
 
@@ -153,6 +151,7 @@ class MetabaseClient:
         """
 
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
+        self.http_timeout = http_timeout
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
@@ -163,12 +162,22 @@ class MetabaseClient:
         adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
 
         if pkcs12_data is not None:
-            adaptor = Pkcs12Adapter(
-                pkcs12_data=pkcs12_data[0],
-                pkcs12_password=pkcs12_data[1],
-            )
+            try:
+                from requests_pkcs12 import (
+                    Pkcs12Adapter,
+                )  # pylint: disable=E0401
+
+                adaptor = Pkcs12Adapter(
+                    pkcs12_data=pkcs12_data[0],
+                    pkcs12_password=pkcs12_data[1],
+                )
+            except ImportError as exc:
+                raise exceptions.ExtraLibraryInstallationError(
+                    "The requests-pkcs12 extra library is not installed."
+                    "Please install it by running `pip install dbt-metabase['pkcs12']`"
+                ) from exc
+
         self.session.mount(self.base_url, adaptor)
-        self.http_timeout = http_timeout
         session_header = session_id or self.get_session_id(user, password)
         self.session.headers["X-Metabase-Session"] = session_header
 

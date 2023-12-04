@@ -1,18 +1,18 @@
 import logging
 from os.path import expandvars
-from typing import Optional, Union, List, Tuple, MutableMapping, Iterable
+from typing import Iterable, List, MutableMapping, Optional, Tuple, Union
 
-from .metabase import MetabaseModel
-from .exceptions import (
-    NoDbtPathSupplied,
-    NoDbtSchemaSupplied,
-    NoMetabaseCredentialsSupplied,
-    MetabaseCertificateImplementationError,
-)
+from ..metabase import MetabaseClient
 from ..parsers.dbt import DbtReader
 from ..parsers.dbt_folder import DbtFolderReader
 from ..parsers.dbt_manifest import DbtManifestReader
-from ..metabase import MetabaseClient
+from .exceptions import (
+    MetabaseCertificateImplementationError,
+    NoDbtPathSupplied,
+    NoDbtSchemaSupplied,
+    NoMetabaseCredentialsSupplied,
+)
+from .metabase import MetabaseModel
 
 
 class MetabaseInterface:
@@ -102,6 +102,7 @@ class MetabaseInterface:
             raise NoMetabaseCredentialsSupplied(
                 "Credentials or session ID not supplied"
             )
+
         if self.cert and self.pkcs12_data:
             raise MetabaseCertificateImplementationError(
                 "cert and pkcs12_data arguments can't be both defined"

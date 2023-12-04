@@ -31,6 +31,7 @@ setup(
     install_requires=requires_from_file("requirements.txt"),
     extras_require={
         "test": requires_from_file("requirements-test.txt"),
+        "pkcs12": requires_from_file("requirements-extra.txt"),
     },
     setup_requires=["setuptools_scm"],
     classifiers=[

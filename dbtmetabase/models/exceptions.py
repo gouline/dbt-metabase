@@ -19,4 +19,8 @@ class MetabaseRuntimeError(Exception):
 
 
 class MetabaseCertificateImplementationError(Exception):
-    """Thrown when cert argument and cert_data argument are both defined"""
+    """Thrown when cert argument and pkcs12_data argument are both defined"""
+
+
+class ExtraLibraryInstallationError(Exception):
+    """Thrown when an extra library is not installed but imported"""

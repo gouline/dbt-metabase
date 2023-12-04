@@ -7,6 +7,8 @@ clean:
 requirements:
 	pip3 install -r requirements.txt 
 	pip3 install -r requirements-test.txt
+	pip3 install -r requirements-extra.txt
+
 .PHONY: requirements
 
 fmt:
