@@ -148,6 +148,7 @@ class MetabaseClient:
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
         """
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
+        self.http_timeout = http_timeout
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
@@ -166,7 +167,6 @@ class MetabaseClient:
         self.table_map: MutableMapping = {}
         self.models_exposed: List = []
         self.native_query: str = ""
-        self.http_timeout = http_timeout
         # This regex is looking for from and join clauses, and extracting the table part.
         # It won't recognize some valid sql table references, such as `from "table with spaces"`.
         self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
