@@ -16,7 +16,7 @@ from typing import (
 
 import requests
 import yaml
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import BaseAdapter, HTTPAdapter, Retry
 
 from .logger.logging import logger
 from .models import exceptions
@@ -122,7 +122,6 @@ class MetabaseClient:
         password: Optional[str],
         verify: Optional[Union[str, bool]] = None,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
-        pkcs12_data: Optional[Union[str, Tuple[str, str]]] = None,
         session_id: Optional[str] = None,
         use_http: bool = False,
         sync: Optional[bool] = True,
@@ -130,6 +129,7 @@ class MetabaseClient:
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
         http_timeout: int = 15,
+        http_adapter: Optional[BaseAdapter] = None,
     ):
         """Constructor.
 
@@ -142,12 +142,12 @@ class MetabaseClient:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
             cert {Union[str, Tuple[str, str]]} -- Path to a custom certificate to be used by the Metabase client. (default: {None})
-            pkcs12_data (Optional[Tuple[str, str]], optional): PKCS#12 Certificate content with its password. If the certificate is not physically present on the running host. (default: {None})
             session_id {str} -- Metabase session ID. (default: {None})
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             http_extra_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
+            http_adapter: (Optional[object], optional) Provides a general-case interface for Requests sessions to contact HTTP and HTTPS urls by implementing the Transport Adapter interface. Defaults to None.
         """
 
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
@@ -159,25 +159,10 @@ class MetabaseClient:
         if http_extra_headers is not None:
             self.session.headers.update(http_extra_headers)
 
-        adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
+        if not http_adapter:
+            http_adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
 
-        if pkcs12_data is not None:
-            try:
-                from requests_pkcs12 import (
-                    Pkcs12Adapter,
-                )  # pylint: disable=E0401
-
-                adaptor = Pkcs12Adapter(
-                    pkcs12_data=pkcs12_data[0],
-                    pkcs12_password=pkcs12_data[1],
-                )
-            except ImportError as exc:
-                raise exceptions.ExtraLibraryInstallationError(
-                    "The requests-pkcs12 extra library is not installed."
-                    "Please install it by running `pip install dbt-metabase['pkcs12']`"
-                ) from exc
-
-        self.session.mount(self.base_url, adaptor)
+        self.session.mount(self.base_url, http_adapter)
         session_header = session_id or self.get_session_id(user, password)
         self.session.headers["X-Metabase-Session"] = session_header
 

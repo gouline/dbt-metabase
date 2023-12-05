@@ -16,11 +16,3 @@ class MetabaseUnableToSync(Exception):
 
 class MetabaseRuntimeError(Exception):
     """Thrown when Metabase execution failed."""
-
-
-class MetabaseCertificateImplementationError(Exception):
-    """Thrown when cert argument and pkcs12_data argument are both defined"""
-
-
-class ExtraLibraryInstallationError(Exception):
-    """Thrown when an extra library is not installed but imported"""

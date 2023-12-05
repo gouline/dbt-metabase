@@ -1,1 +1,0 @@
-requests-pkcs12>=1.22 
