@@ -16,7 +16,7 @@ from typing import (
 
 import requests
 import yaml
-from requests.adapters import BaseAdapter, HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter, Retry
 
 from .logger.logging import logger
 from .models import exceptions
@@ -129,7 +129,7 @@ class MetabaseClient:
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
         http_timeout: int = 15,
-        http_adapter: Optional[BaseAdapter] = None,
+        http_adapter: Optional[HTTPAdapter] = None,
     ):
         """Constructor.
 
@@ -147,7 +147,7 @@ class MetabaseClient:
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             http_extra_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
-            http_adapter: (Optional[BaseAdapter], optional) Provides a general-case interface for Requests sessions to contact HTTP and HTTPS urls by implementing the Transport Adapter interface. Defaults to None.
+            http_adapter: (Optional[HTTPAdapter], optional) Provide custom HTTP adapter implementation for requests to use. Defaults to None.
         """
 
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
