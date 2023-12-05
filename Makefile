@@ -1,20 +1,35 @@
 build: clean
 	python3 setup.py sdist bdist_wheel
+.PHONY: build
 
 clean:
 	rm -rf build dist
+.PHONY: clean
 
 requirements:
-	pip3 install -r requirements.txt 
-	pip3 install -r requirements-test.txt
+	python3 -m pip install \
+		-r requirements.txt \
+		-r requirements-test.txt
 .PHONY: requirements
 
-fmt:
+fix-fmt:
 	black .
+.PHONY: fix-fmt
+
+fix-imports:
+	isort .
+.PHONY: fix-imports
+
+fix: fix-fmt fix-imports
+.PHONY: fix
 
 check-fmt:
 	black --check .
 .PHONY: check-fmt
+
+check-imports:
+	isort --check .
+.PHONY: check-imports
 
 check-lint-python:
 	pylint dbtmetabase
@@ -44,5 +59,6 @@ dist-upload: check
 .PHONY: dist-upload
 
 dev-install: build
-	pip3 uninstall -y dbt-metabase && pip3 install dist/dbt_metabase-*-py3-none-any.whl
+	python3 -m pip uninstall -y dbt-metabase \
+		&& python3 -m pip install dist/dbt_metabase-*-py3-none-any.whl
 .PHONY: dev-install
