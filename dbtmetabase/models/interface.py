@@ -52,7 +52,7 @@ class MetabaseInterface:
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             exclude_sources (bool, optional): Exclude exporting sources. Defaults to False.
             http_extra_headers (Optional[dict], optional): HTTP headers to be used by the Metabase client. Defaults to None.
-            http_adapter: (Optional[object], optional) Provides a general-case interface for Requests sessions to contact HTTP and HTTPS urls by implementing the Transport Adapter interface. Defaults to None.
+            http_adapter: (Optional[BaseAdapter], optional) Provides a general-case interface for Requests sessions to contact HTTP and HTTPS urls by implementing the Transport Adapter interface. Defaults to None.
         """
 
         # Metabase Client
