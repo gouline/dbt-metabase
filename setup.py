@@ -13,7 +13,7 @@ def requires_from_file(filename: str) -> list:
         return [x.strip() for x in f if x.strip()]
 
 
-with open("README.rst", "r", encoding="utf-8") as f:
+with open("README.md", "r", encoding="utf-8") as f:
     readme = f.read()
 
 setup(
@@ -21,9 +21,8 @@ setup(
     use_scm_version=True,
     description="Model synchronization from dbt to Metabase.",
     long_description=readme,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     author="Mike Gouline",
-    author_email="hello@gouline.net",
     url="https://github.com/gouline/dbt-metabase",
     license="MIT License",
     scripts=["dbtmetabase/bin/dbt-metabase"],
