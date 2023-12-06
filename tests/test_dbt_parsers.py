@@ -3,10 +3,7 @@ import unittest
 
 from dbtmetabase.models.interface import DbtInterface
 from dbtmetabase.models.metabase import ModelType, NullValue
-from dbtmetabase.parsers.dbt_folder import (
-    MetabaseModel,
-    MetabaseColumn,
-)
+from dbtmetabase.parsers.dbt_folder import MetabaseColumn, MetabaseModel
 
 
 class TestDbtFolderReader(unittest.TestCase):

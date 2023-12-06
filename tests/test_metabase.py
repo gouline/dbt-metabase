@@ -2,14 +2,11 @@ import json
 import logging
 import os
 import unittest
+
 import yaml
 
 from dbtmetabase.metabase import MetabaseClient
-from dbtmetabase.models.metabase import (
-    MetabaseModel,
-    MetabaseColumn,
-    ModelType,
-)
+from dbtmetabase.models.metabase import MetabaseColumn, MetabaseModel, ModelType
 
 MODELS = [
     MetabaseModel(

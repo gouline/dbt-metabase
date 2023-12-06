@@ -6,3 +6,4 @@ types-requests
 types-PyYAML
 black>=22.8.0
 restructuredtext-lint>=1.4.0
+isort>=5.10.1

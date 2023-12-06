@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
 import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 if sys.version_info < (3, 6):
     raise ValueError("Requires Python 3.6+")
 
 
 def requires_from_file(filename: str) -> list:
-    with open(filename, "r") as f:
+    with open(filename, "r", encoding="utf-8") as f:
         return [x.strip() for x in f if x.strip()]
 
 
-with open("README.rst", "r") as f:
+with open("README.rst", "r", encoding="utf-8") as f:
     readme = f.read()
 
 setup(
