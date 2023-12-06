@@ -31,6 +31,9 @@ jobs:
       - name: Formatting check (black)
         run: make check-fmt
 
+      - name: Imports ordering check (isort)
+        run: make check-imports
+
       - name: Lint Python check (pylint)
         run: make check-lint-python
 
