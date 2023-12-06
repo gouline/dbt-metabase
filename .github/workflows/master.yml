@@ -33,9 +33,6 @@ jobs:
       - name: Lint Python check (pylint)
         run: make check-lint-python
 
-      - name: Lint reStructuredText check (rst-lint)
-        run: make check-lint-rst
-
       - name: Type check (mypy)
         run: make check-type
 

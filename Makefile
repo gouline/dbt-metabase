@@ -35,15 +35,11 @@ check-lint-python:
 	pylint dbtmetabase
 .PHONY: check-lint-python
 
-check-lint-rst:
-	rst-lint README.rst
-.PHONY: check-lint-rst
-
 check-type:
 	mypy dbtmetabase
 .PHONY: check-type
 
-check: check-fmt check-lint-python check-lint-rst check-type
+check: check-fmt check-lint-python check-type
 .PHONY: check
 
 test:
