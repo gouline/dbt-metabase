@@ -1,17 +1,18 @@
 import logging
 from os.path import expandvars
-from typing import Optional, Union, List, Tuple, MutableMapping, Iterable
+from typing import Iterable, List, MutableMapping, Optional, Tuple, Union
 
-from .metabase import MetabaseModel
+from ..metabase import MetabaseClient
+from ..parsers.dbt import DbtReader
+from ..parsers.dbt_folder import DbtFolderReader
+from ..parsers.dbt_manifest import DbtManifestReader
 from .exceptions import (
     NoDbtPathSupplied,
     NoDbtSchemaSupplied,
     NoMetabaseCredentialsSupplied,
 )
-from ..parsers.dbt import DbtReader
-from ..parsers.dbt_folder import DbtFolderReader
-from ..parsers.dbt_manifest import DbtManifestReader
-from ..metabase import MetabaseClient
+from .metabase import MetabaseModel
+from requests.adapters import HTTPAdapter
 
 
 class MetabaseInterface:
@@ -34,6 +35,7 @@ class MetabaseInterface:
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
         http_timeout: int = 15,
+        http_adapter: Optional[HTTPAdapter] = None,
     ):
         """Constructor.
 
@@ -50,6 +52,7 @@ class MetabaseInterface:
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             exclude_sources (bool, optional): Exclude exporting sources. Defaults to False.
             http_extra_headers (Optional[dict], optional): HTTP headers to be used by the Metabase client. Defaults to None.
+            http_adapter: (Optional[HTTPAdapter], optional) Provide custom HTTP adapter implementation for requests to use. Defaults to None.
         """
 
         # Metabase Client
@@ -64,6 +67,7 @@ class MetabaseInterface:
         self.cert = cert
         self.http_extra_headers = dict(http_extra_headers) if http_extra_headers else {}
         self.http_timeout = http_timeout
+        self.http_adapter = http_adapter
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
@@ -112,8 +116,8 @@ class MetabaseInterface:
             sync_timeout=self.sync_timeout,
             exclude_sources=self.exclude_sources,
             http_timeout=self.http_timeout,
+            http_adapter=self.http_adapter,
         )
-
         # Sync and attempt schema alignment prior to execution; if timeout is not explicitly set, proceed regardless of success
         if self.sync:
             self._client.sync_and_wait(self.database, dbt_models)

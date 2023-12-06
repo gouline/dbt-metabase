@@ -129,6 +129,7 @@ class MetabaseClient:
         exclude_sources: bool = False,
         http_extra_headers: Optional[dict] = None,
         http_timeout: int = 15,
+        http_adapter: Optional[HTTPAdapter] = None,
     ):
         """Constructor.
 
@@ -146,16 +147,22 @@ class MetabaseClient:
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
             http_extra_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
             exclude_sources {bool} -- Exclude exporting sources. (default: {False})
+            http_adapter: (Optional[HTTPAdapter], optional) Provide custom HTTP adapter implementation for requests to use. Defaults to None.
         """
+
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
         self.http_timeout = http_timeout
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
+
         if http_extra_headers is not None:
             self.session.headers.update(http_extra_headers)
-        adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
-        self.session.mount(self.base_url, adaptor)
+
+        if not http_adapter:
+            http_adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
+
+        self.session.mount(self.base_url, http_adapter)
         session_header = session_id or self.get_session_id(user, password)
         self.session.headers["X-Metabase-Session"] = session_header
 
