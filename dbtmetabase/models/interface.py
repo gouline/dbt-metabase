@@ -2,6 +2,8 @@ import logging
 from os.path import expandvars
 from typing import Iterable, List, MutableMapping, Optional, Tuple, Union
 
+from requests.adapters import HTTPAdapter
+
 from ..metabase import MetabaseClient
 from ..parsers.dbt import DbtReader
 from ..parsers.dbt_folder import DbtFolderReader
@@ -12,7 +14,6 @@ from .exceptions import (
     NoMetabaseCredentialsSupplied,
 )
 from .metabase import MetabaseModel
-from requests.adapters import HTTPAdapter
 
 
 class MetabaseInterface:

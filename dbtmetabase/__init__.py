@@ -1,14 +1,14 @@
-import logging
 import functools
-from pathlib import Path
-from typing import Iterable, Optional, Callable, Any, Dict
+import logging
 import os
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, Optional
 
 import click
 import yaml
 
 from .logger import logging as package_logger
-from .models.interface import MetabaseInterface, DbtInterface
+from .models.interface import DbtInterface, MetabaseInterface
 from .utils import get_version, load_config
 
 __all__ = ["MetabaseInterface", "DbtInterface"]
