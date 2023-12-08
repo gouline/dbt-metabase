@@ -1,8 +1,9 @@
-setuptools>=45
+pip>=23.3.1
+setuptools>=68
 wheel
-pylint>=2.13.9
-mypy>=0.971
+pylint>=2.17.7
+mypy>=1.4.1
 types-requests
 types-PyYAML
-black>=22.8.0
-isort>=5.10.1
+black>=23.3.0
+isort>=5.11.5

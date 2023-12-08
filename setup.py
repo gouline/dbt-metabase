@@ -4,8 +4,8 @@ import sys
 
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 6):
-    raise ValueError("Requires Python 3.6+")
+if sys.version_info < (3, 7):
+    raise ValueError("Requires Python 3.7+")
 
 
 def requires_from_file(filename: str) -> list:
@@ -39,7 +39,6 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
