@@ -1,5 +1,5 @@
 build: clean
-	python3 setup.py sdist bdist_wheel
+	python3 -m build
 .PHONY: build
 
 clean:

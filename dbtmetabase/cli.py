@@ -316,7 +316,7 @@ def shared_opts(func: Callable) -> Callable:
 
 
 @click.group()
-@click.version_option("TODO")  # TODO: __version__
+@click.version_option(package_name="dbt-metabase")
 def cli():
     """Model synchronization from dbt to Metabase."""
 
@@ -786,3 +786,6 @@ def exposures(
         include_personal_collections=include_personal_collections,
         collection_excludes=collection_excludes,
     )
+
+def main():
+    cli(max_content_width=600)

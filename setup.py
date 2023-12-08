@@ -24,14 +24,15 @@ setup(
     author="Mike Gouline",
     url="https://github.com/gouline/dbt-metabase",
     license="MIT License",
-    scripts=["dbtmetabase/bin/dbt-metabase"],
+    entry_points={
+        "console_scripts": ["dbt-metabase = dbtmetabase.cli:main"],
+    },
     packages=find_packages(exclude=["tests"]),
     test_suite="tests",
     install_requires=requires_from_file("requirements.txt"),
     extras_require={
         "test": requires_from_file("requirements-test.txt"),
     },
-    setup_requires=["setuptools_scm"],
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
@@ -40,6 +41,8 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],

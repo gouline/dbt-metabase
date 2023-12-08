@@ -1,6 +1,8 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=45", "wheel", "setuptools_scm"]
+requires = ["setuptools>=60", "setuptools-scm"]
+
+[tool.setuptools_scm]
 
 [tool.black]
 include = '\.pyi?$'
