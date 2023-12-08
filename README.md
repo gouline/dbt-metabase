@@ -15,7 +15,7 @@ Metabase data model.
 
 ## Requirements
 
-Requires Python 3.6 or above.
+Requires Python 3.7 or above.
 
 ## Main Features
 
