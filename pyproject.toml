@@ -1,22 +1,19 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-write_to = "dbtmetabase/_version.py"
+requires = ["setuptools>=45", "wheel", "setuptools_scm"]
 
 [tool.black]
-line-length = 88
-target-version = ["py36", "py37", "py38"]
 include = '\.pyi?$'
+line-length = 88
+target-version = ["py38"]
 
 [tool.isort]
 profile = "black"
 src_paths = ["dbtmetabase", "tests", "setup.py"]
 
 [tool.mypy]
-python_version = "3.8"
 ignore_missing_imports = true
+python_version = "3.8"
 
 [tool.pylint.master]
-disable = ["R", "C"]
+disable = ["R", "C", "W0511"]

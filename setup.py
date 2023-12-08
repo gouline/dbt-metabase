@@ -18,7 +18,6 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="dbt-metabase",
-    use_scm_version=True,
     description="Model synchronization from dbt to Metabase.",
     long_description=readme,
     long_description_content_type="text/markdown",

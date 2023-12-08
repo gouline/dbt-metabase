@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import dbtmetabase
+from dbtmetabase.cli import cli
 
 if __name__ == "__main__":
-    dbtmetabase.main()
+    cli(max_content_width=600)
