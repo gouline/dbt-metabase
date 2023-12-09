@@ -37,7 +37,7 @@ ENV_VARS = [
 ]
 
 
-class MultiArg(click.Option):
+class MultiArg(click.Option):  ## TODO: remove
     """This class lets us pass multiple arguments after an options, equivalent to nargs=*"""
 
     def __init__(self, *args, **kwargs):
@@ -77,7 +77,7 @@ class MultiArg(click.Option):
         return
 
 
-class ListParam(click.Tuple):
+class ListParam(click.Tuple): ## TODO: remove
     def __init__(self) -> None:
         self.type = click.STRING
         super().__init__([])
@@ -124,10 +124,8 @@ class OptionAcceptableFromConfig(click.Option):
         return value
 
 
-class CommandController(click.Command):
-    """This class inherets from click.Command and supplies custom help text renderer to
-    render our docstrings a little prettier as well as a hook in the invoke to load from a config file if it exists.
-    """
+class Command(click.Command):
+    """Custom click.Command that invokes config load at invocation."""
 
     def invoke(self, ctx: click.Context):
         if CONFIG:
@@ -136,28 +134,6 @@ class CommandController(click.Command):
                     ctx.params[param] = CONFIG[param]
 
         return super().invoke(ctx)
-
-    def get_help(self, ctx: click.Context):
-        orig_wrap_test = click.formatting.wrap_text
-
-        def wrap_text(
-            text: str,
-            width: int = 78,
-            initial_indent: str = "",
-            subsequent_indent: str = "",
-            preserve_paragraphs: bool = False,
-        ):
-            del preserve_paragraphs
-            return orig_wrap_test(
-                text.replace("\n", "\n\n"),
-                width,
-                initial_indent=initial_indent,
-                subsequent_indent=subsequent_indent,
-                preserve_paragraphs=True,
-            ).replace("\n\n", "\n")
-
-        click.formatting.wrap_text = wrap_text
-        return super().get_help(ctx)
 
 
 def shared_opts(func: Callable) -> Callable:
@@ -308,6 +284,12 @@ def shared_opts(func: Callable) -> Callable:
         show_envvar=True,
         help="Set the value for single requests timeout",
     )
+    @click.option(
+        "-v",
+        "--verbose",
+        is_flag=True,
+        help="Flag which signals verbose output",
+    )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -321,7 +303,7 @@ def cli():
     """Model synchronization from dbt to Metabase."""
 
 
-@click.command(cls=CommandController)
+@click.command(cls=Command)
 def check_config():
     package_logger.logger().info(
         "Looking for configuration file in %s :magnifying_glass_tilted_right:",
@@ -351,7 +333,7 @@ def check_config():
         )
 
 
-@click.command(cls=CommandController)
+@click.command(cls=Command)
 def check_env():
     package_logger.logger().info("All valid env vars: %s", ENV_VARS)
     any_found = False
@@ -364,7 +346,7 @@ def check_env():
         package_logger.logger().info("None of the env vars found in environment")
 
 
-@cli.command(cls=CommandController)
+@cli.command(cls=Command)
 @click.option(
     "--inspect",
     is_flag=True,
@@ -535,7 +517,7 @@ def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False)
         )
 
 
-@cli.command(cls=CommandController)
+@cli.command(cls=Command)
 @shared_opts
 @click.option(
     "--dbt_docs_url",
@@ -659,7 +641,7 @@ def models(
     )
 
 
-@cli.command(cls=CommandController)
+@cli.command(cls=Command)
 @shared_opts
 @click.option(
     "--output_path",
@@ -682,12 +664,6 @@ def models(
     cls=MultiArg,
     type=list,
     help="Metabase collection names to exclude",
-)
-@click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    help="Flag which signals verbose output",
 )
 def exposures(
     metabase_host: str,
@@ -786,6 +762,3 @@ def exposures(
         include_personal_collections=include_personal_collections,
         collection_excludes=collection_excludes,
     )
-
-def main():
-    cli(max_content_width=600)
