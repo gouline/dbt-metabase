@@ -39,7 +39,7 @@ check-type:
 	mypy dbtmetabase
 .PHONY: check-type
 
-check: check-fmt check-lint-python check-type
+check: check-fmt check-imports check-lint-python check-type
 .PHONY: check
 
 test:

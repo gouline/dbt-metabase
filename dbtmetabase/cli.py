@@ -2,10 +2,10 @@ import functools
 import logging
 from pathlib import Path
 from typing import Callable, Iterable, Optional
-from typing_extensions import cast
 
 import click
 import yaml
+from typing_extensions import cast
 
 from .logger import logging as package_logger
 from .models.interface import DbtInterface, MetabaseInterface
