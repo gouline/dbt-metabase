@@ -77,7 +77,7 @@ class MultiArg(click.Option):  ## TODO: remove
         return
 
 
-class ListParam(click.Tuple): ## TODO: remove
+class ListParam(click.Tuple):  ## TODO: remove
     def __init__(self) -> None:
         self.type = click.STRING
         super().__init__([])
