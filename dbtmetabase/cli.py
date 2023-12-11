@@ -1,8 +1,8 @@
 import functools
 import logging
-import os
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import Callable, Iterable, Optional
+from typing_extensions import cast
 
 import click
 import yaml
@@ -10,58 +10,37 @@ import yaml
 from .logger import logging as package_logger
 from .models.interface import DbtInterface, MetabaseInterface
 
-CONFIG_PATH = Path.home() / ".dbt-metabase"
 
-
-def _load_config() -> Tuple[str, Dict]:
-    for name in ["config.yml", "config.yaml"]:
-        path = CONFIG_PATH / name
-        if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                return (name, yaml.safe_load(f).get("config", {}))
-    return ("", {})
-
-
-_, CONFIG = _load_config()  ## TODO: combine this
-
-ENV_VARS = [
-    "DBT_DATABASE",
-    "DBT_PATH",
-    "DBT_MANIFEST_PATH",
-    "MB_USER",
-    "MB_PASSWORD",
-    "MB_HOST",
-    "MB_DATABASE",
-    "MB_SESSION_TOKEN",
-    "MB_HTTP_TIMEOUT",
-]
-
-
-class MultiArg(click.Option):  ## TODO: remove
-    """This class lets us pass multiple arguments after an options, equivalent to nargs=*"""
-
+# Source: https://stackoverflow.com/a/48394004/818393
+class OptionEatAll(click.Option):
     def __init__(self, *args, **kwargs):
+        self.save_other_options = kwargs.pop("save_other_options", True)
         nargs = kwargs.pop("nargs", -1)
         assert nargs == -1, "nargs, if set, must be -1 not {}".format(nargs)
-        super(MultiArg, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._previous_parser_process = None
         self._eat_all_parser = None
 
     def add_to_parser(self, parser, ctx):
         def parser_process(value, state):
-            # Method to hook to the parser.process
+            # method to hook to the parser.process
             done = False
             value = [value]
-            # Grab everything up to the next option
-            while state.rargs and not done:
-                for prefix in self._eat_all_parser.prefixes:
-                    if state.rargs[0].startswith(prefix):
-                        done = True
-                if not done:
-                    value.append(state.rargs.pop(0))
+            if self.save_other_options:
+                # grab everything up to the next option
+                while state.rargs and not done:
+                    for prefix in self._eat_all_parser.prefixes:
+                        if state.rargs[0].startswith(prefix):
+                            done = True
+                    if not done:
+                        value.append(state.rargs.pop(0))
+            else:
+                # grab everything remaining
+                value += state.rargs
+                state.rargs[:] = []
             value = tuple(value)
 
-            # Call the actual process
+            # call the actual process
             self._previous_parser_process(value, state)
 
         super().add_to_parser(parser, ctx)
@@ -73,222 +52,162 @@ class MultiArg(click.Option):  ## TODO: remove
                 self._previous_parser_process = our_parser.process
                 our_parser.process = parser_process
                 break
-
         return
 
 
-class ListParam(click.Tuple):  ## TODO: remove
-    def __init__(self) -> None:
-        self.type = click.STRING
-        super().__init__([])
+@click.group()
+@click.version_option(package_name="dbt-metabase")
+@click.option(
+    "--config-path",
+    default="~/.dbt-metabase/config.yml",
+    show_default=True,
+    type=click.Path(),
+    help="Path to config.yml file with default values.",
+)
+@click.pass_context
+def cli(ctx: click.Context, config_path: str):
+    group = cast(click.Group, ctx.command)
 
-    def convert(
-        self, value: Any, param: Optional[click.Parameter], ctx: Optional[click.Context]
-    ) -> Any:
-        len_value = len(value)
-        types = [self.type] * len_value
+    config_path_expanded = Path(config_path).expanduser()
+    if config_path_expanded.exists():
+        with open(config_path_expanded, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f).get("config", {})
 
-        return list(ty(x, param, ctx) for ty, x in zip(types, value))
-
-
-class OptionAcceptableFromConfig(click.Option):
-    """This class override should be used on arguments that are marked `required=True` in order to give them
-    more resilence to raising an error when the option exists in the users config.
-
-    This also overrides default values for boolean CLI flags (e.g. --use_metabase_http/--use_metabase_https) in options when
-    no CLI flag is passed, but a value is provided in the config file (e.g. metabase_use_http: True).
-    """
-
-    def process_value(self, ctx: click.Context, value: Any) -> Any:
-        if value is not None:
-            value = self.type_cast_value(ctx, value)
-
-        assert self.name, "none config option"
-
-        if (
-            isinstance(self.type, click.types.BoolParamType)
-            and ctx.get_parameter_source(self.name)
-            == click.core.ParameterSource.DEFAULT
-            and self.name in CONFIG
-        ):
-            value = CONFIG[self.name]
-
-        if self.required and self.value_is_missing(value):
-            if self.name not in CONFIG:
-                raise click.core.MissingParameter(ctx=ctx, param=self)
-            value = CONFIG[self.name]
-
-        if self.callback is not None:
-            value = self.callback(ctx, self, value)
-
-        return value
+            ## TODO: there must be a better way, but it works for now
+            ctx.default_map = {command: config for command in group.commands}
 
 
-class Command(click.Command):
-    """Custom click.Command that invokes config load at invocation."""
-
-    def invoke(self, ctx: click.Context):
-        if CONFIG:
-            for param, value in ctx.params.items():
-                if value is None and param in CONFIG:
-                    ctx.params[param] = CONFIG[param]
-
-        return super().invoke(ctx)
-
-
-def shared_opts(func: Callable) -> Callable:
-    """Here we define the options shared across subcommands
-
-    Args:
-        func (Callable): Wraps a subcommand
-
-    Returns:
-        Callable: Subcommand with added options
-    """
+def common_options(func: Callable) -> Callable:
+    """Common click options between commands."""
 
     @click.option(
-        "--dbt_database",
+        "--dbt-database",
         envvar="DBT_DATABASE",
         show_envvar=True,
         required=True,
-        cls=OptionAcceptableFromConfig,
-        help="Target database name as specified in dbt models to be actioned",
         type=click.STRING,
+        help="Target database name in dbt models.",
     )
     @click.option(
-        "--dbt_path",
-        envvar="DBT_PATH",
-        show_envvar=True,
-        help="Path to dbt project. If specified with --dbt_manifest_path, then the manifest is prioritized",
-        type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    )
-    @click.option(
-        "--dbt_manifest_path",
+        "--dbt-manifest-path",
         envvar="DBT_MANIFEST_PATH",
         show_envvar=True,
-        help="Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project)",
         type=click.Path(exists=True, file_okay=True, dir_okay=False),
+        help="Path to dbt manifest.json file under /target/ in the dbt project directory. Uses dbt manifest parsing (recommended).",
     )
     @click.option(
-        "--dbt_schema",
-        help="Target schema. Should be passed if using folder parser",
+        "--dbt-project-path",
+        envvar="DBT_PROJECT_PATH",
+        show_envvar=True,
+        type=click.Path(exists=True, file_okay=False, dir_okay=True),
+        help="Path to dbt project directory containing models. Uses dbt project parsing (not recommended).",
+    )
+    @click.option(
+        "--dbt-schema",
+        help="Target dbt schema. Must be passed if using project parser.",
         type=click.STRING,
     )
     @click.option(
-        "--dbt_schema_excludes",
+        "--dbt-schema-excludes",
         metavar="SCHEMAS",
-        cls=MultiArg,
         type=list,
-        help="Target schemas to exclude. Ignored in folder parser. Accepts multiple arguments after the flag",
+        cls=OptionEatAll,
+        help="Target dbt schemas to exclude. Ignored in project parser.",
     )
     @click.option(
-        "--dbt_includes",
+        "--dbt-includes",
         metavar="MODELS",
-        cls=MultiArg,
         type=list,
-        help="Model names to limit processing to",
+        cls=OptionEatAll,
+        help="Include specific dbt models names.",
     )
     @click.option(
-        "--dbt_excludes",
+        "--dbt-excludes",
         metavar="MODELS",
-        cls=MultiArg,
         type=list,
-        help="Model names to exclude",
+        cls=OptionEatAll,
+        help="Exclude specific dbt model names.",
     )
     @click.option(
-        "--metabase_database",
+        "--metabase-database",
         envvar="MB_DATABASE",
         show_envvar=True,
         required=True,
-        cls=OptionAcceptableFromConfig,
         type=click.STRING,
-        help="Target database name as set in Metabase (typically aliased)",
+        help="Target database name in Metabase.",
     )
     @click.option(
-        "--metabase_host",
+        "--metabase-host",
         metavar="HOST",
         envvar="MB_HOST",
         show_envvar=True,
         required=True,
-        cls=OptionAcceptableFromConfig,
         type=click.STRING,
-        help="Metabase hostname",
+        help="Metabase hostname, excluding protocol.",
     )
     @click.option(
-        "--metabase_user",
+        "--metabase-user",
         metavar="USER",
         envvar="MB_USER",
         show_envvar=True,
-        cls=OptionAcceptableFromConfig,
         type=click.STRING,
-        help="Metabase username",
+        help="Metabase username.",
     )
     @click.option(
-        "--metabase_password",
+        "--metabase-password",
         metavar="PASS",
         envvar="MB_PASSWORD",
         show_envvar=True,
-        cls=OptionAcceptableFromConfig,
         type=click.STRING,
-        help="Metabase password",
+        help="Metabase password.",
     )
     @click.option(
-        "--metabase_session_id",
+        "--metabase-session-id",
         metavar="TOKEN",
         envvar="MB_SESSION_ID",
         show_envvar=True,
-        default=None,
-        cls=OptionAcceptableFromConfig,
         type=click.STRING,
-        help="Metabase session ID",
+        help="Metabase session ID.",
     )
     @click.option(
-        "--metabase_http/--metabase_https",
+        "--metabase-http/--metabase-https",
         "metabase_use_http",
         default=False,
-        cls=OptionAcceptableFromConfig,
-        help="use HTTP or HTTPS to connect to Metabase. Default HTTPS",
+        help="Force HTTP instead of HTTPS to connect to Metabase.",
     )
     @click.option(
-        "--metabase_verify",
+        "--metabase-verify",
         metavar="CERT",
         type=click.Path(exists=True, file_okay=True, dir_okay=False),
-        help="Path to certificate bundle used by Metabase client",
+        help="Path to certificate bundle used to connect to Metabase.",
     )
     @click.option(
-        "--metabase_sync/--metabase_sync_skip",
+        "--metabase-sync/--metabase-sync-skip",
         "metabase_sync",
-        cls=OptionAcceptableFromConfig,
         default=True,
-        help="Attempt to synchronize Metabase schema with local models. Default sync",
+        show_default=True,
+        help="Attempt to synchronize Metabase schema with local models.",
     )
     @click.option(
-        "--metabase_sync_timeout",
+        "--metabase-sync-timeout",
         metavar="SECS",
-        type=int,
-        help="Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled",
+        type=click.INT,
+        help="Synchronization timeout in secs. When set, command fails on failed synchronization. Otherwise, command proceeds regardless. Only valid if sync is enabled.",
     )
     @click.option(
-        "--http_extra_headers",
-        cls=OptionAcceptableFromConfig,
-        type=(str, str),
-        multiple=True,
-        help="Additional HTTP request header to be sent to Metabase.",
-    )
-    @click.option(
-        "--metabase_http_timeout",
-        cls=OptionAcceptableFromConfig,
+        "--metabase-http-timeout",
         type=int,
         default=15,
+        show_default=True,
         envvar="MB_HTTP_TIMEOUT",
         show_envvar=True,
-        help="Set the value for single requests timeout",
+        help="Set the value for single requests timeout.",
     )
     @click.option(
         "-v",
         "--verbose",
         is_flag=True,
-        help="Flag which signals verbose output",
+        help="Enable verbose logging.",
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -297,249 +216,23 @@ def shared_opts(func: Callable) -> Callable:
     return wrapper
 
 
-@click.group()
-@click.version_option(package_name="dbt-metabase")
-def cli():
-    """Model synchronization from dbt to Metabase."""
-
-
-@click.command(cls=Command)
-def check_config():
-    package_logger.logger().info(
-        "Looking for configuration file in %s :magnifying_glass_tilted_right:",
-        CONFIG_PATH,
-    )
-    package_logger.logger().info(
-        "...bootstrapping environmental variables :racing_car:"
-    )
-    any_found = False
-    for env in ENV_VARS:
-        if env in os.environ:
-            package_logger.logger().info("Injecting valid env var: %s", env)
-            param = env.lower().replace("mb_", "metabase_")
-            CONFIG[param] = os.environ[env]
-            any_found = True
-    if not any_found:
-        package_logger.logger().info("NO valid env vars found")
-
-    if not CONFIG:
-        package_logger.logger().info(
-            "No configuration file or env vars found, run the `config` command to interactively generate one.",
-        )
-    else:
-        package_logger.logger().info("Config rendered!")
-        package_logger.logger().info(
-            {k: (v if "pass" not in k else "****") for k, v in CONFIG.items()}
-        )
-
-
-@click.command(cls=Command)
-def check_env():
-    package_logger.logger().info("All valid env vars: %s", ENV_VARS)
-    any_found = False
-    for env in ENV_VARS:
-        if env in os.environ:
-            val = os.environ[env] if "pass" not in env.lower() else "****"
-            package_logger.logger().info("Found value for %s --> %s", env, val)
-            any_found = True
-    if not any_found:
-        package_logger.logger().info("None of the env vars found in environment")
-
-
-@cli.command(cls=Command)
+@cli.command(help="Export dbt models to Metabase.")
+@common_options
 @click.option(
-    "--inspect",
-    is_flag=True,
-    help="Introspect your dbt-metabase config.",
-)
-@click.option(
-    "--resolve",
-    is_flag=True,
-    help="Introspect your dbt-metabase config automatically injecting env vars into the configuration overwriting config.yml defaults. Use this flag if you are using env vars and want to see the resolved runtime output.",
-)
-@click.option(
-    "--env",
-    is_flag=True,
-    help="List all valid env vars for dbt-metabase. Env vars are evaluated before the config.yml and thus take precendence if used.",
-)
-@click.pass_context
-def config(ctx, inspect: bool = False, resolve: bool = False, env: bool = False):
-    """Interactively generate a config or validate an existing config.yml
-
-    A config allows you to omit arguments which will be substituted with config defaults. This simplifies
-    the execution of dbt-metabase to simply calling a command in most cases. Ex `dbt-metabase models`
-
-    Execute the `config` command with no flags to enter an interactive session to create or update a config.yml.
-
-    The config.yml should be located in CONFIG_PATH
-        Valid keys include any parameter seen in a dbt-metabase --help function
-        Example: `dbt-metabase models --help`
-    """
-    if inspect:
-        package_logger.logger().info(
-            {k: (v if "pass" not in k else "****") for k, v in CONFIG.items()}
-        )
-    if resolve:
-        ctx.invoke(check_config)
-    if env:
-        ctx.invoke(check_env)
-    if inspect or resolve or env:
-        ctx.exit()
-
-    click.confirm(
-        "Confirming you want to build or modify a dbt-metabase config file?", abort=True
-    )
-    package_logger.logger().info(
-        "Preparing interactive configuration :rocket: (note defaults denoted by [...] are pulled from your existing config if found)"
-    )
-
-    config_name, config_file = _load_config()
-    if config_name:
-        package_logger.logger().info("Modifying config file! :wrench:")
-    else:
-        config_name = "config.yml"  # default
-        package_logger.logger().info("Building config file! :hammer:")
-
-    config_file["dbt_database"] = click.prompt(
-        "Please enter the name of your dbt Database",
-        default=config_file.get("dbt_database"),
-        show_default=True,
-        type=click.STRING,
-    )
-    config_file["dbt_manifest_path"] = click.prompt(
-        "Please enter the path to your dbt manifest.json \ntypically located in the /target directory of the dbt project",
-        default=config_file.get("dbt_manifest_path"),
-        show_default=True,
-        type=click.Path(exists=True, file_okay=True, dir_okay=False, resolve_path=True),
-    )
-
-    if click.confirm(
-        "Would you like to set some default schemas to exclude when no flags are provided?"
-    ):
-        config_file["dbt_schema_excludes"] = click.prompt(
-            "Target schemas to exclude separated by commas",
-            default=config_file.get("dbt_schema_excludes"),
-            show_default=True,
-            value_proc=lambda s: list(map(str.strip, s.split(","))),
-            type=click.UNPROCESSED,
-        )
-    else:
-        config_file.pop("dbt_schema_excludes", None)
-
-    if click.confirm(
-        "Would you like to set some default dbt models to exclude when no flags are provided?"
-    ):
-        config_file["dbt_excludes"] = click.prompt(
-            "dbt model names to exclude separated by commas",
-            default=config_file.get("dbt_excludes"),
-            show_default=True,
-            value_proc=lambda s: list(map(str.strip, s.split(","))),
-            type=ListParam(),
-        )
-    else:
-        config_file.pop("dbt_excludes", None)
-
-    config_file["metabase_database"] = click.prompt(
-        "Target database name as set in Metabase (typically aliased)",
-        default=config_file.get("metabase_database"),
-        show_default=True,
-        type=click.STRING,
-    )
-    config_file["metabase_host"] = click.prompt(
-        "Metabase hostname, this is the URL without the protocol (HTTP/S)",
-        default=config_file.get("metabase_host"),
-        show_default=True,
-        type=click.STRING,
-    )
-    config_file["metabase_user"] = click.prompt(
-        "Metabase username",
-        default=config_file.get("metabase_user"),
-        show_default=True,
-        type=click.STRING,
-    )
-    config_file["metabase_password"] = click.prompt(
-        "Metabase password [hidden]",
-        default=config_file.get("metabase_password"),
-        hide_input=True,
-        show_default=False,
-        type=click.STRING,
-    )
-
-    config_file["metabase_use_http"] = click.confirm(
-        "Use HTTP instead of HTTPS to connect to Metabase, unless testing locally we should be saying no here",
-        default=config_file.get("metabase_use_http", False),
-        show_default=True,
-    )
-    if click.confirm("Would you like to set a custom certificate bundle to use?"):
-        config_file["metabase_verify"] = click.prompt(
-            "Path to certificate bundle used by Metabase client",
-            default=config_file.get("metabase_verify"),
-            show_default=True,
-            type=click.Path(
-                exists=True, file_okay=True, dir_okay=False, resolve_path=True
-            ),
-        )
-    else:
-        config_file.pop("metabase_verify", None)
-
-    config_file["metabase_sync"] = click.confirm(
-        "Would you like to allow Metabase schema syncs by default? Best to say yes as there is little downside",
-        default=config_file.get("metabase_sync", True),
-        show_default=True,
-    )
-    if config_file["metabase_sync"]:
-        config_file["metabase_sync_timeout"] = click.prompt(
-            "Synchronization timeout in seconds. If set, we will fail hard on synchronization failure; \nIf set to 0, we will proceed after attempting sync regardless of success",
-            default=config_file.get("metabase_sync_timeout", 0),
-            show_default=True,
-            value_proc=lambda i: None if int(i) <= 0 else int(i),
-            type=click.INT,
-        )
-    else:
-        config_file.pop("metabase_sync_timeout", None)
-
-    output_config = {"config": config_file}
-    package_logger.logger().info(
-        "Config constructed -- writing config to %s", CONFIG_PATH
-    )
-    package_logger.logger().info(
-        {k: (v if "pass" not in k else "****") for k, v in config_file.items()}
-    )
-
-    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_PATH / config_name, "w", encoding="utf-8") as outfile:
-        yaml.dump(
-            output_config,
-            outfile,
-            default_flow_style=False,
-            allow_unicode=True,
-            sort_keys=False,
-        )
-
-
-@cli.command(cls=Command)
-@shared_opts
-@click.option(
-    "--dbt_docs_url",
+    "--dbt-docs-url",
     metavar="URL",
     type=click.STRING,
-    help="Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description (default None)",
+    help="URL for dbt docs to be appended to table descriptions in Metabase.",
 )
 @click.option(
-    "--dbt_include_tags",
+    "--dbt-include-tags",
     is_flag=True,
-    help="Flag to append tags to table descriptions in Metabase (default False)",
+    help="Append tags to table descriptions in Metabase.",
 )
 @click.option(
-    "--metabase_exclude_sources",
+    "--metabase-exclude-sources",
     is_flag=True,
-    help="Flag to skip exporting sources to Metabase (default False)",
-)
-@click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    help="Flag which signals verbose output",
+    help="Skip exporting sources to Metabase.",
 )
 def models(
     metabase_host: str,
@@ -547,52 +240,23 @@ def models(
     metabase_password: str,
     metabase_database: str,
     dbt_database: str,
-    dbt_path: Optional[str] = None,
-    dbt_manifest_path: Optional[str] = None,
-    dbt_schema: Optional[str] = None,
-    dbt_schema_excludes: Optional[Iterable] = None,
-    dbt_includes: Optional[Iterable] = None,
-    dbt_excludes: Optional[Iterable] = None,
-    metabase_session_id: Optional[str] = None,
-    metabase_use_http: bool = False,
-    metabase_verify: Optional[str] = None,
-    metabase_sync: bool = True,
-    metabase_sync_timeout: Optional[int] = None,
-    metabase_exclude_sources: bool = False,
-    metabase_http_timeout: int = 15,
-    dbt_include_tags: bool = True,
-    dbt_docs_url: Optional[str] = None,
-    verbose: bool = False,
-    http_extra_headers: Optional[Dict[Any, Any]] = None,
+    dbt_path: Optional[str],
+    dbt_manifest_path: Optional[str],
+    dbt_schema: Optional[str],
+    dbt_schema_excludes: Optional[Iterable],
+    dbt_includes: Optional[Iterable],
+    dbt_excludes: Optional[Iterable],
+    metabase_session_id: Optional[str],
+    metabase_use_http: bool,
+    metabase_verify: Optional[str],
+    metabase_sync: bool,
+    metabase_sync_timeout: Optional[int],
+    metabase_exclude_sources: bool,
+    metabase_http_timeout: int,
+    dbt_include_tags: bool,
+    dbt_docs_url: Optional[str],
+    verbose: bool,
 ):
-    """Exports model documentation and semantic types from dbt to Metabase.
-
-    Args:
-        metabase_host (str): Metabase hostname.
-        metabase_user (str): Metabase username.
-        metabase_password (str): Metabase password.
-        metabase_database (str): Target database name as set in Metabase (typically aliased).
-        metabase_session_id (Optional[str], optional): Session ID. Defaults to None.
-        dbt_database (str):  Target database name as specified in dbt models to be actioned.
-        dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
-        dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
-        dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.
-        dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
-        dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
-        dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
-        metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
-        metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
-        metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
-        metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
-        metabase_exclude_sources (bool, optional): Flag to skip exporting sources to Metabase. Defaults to False.
-        metabase_http_timeout (int, optional): Set the timeout for the single Metabase requests. Defaults to 15.
-        dbt_include_tags (bool, optional): Flag to append tags to table descriptions in Metabase. Defaults to True.
-        dbt_docs_url (Optional[str], optional): Pass in URL to dbt docs site. Appends dbt docs URL for each model to Metabase table description. Defaults to None.
-        http_extra_headers (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
-        verbose (bool, optional): Flag which signals verbose output. Defaults to False.
-    """
-
     # Set global logging level if verbose
     if verbose:
         package_logger.LOGGING_LEVEL = logging.DEBUG
@@ -626,7 +290,6 @@ def models(
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
         exclude_sources=metabase_exclude_sources,
-        http_extra_headers=http_extra_headers,
         http_timeout=metabase_http_timeout,
     )
 
@@ -641,29 +304,32 @@ def models(
     )
 
 
-@cli.command(cls=Command)
-@shared_opts
+@cli.command(help="Export dbt exposures to Metabase.")
+@common_options
 @click.option(
-    "--output_path",
+    "--output-path",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
-    help="Output path for generated exposure yaml. Defaults to local dir.",
     default=".",
+    show_default=True,
+    help="Output path for generated exposure YAML.",
 )
 @click.option(
-    "--output_name",
+    "--output-name",
     type=click.STRING,
-    help="Output name for generated exposure yaml. Defaults to metabase_exposures.yml",
+    default="metabase_exposures.yml",
+    show_default=True,
+    help="File name for generated exposure YAML.",
 )
 @click.option(
-    "--include_personal_collections",
+    "--include-personal-collections",
     is_flag=True,
-    help="Flag to include Personal Collections during exposure parsing",
+    help="Include personal collections when parsing exposures.",
 )
 @click.option(
-    "--collection_excludes",
-    cls=MultiArg,
+    "--collection-excludes",
+    cls=OptionEatAll,
     type=list,
-    help="Metabase collection names to exclude",
+    help="Metabase collection names to exclude.",
 )
 def exposures(
     metabase_host: str,
@@ -671,54 +337,24 @@ def exposures(
     metabase_password: str,
     metabase_database: str,
     dbt_database: str,
-    dbt_path: Optional[str] = None,
-    dbt_manifest_path: Optional[str] = None,
-    dbt_schema: Optional[str] = None,
-    dbt_schema_excludes: Optional[Iterable] = None,
-    dbt_includes: Optional[Iterable] = None,
-    dbt_excludes: Optional[Iterable] = None,
-    metabase_session_id: Optional[str] = None,
-    metabase_use_http: bool = False,
-    metabase_verify: Optional[str] = None,
-    metabase_sync: bool = True,
-    metabase_sync_timeout: Optional[int] = None,
-    metabase_http_timeout: int = 15,
-    output_path: str = ".",
-    output_name: str = "metabase_exposures.yml",
-    include_personal_collections: bool = False,
-    collection_excludes: Optional[Iterable] = None,
-    http_extra_headers: Optional[Dict[Any, Any]] = None,
-    verbose: bool = False,
-) -> None:
-    """Extracts and imports exposures from Metabase to dbt.
-
-    Args:
-        metabase_host (str): Metabase hostname.
-        metabase_user (str): Metabase username.
-        metabase_password (str): Metabase password.
-        metabase_database (str): Target database name as set in Metabase (typically aliased).
-        dbt_database (str): Target database name as specified in dbt models to be actioned.
-        dbt_path (Optional[str], optional): Path to dbt project. If specified with dbt_manifest_path, then the manifest is prioritized. Defaults to None.
-        dbt_manifest_path (Optional[str], optional): Path to dbt manifest.json file (typically located in the /target/ directory of the dbt project). Defaults to None.
-        dbt_schema (Optional[str], optional): Target schema. Should be passed if using folder parser. Defaults to None.
-        dbt_schema_excludes (Optional[Iterable], optional): Target schemas to exclude. Ignored in folder parser. Defaults to None.
-        dbt_includes (Optional[Iterable], optional): Model names to limit processing to. Defaults to None.
-        dbt_excludes (Optional[Iterable], optional): Model names to exclude. Defaults to None.
-        metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
-        metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
-        metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
-        metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-        metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
-        metabase_http_timeout (int, optional): Set the timeout for the single Metabase requests. Default 15
-        output_path (str): Output path for generated exposure yaml. Defaults to "." local dir.
-        output_name (str): Output name for generated exposure yaml. Defaults to metabase_exposures.yml.
-        include_personal_collections (bool, optional): Flag to include Personal Collections during exposure parsing. Defaults to False.
-        collection_excludes (Iterable, optional): Collection names to exclude. Defaults to None.
-        http_extra_headers (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
-        verbose (bool, optional): Flag which signals verbose output. Defaults to False.
-    """
-
-    # Set global logging level if verbose
+    dbt_path: Optional[str],
+    dbt_manifest_path: Optional[str],
+    dbt_schema: Optional[str],
+    dbt_schema_excludes: Optional[Iterable],
+    dbt_includes: Optional[Iterable],
+    dbt_excludes: Optional[Iterable],
+    metabase_session_id: Optional[str],
+    metabase_use_http: bool,
+    metabase_verify: Optional[str],
+    metabase_sync: bool,
+    metabase_sync_timeout: Optional[int],
+    metabase_http_timeout: int,
+    output_path: str,
+    output_name: str,
+    include_personal_collections: bool,
+    collection_excludes: Optional[Iterable],
+    verbose: bool,
+):
     if verbose:
         package_logger.LOGGING_LEVEL = logging.DEBUG
 
@@ -747,7 +383,6 @@ def exposures(
         database=metabase_database,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
-        http_extra_headers=http_extra_headers,
         http_timeout=metabase_http_timeout,
     )
 
