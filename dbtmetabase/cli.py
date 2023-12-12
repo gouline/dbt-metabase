@@ -55,8 +55,7 @@ def cli(ctx: click.Context, config_path: str):
     if config_path_expanded.exists():
         with open(config_path_expanded, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f).get("config", {})
-
-            ## TODO: there must be a better way, but it works for now
+            # propagate root configs to all commands
             ctx.default_map = {command: config for command in group.commands}
 
 
