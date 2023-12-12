@@ -1,9 +1,9 @@
 pip>=23.3.1
-setuptools>=69.0.2
-wheel>=0.42.0
+build>=1.0.3
+twine>=4.0.2
+black>=23.11.0
+isort>=5.12.0
 pylint>=3.0.2
 mypy>=1.7.1
 types-requests
 types-PyYAML
-black>=23.11.0
-isort>=5.12.0

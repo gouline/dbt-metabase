@@ -1,5 +1,5 @@
 build: clean
-	python3 setup.py sdist bdist_wheel
+	python3 -m build
 .PHONY: build
 
 clean:
@@ -39,7 +39,7 @@ check-type:
 	mypy dbtmetabase
 .PHONY: check-type
 
-check: check-fmt check-lint-python check-type
+check: check-fmt check-imports check-lint-python check-type
 .PHONY: check
 
 test:
