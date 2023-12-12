@@ -18,19 +18,26 @@ import requests
 import yaml
 from requests.adapters import HTTPAdapter, Retry
 
-from .exceptions import (
-    MetabaseRuntimeError,
-    MetabaseUnableToSync,
-    NoMetabaseCredentialsSupplied,
-)
-from .logger.logging import logger
-from .models.metabase import (
+from .dbt import (
     METABASE_MODEL_DEFAULT_SCHEMA,
     MetabaseColumn,
     MetabaseModel,
     ModelType,
     NullValue,
 )
+from .logger.logging import logger
+
+
+class MetabaseArgumentError(ValueError):
+    """Invalid Metabase arguments supplied."""
+
+
+class MetabaseSyncError(RuntimeError):
+    """Metabase cannot sync / align models with dbt models."""
+
+
+class MetabaseRuntimeError(RuntimeError):
+    """Metabase execution failed."""
 
 
 class MetabaseClient:
@@ -163,8 +170,8 @@ class MetabaseClient:
         elif session_id and not (user or password):
             session_header = session_id
         else:
-            raise NoMetabaseCredentialsSupplied(
-                "Required username/password OR session_id"
+            raise MetabaseArgumentError(
+                "Arguments username/password OR session_id are required"
             )
         self.session.headers["X-Metabase-Session"] = session_header
 
@@ -226,7 +233,7 @@ class MetabaseClient:
             exclude_sources (bool): Exclude dbt sources from sync.
 
         Raises:
-            MetabaseUnableToSync: Timeout reached, database not found or timeout provided but sync unsuccessful.
+            MetabaseSyncError: Timeout reached, database not found or timeout provided but sync unsuccessful.
 
         Returns:
             bool: True if sync successful, false otherwise.
@@ -235,7 +242,7 @@ class MetabaseClient:
         timeout = self.sync_timeout if self.sync_timeout else 30
 
         if timeout < self._SYNC_PERIOD_SECS:
-            raise MetabaseUnableToSync(
+            raise MetabaseSyncError(
                 f"Timeout provided {timeout} secs, must be at least {self._SYNC_PERIOD_SECS}"
             )
 
@@ -243,7 +250,7 @@ class MetabaseClient:
 
         database_id = self.find_database_id(database)
         if not database_id:
-            raise MetabaseUnableToSync(f"Cannot find database by name {database}")
+            raise MetabaseSyncError(f"Cannot find database by name {database}")
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
@@ -261,7 +268,7 @@ class MetabaseClient:
         if sync_successful:
             self._synced_models = models.copy()
         elif self.sync:
-            raise MetabaseUnableToSync(
+            raise MetabaseSyncError(
                 "Unable to align models between dbt target models and Metabase"
             )
 
@@ -456,7 +463,7 @@ class MetabaseClient:
         fk_target_field_id = None
         if column.semantic_type == "type/FK":
             # Target table could be aliased if we parse_ref() on a source, so we caught aliases during model parsing
-            # This way we can unpack any alias mapped to fk_target_table when using yml folder parser
+            # This way we can unpack any alias mapped to fk_target_table when using yml project reader
             target_table = (
                 column.fk_target_table.upper()
                 if column.fk_target_table is not None
@@ -909,7 +916,7 @@ class MetabaseClient:
             created_at {str} -- Timestamp of exposure creation derived from Metabase
             creator_name {str} -- Creator name derived from Metabase
             creator_email {str} -- Creator email derived from Metabase
-            refable_models {str} -- List of dbt models from dbt parser which can validly be referenced, parsed exposures are always checked against this list to avoid generating invalid yaml
+            refable_models {str} -- List of dbt models from dbt reader which can validly be referenced, parsed exposures are always checked against this list to avoid generating invalid yaml
 
         Keyword Arguments:
             description {str} -- The description of the exposure as documented in Metabase. (default: No description provided in Metabase)

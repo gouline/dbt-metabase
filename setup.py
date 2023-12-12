@@ -25,7 +25,7 @@ setup(
     url="https://github.com/gouline/dbt-metabase",
     license="MIT License",
     entry_points={
-        "console_scripts": ["dbt-metabase = dbtmetabase.cli:cli"],
+        "console_scripts": ["dbt-metabase = dbtmetabase.__main__:cli"],
     },
     packages=find_packages(exclude=["tests"]),
     test_suite="tests",

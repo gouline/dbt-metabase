@@ -1,10 +1,10 @@
 import importlib.metadata
 import logging
 
+from .dbt import DbtReader
 from .metabase import MetabaseClient
-from .models.interface import DbtInterface
 
-__all__ = ["DbtInterface", "MetabaseClient"]
+__all__ = ["DbtReader", "MetabaseClient"]
 
 try:
     __version__ = importlib.metadata.version("dbt-metabase")

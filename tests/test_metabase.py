@@ -5,8 +5,8 @@ import unittest
 
 import yaml
 
+from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
 from dbtmetabase.metabase import MetabaseClient
-from dbtmetabase.models.metabase import MetabaseColumn, MetabaseModel, ModelType
 
 MODELS = [
     MetabaseModel(
@@ -249,7 +249,9 @@ class MockMetabaseClient(MetabaseClient):
         BASE_PATH = "tests/fixtures/mock_api/"
         if method == "get":
             if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
-                with open(f"{BASE_PATH}/{path.lstrip('/')}.json") as f:
+                with open(
+                    f"{BASE_PATH}/{path.lstrip('/')}.json", encoding="utf-8"
+                ) as f:
                     return json.load(f)
             else:
                 return {}

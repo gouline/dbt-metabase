@@ -2,8 +2,8 @@ import json
 import logging
 import os
 
+from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
 from dbtmetabase.metabase import MetabaseClient
-from dbtmetabase.models.metabase import MetabaseColumn, MetabaseModel, ModelType
 
 mbc = MetabaseClient(
     host="localhost:3000",
