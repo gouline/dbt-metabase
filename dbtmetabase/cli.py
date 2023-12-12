@@ -1,7 +1,7 @@
 import functools
 import logging
 from pathlib import Path
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, List, Optional, Union
 
 import click
 import yaml
@@ -11,48 +11,31 @@ from .logger import logging as package_logger
 from .models.interface import DbtInterface, MetabaseInterface
 
 
-# Source: https://stackoverflow.com/a/48394004/818393
-class OptionEatAll(click.Option):
-    def __init__(self, *args, **kwargs):
-        self.save_other_options = kwargs.pop("save_other_options", True)
-        nargs = kwargs.pop("nargs", -1)
-        assert nargs == -1, "nargs, if set, must be -1 not {}".format(nargs)
-        super().__init__(*args, **kwargs)
-        self._previous_parser_process = None
-        self._eat_all_parser = None
+def _comma_separated_list_callback(
+    ctx: click.Context, param: click.Option, value: Union[str, List[str]]
+) -> List[str]:
+    """Click callback for handling comma-separated lists."""
 
-    def add_to_parser(self, parser, ctx):
-        def parser_process(value, state):
-            # method to hook to the parser.process
-            done = False
-            value = [value]
-            if self.save_other_options:
-                # grab everything up to the next option
-                while state.rargs and not done:
-                    for prefix in self._eat_all_parser.prefixes:
-                        if state.rargs[0].startswith(prefix):
-                            done = True
-                    if not done:
-                        value.append(state.rargs.pop(0))
-            else:
-                # grab everything remaining
-                value += state.rargs
-                state.rargs[:] = []
-            value = tuple(value)
+    assert (
+        param.type == click.UNPROCESSED or param.type.name == "list"
+    ), "comma-separated list options must be of type UNPROCESSED or list"
 
-            # call the actual process
-            self._previous_parser_process(value, state)
+    if ctx.get_parameter_source(str(param.name)) in (
+        click.core.ParameterSource.DEFAULT,
+        click.core.ParameterSource.DEFAULT_MAP,
+    ) and isinstance(value, list):
+        # lists in defaults (config or option) should be lists
+        return value
 
-        super().add_to_parser(parser, ctx)
-        for name in self.opts:
-            # pylint: disable=protected-access
-            our_parser = parser._long_opt.get(name) or parser._short_opt.get(name)
-            if our_parser:
-                self._eat_all_parser = our_parser
-                self._previous_parser_process = our_parser.process
-                our_parser.process = parser_process
-                break
-        return
+    elif isinstance(value, str):
+        str_value = value
+    if isinstance(value, list):
+        # when type=list, string value will be a list of chars
+        str_value = "".join(value)
+    else:
+        raise click.BadParameter("must be comma-separated list")
+
+    return str_value.split(",")
 
 
 @click.group()
@@ -116,8 +99,8 @@ def common_options(func: Callable) -> Callable:
         metavar="SCHEMAS",
         envvar="DBT_SCHEMA_EXCLUDES",
         show_envvar=True,
-        type=list,
-        cls=OptionEatAll,
+        type=click.UNPROCESSED,
+        callback=_comma_separated_list_callback,
         help="Target dbt schemas to exclude. Ignored in project parser.",
     )
     @click.option(
@@ -125,8 +108,8 @@ def common_options(func: Callable) -> Callable:
         metavar="MODELS",
         envvar="DBT_INCLUDES",
         show_envvar=True,
-        type=list,
-        cls=OptionEatAll,
+        type=click.UNPROCESSED,
+        callback=_comma_separated_list_callback,
         help="Include specific dbt models names.",
     )
     @click.option(
@@ -134,8 +117,8 @@ def common_options(func: Callable) -> Callable:
         metavar="MODELS",
         envvar="DBT_EXCLUDES",
         show_envvar=True,
-        type=list,
-        cls=OptionEatAll,
+        type=click.UNPROCESSED,
+        callback=_comma_separated_list_callback,
         help="Exclude specific dbt model names.",
     )
     @click.option(
@@ -363,8 +346,8 @@ def models(
     metavar="COLLECTIONS",
     envvar="METABASE_COLLECTION_EXCLUDES",
     show_envvar=True,
-    cls=OptionEatAll,
-    type=list,
+    type=click.UNPROCESSED,
+    callback=_comma_separated_list_callback,
     help="Metabase collection names to exclude.",
 )
 def exposures(
