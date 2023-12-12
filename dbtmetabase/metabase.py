@@ -18,8 +18,12 @@ import requests
 import yaml
 from requests.adapters import HTTPAdapter, Retry
 
+from .exceptions import (
+    MetabaseRuntimeError,
+    MetabaseUnableToSync,
+    NoMetabaseCredentialsSupplied,
+)
 from .logger.logging import logger
-from .models import exceptions
 from .models.metabase import (
     METABASE_MODEL_DEFAULT_SCHEMA,
     MetabaseColumn,
@@ -118,57 +122,63 @@ class MetabaseClient:
     def __init__(
         self,
         host: str,
-        user: Optional[str],
-        password: Optional[str],
-        verify: Optional[Union[str, bool]] = None,
-        cert: Optional[Union[str, Tuple[str, str]]] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
         session_id: Optional[str] = None,
         use_http: bool = False,
-        sync: Optional[bool] = True,
-        sync_timeout: Optional[int] = None,
-        exclude_sources: bool = False,
-        http_extra_headers: Optional[dict] = None,
+        verify: bool = True,
+        cert: Optional[Union[str, Tuple[str, str]]] = None,
         http_timeout: int = 15,
+        http_extra_headers: Optional[dict] = None,
         http_adapter: Optional[HTTPAdapter] = None,
+        sync: bool = True,
+        sync_timeout: Optional[int] = None,
     ):
         """Constructor.
 
-        Arguments:
-            host {str} -- Metabase hostname.
-            user {str} -- Metabase username.
-            password {str} -- Metabase password.
-
-        Keyword Arguments:
-            use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
-            verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
-            cert {Union[str, Tuple[str, str]]} -- Path to a custom certificate to be used by the Metabase client. (default: {None})
-            session_id {str} -- Metabase session ID. (default: {None})
+        Args:
+            host (str): Metabase hostname.
+            user (str, optional): Metabase username (requires password). Defaults to None.
+            password (str, optional): Metabase password (requires username). Defaults to None.
+            session_id (str, optional, optional): Metabase session ID (provide this or username and password). Defaults to None.
+            use_http (bool, optional): Use HTTP instead of HTTPS. Defaults to False.
+            verify (bool, optional): Verify the TLS certificate at the Metabase end. Defaults to True.
+            cert (Union[str, Tuple[str, str]], optional): Path to a custom certificate. Defaults to None.
+            http_timeout (int, optional): HTTP request timeout in secs. Defaults to 15.
+            http_extra_headers (dict, optional): Additional HTTP headers to send to Metabase. Defaults to None.
+            http_adapter (HTTPAdapter, optional): Provide custom HTTP adapter implementation for requests. Defaults to None.
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-            sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
-            http_extra_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
-            exclude_sources {bool} -- Exclude exporting sources. (default: {False})
-            http_adapter: (Optional[HTTPAdapter], optional) Provide custom HTTP adapter implementation for requests to use. Defaults to None.
+            sync_timeout (int, optional): Synchronization timeout in secs. Defaults to None.
         """
 
         self.base_url = f"{'http' if use_http else 'https'}://{host}"
         self.http_timeout = http_timeout
+
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
+
+        if user and password and not session_id:
+            session_header = self.get_session_id(user, password)
+        elif session_id and not (user or password):
+            session_header = session_id
+        else:
+            raise NoMetabaseCredentialsSupplied(
+                "Required username/password OR session_id"
+            )
+        self.session.headers["X-Metabase-Session"] = session_header
 
         if http_extra_headers is not None:
             self.session.headers.update(http_extra_headers)
 
         if not http_adapter:
             http_adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
-
         self.session.mount(self.base_url, http_adapter)
-        session_header = session_id or self.get_session_id(user, password)
-        self.session.headers["X-Metabase-Session"] = session_header
 
         self.sync = sync
         self.sync_timeout = sync_timeout
-        self.exclude_sources = exclude_sources
+
+        self.metadata = self._Metadata()
         self.collections: Iterable = []
         self.tables: Iterable = []
         self.table_map: MutableMapping = {}
@@ -180,11 +190,10 @@ class MetabaseClient:
         self.cte_parser = re.compile(
             r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
         )
-        self.metadata = self._Metadata()
 
         self._synced_models: Optional[List[MetabaseModel]] = None
 
-        logger().info(":ok_hand: Session established successfully")
+        logger().info("Session established successfully")
 
     def get_session_id(self, user: Optional[str], password: Optional[str]) -> str:
         """Obtains new session ID from API.
@@ -207,27 +216,26 @@ class MetabaseClient:
         self,
         database: str,
         models: List[MetabaseModel],
+        exclude_sources: bool,
     ) -> bool:
         """Synchronize with the database and wait for schema compatibility.
 
-        Arguments:
-            database {str} -- Metabase database name.
-            models {list} -- List of dbt models read from project.
-
-        Returns:
-            bool -- True if schema compatible with models, false if still incompatible.
+        Args:
+            database (str): Metabase database name.
+            models (List[MetabaseModel]): List of dbt models read from project.
+            exclude_sources (bool): Exclude dbt sources from sync.
 
         Raises:
-            MetabaseUnableToSync if
-                - the timeout provided is not sufficient
-                - the database cannot be found
-                - a timeout was provided but sync was unsuccessful
+            MetabaseUnableToSync: Timeout reached, database not found or timeout provided but sync unsuccessful.
+
+        Returns:
+            bool: True if sync successful, false otherwise.
         """
 
         timeout = self.sync_timeout if self.sync_timeout else 30
 
         if timeout < self._SYNC_PERIOD_SECS:
-            raise exceptions.MetabaseUnableToSync(
+            raise MetabaseUnableToSync(
                 f"Timeout provided {timeout} secs, must be at least {self._SYNC_PERIOD_SECS}"
             )
 
@@ -235,9 +243,7 @@ class MetabaseClient:
 
         database_id = self.find_database_id(database)
         if not database_id:
-            raise exceptions.MetabaseUnableToSync(
-                f"Cannot find database by name {database}"
-            )
+            raise MetabaseUnableToSync(f"Cannot find database by name {database}")
 
         self.api("post", f"/api/database/{database_id}/sync_schema")
 
@@ -245,7 +251,7 @@ class MetabaseClient:
         sync_successful = False
         while True:
             self.metadata = self.build_metadata(database_id)
-            sync_successful = self.models_compatible(models)
+            sync_successful = self.models_compatible(models, exclude_sources)
             time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
             if not sync_successful and time_after_wait <= deadline:
                 time.sleep(self._SYNC_PERIOD_SECS)
@@ -255,25 +261,30 @@ class MetabaseClient:
         if sync_successful:
             self._synced_models = models.copy()
         elif self.sync:
-            raise exceptions.MetabaseUnableToSync(
+            raise MetabaseUnableToSync(
                 "Unable to align models between dbt target models and Metabase"
             )
 
         return sync_successful
 
-    def models_compatible(self, models: List[MetabaseModel]) -> bool:
+    def models_compatible(
+        self,
+        models: List[MetabaseModel],
+        exclude_sources: bool,
+    ) -> bool:
         """Checks if models compatible with the Metabase database schema.
 
-        Arguments:
-            models {list} -- List of dbt models read from project.
+        Args:
+            models (List[MetabaseModel]): List of dbt models read from project.
+            exclude_sources (bool): Exclude dbt sources from sync.
 
         Returns:
-            bool -- True if schema compatible with models, false otherwise.
+            bool: True if schema compatible with models, false otherwise.
         """
 
         are_models_compatible = True
         for model in models:
-            if model.model_type == ModelType.sources and self.exclude_sources:
+            if model.model_type == ModelType.sources and exclude_sources:
                 continue
 
             schema_name = model.schema.upper()
@@ -305,24 +316,27 @@ class MetabaseClient:
         self,
         database: str,
         models: List[MetabaseModel],
-        aliases,
+        aliases: Mapping[str, str],
+        exclude_sources: bool = False,
     ):
         """Exports dbt models to Metabase database schema.
 
-        Arguments:
-            database {str} -- Metabase database name.
-            models {list} -- List of dbt models read from project.
-            aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
+        Args:
+            database (str): Metabase database name.
+            models (List[MetabaseModel]): List of dbt models read from project.
+            aliases (Mapping[str, str]): Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
+            exclude_sources (bool, optional): Exclude dbt sources from export. Defaults to False.
         """
 
         success = True
 
         if not self.metadata or self._synced_models != models:
-            self.sync_and_wait(database, models)
+            ## TODO: does this need `if self.sync`?
+            self.sync_and_wait(database, models, exclude_sources)
 
         for model in models:
-            if model.model_type == ModelType.sources and self.exclude_sources:
-                logger().info(":fast_forward: Skipping %s source", model.unique_id)
+            if model.model_type == ModelType.sources and exclude_sources:
+                logger().info("Skipping %s source", model.unique_id)
                 continue
 
             success &= self.export_model(model, aliases)
@@ -334,17 +348,17 @@ class MetabaseClient:
                 json=update["body"],
             )
             logger().info(
-                ":satellite: Update to %s %s applied successfully",
+                "Update to %s %s applied successfully",
                 update["kind"],
                 update["id"],
             )
 
         if not success:
-            raise exceptions.MetabaseRuntimeError(
+            raise MetabaseRuntimeError(
                 "Model export encountered non-critical errors, check output"
             )
 
-    def export_model(self, model: MetabaseModel, aliases: dict) -> bool:
+    def export_model(self, model: MetabaseModel, aliases: Mapping[str, str]) -> bool:
         """Exports one dbt model to Metabase database schema.
 
         Arguments:
@@ -364,9 +378,7 @@ class MetabaseClient:
 
         api_table = self.metadata.get_table(lookup_key)
         if not api_table:
-            logger().error(
-                ":cross_mark: Table %s does not exist in Metabase", lookup_key
-            )
+            logger().error("Table %s does not exist in Metabase", lookup_key)
             return False
 
         # Empty strings not accepted by Metabase
@@ -395,9 +407,9 @@ class MetabaseClient:
 
         if body_table:
             self.metadata.update(entity=api_table, delta=body_table)
-            logger().info(":raising_hands: Table %s will be updated", lookup_key)
+            logger().info("Table %s will be updated", lookup_key)
         else:
-            logger().info(":thumbs_up: Table %s is up-to-date", lookup_key)
+            logger().info("Table %s is up-to-date", lookup_key)
 
         for column in model.columns:
             success &= self.export_column(schema_name, model_name, column, aliases)
@@ -409,7 +421,7 @@ class MetabaseClient:
         schema_name: str,
         model_name: str,
         column: MetabaseColumn,
-        aliases: dict,
+        aliases: Mapping[str, str],
     ) -> bool:
         """Exports one dbt column to Metabase database schema.
 
@@ -430,7 +442,7 @@ class MetabaseClient:
         api_field = self.metadata.get_field(table_lookup_key, column_name)
         if not api_field:
             logger().error(
-                ":cross_mark: Field %s.%s does not exist in Metabase",
+                "Field %s.%s does not exist in Metabase",
                 table_lookup_key,
                 column_name,
             )
@@ -458,7 +470,7 @@ class MetabaseClient:
 
             if not target_table or not target_field:
                 logger().info(
-                    ":bow: Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
+                    "Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
                     table_lookup_key,
                     target_field,
                 )
@@ -475,7 +487,7 @@ class MetabaseClient:
                     )
 
                 logger().debug(
-                    ":magnifying_glass_tilted_right: Looking for field %s in table %s",
+                    "Looking for field %s in table %s",
                     target_field,
                     target_table,
                 )
@@ -485,7 +497,7 @@ class MetabaseClient:
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         logger().info(
-                            ":key: Target field %s will be set to PK for %s column FK",
+                            "Target field %s will be set to PK for %s column FK",
                             fk_target_field_id,
                             column_name,
                         )
@@ -497,13 +509,13 @@ class MetabaseClient:
                         )
                     else:
                         logger().info(
-                            ":thumbs_up: Target field %s is already PK, needed for %s column",
+                            "Target field %s is already PK, needed for %s column",
                             fk_target_field_id,
                             column_name,
                         )
                 else:
                     logger().error(
-                        ":cross_mark: Unable to find foreign key target %s.%s",
+                        "Unable to find foreign key target %s.%s",
                         target_table,
                         target_field,
                     )
@@ -559,13 +571,9 @@ class MetabaseClient:
 
         if body_field:
             self.metadata.update(entity=api_field, delta=body_field)
-            logger().info(
-                ":sparkles: Field %s.%s will be updated", model_name, column_name
-            )
+            logger().info("Field %s.%s will be updated", model_name, column_name)
         else:
-            logger().info(
-                ":thumbs_up: Field %s.%s is up-to-date", model_name, column_name
-            )
+            logger().info("Field %s.%s is up-to-date", model_name, column_name)
 
         return success
 
@@ -622,19 +630,17 @@ class MetabaseClient:
         include_personal_collections: bool = True,
         collection_excludes: Optional[Iterable] = None,
     ) -> Mapping:
-        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader
+        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader.
 
-        Arguments:
-            models {List[MetabaseModel]} -- List of models as output by dbt reader
-
-        Keyword Arguments:
-            output_path {str} -- The path to output the generated yaml. (default: ".")
-            output_name {str} -- The name of the generated yaml. (default: {"metabase_exposures"})
-            include_personal_collections {bool} -- Include personal collections in Metabase processing. (default: {True})
-            collection_excludes {str} -- List of collections to exclude by name. (default: {None})
+        Args:
+            models (List[MetabaseModel]): List of models as output by dbt reader.
+            output_path (str, optional): The path to output the generated YAML. Defaults to ".".
+            output_name (str, optional): The name of the generated YAML. Defaults to "metabase_exposures".
+            include_personal_collections (bool, optional): Include personal collections in Metabase processing. Defaults to True.
+            collection_excludes (Optional[Iterable], optional): List of collection names to exclude. Defaults to None.
 
         Returns:
-            List[Mapping] -- JSON object representation of all exposures parsed.
+            Mapping: JSON object representation of all exposures parsed.
         """
 
         _RESOURCE_VERSION = 2
@@ -666,7 +672,7 @@ class MetabaseClient:
                 continue
 
             # Iter through collection
-            logger().info(":sparkles: Exploring collection %s", collection["name"])
+            logger().info("Exploring collection %s", collection["name"])
             for item in self.api("get", f"/api/collection/{collection['id']}/items"):
                 # Ensure collection item is of parsable type
                 exposure_type = item["model"]
@@ -719,7 +725,7 @@ class MetabaseClient:
                         )
 
                 if not self.models_exposed:
-                    logger().info(":bow: No models mapped to exposure")
+                    logger().info("No models mapped to exposure")
 
                 # Extract creator info
                 if "creator" in exposure:
@@ -825,7 +831,7 @@ class MetabaseClient:
                 source_table = self.table_map.get(source_table_id)
                 if source_table:
                     logger().info(
-                        ":direct_hit: Model extracted from Metabase question: %s",
+                        "Model extracted from Metabase question: %s",
                         source_table,
                     )
                     self.models_exposed.append(source_table)
@@ -844,7 +850,7 @@ class MetabaseClient:
                 joined_table = self.table_map.get(query_join.get("source-table"))
                 if joined_table:
                     logger().info(
-                        ":direct_hit: Model extracted from Metabase question join: %s",
+                        "Model extracted from Metabase question join: %s",
                         joined_table,
                     )
                     self.models_exposed.append(joined_table)
@@ -872,7 +878,7 @@ class MetabaseClient:
 
                 if clean_exposure:
                     logger().info(
-                        ":direct_hit: Model extracted from native query: %s",
+                        "Model extracted from native query: %s",
                         clean_exposure,
                     )
                     self.models_exposed.append(clean_exposure)

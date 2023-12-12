@@ -8,7 +8,8 @@ import yaml
 from typing_extensions import cast
 
 from .logger import logging as package_logger
-from .models.interface import DbtInterface, MetabaseInterface
+from .metabase import MetabaseClient
+from .models.interface import DbtInterface
 
 
 def _comma_separated_list_callback(
@@ -171,11 +172,19 @@ def common_options(func: Callable) -> Callable:
         help="Force HTTP instead of HTTPS to connect to Metabase.",
     )
     @click.option(
-        "--metabase-verify",
-        metavar="CERT",
+        "--metabase-verify/--metabase-verify-skip",
+        "metabase_verify",
         envvar="METABASE_VERIFY",
         show_envvar=True,
-        type=click.Path(exists=True, file_okay=True, dir_okay=False),
+        default=True,
+        help="Verify the TLS certificate at the Metabase end.",
+    )
+    @click.option(
+        "--metabase-cert",
+        metavar="CERT",
+        envvar="METABASE_CERT",
+        show_envvar=True,
+        type=click.Path(exists=True, dir_okay=False),
         help="Path to certificate bundle used to connect to Metabase.",
     )
     @click.option(
@@ -256,7 +265,8 @@ def models(
     dbt_excludes: Optional[Iterable],
     metabase_session_id: Optional[str],
     metabase_use_http: bool,
-    metabase_verify: Optional[str],
+    metabase_verify: bool,
+    metabase_cert: Optional[str],
     metabase_sync: bool,
     metabase_sync_timeout: Optional[int],
     metabase_exclude_sources: bool,
@@ -265,12 +275,10 @@ def models(
     dbt_docs_url: Optional[str],
     verbose: bool,
 ):
-    # Set global logging level if verbose
     if verbose:
         package_logger.LOGGING_LEVEL = logging.DEBUG
 
-    # Instantiate dbt interface
-    dbt = DbtInterface(
+    dbt_models, aliases = DbtInterface(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
         database=dbt_database,
@@ -278,37 +286,27 @@ def models(
         schema_excludes=dbt_schema_excludes,
         includes=dbt_includes,
         excludes=dbt_excludes,
-    )
-
-    # Load models
-    dbt_models, aliases = dbt.read_models(
+    ).read_models(
         include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
 
-    # Instantiate Metabase interface
-    metabase = MetabaseInterface(
+    MetabaseClient(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
         session_id=metabase_session_id,
         use_http=metabase_use_http,
         verify=metabase_verify,
-        database=metabase_database,
+        cert=metabase_cert,
+        http_timeout=metabase_http_timeout,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
-        exclude_sources=metabase_exclude_sources,
-        http_timeout=metabase_http_timeout,
-    )
-
-    # Load client
-    metabase.prepare_metabase_client(dbt_models)
-
-    # Execute model export
-    metabase.client.export_models(
-        database=metabase.database,
+    ).export_models(
+        database=metabase_database,
         models=dbt_models,
         aliases=aliases,
+        exclude_sources=metabase_exclude_sources,
     )
 
 
@@ -353,7 +351,6 @@ def exposures(
     metabase_host: str,
     metabase_user: str,
     metabase_password: str,
-    metabase_database: str,
     dbt_database: str,
     dbt_path: Optional[str],
     dbt_manifest_path: Optional[str],
@@ -363,7 +360,8 @@ def exposures(
     dbt_excludes: Optional[Iterable],
     metabase_session_id: Optional[str],
     metabase_use_http: bool,
-    metabase_verify: Optional[str],
+    metabase_verify: bool,
+    metabase_cert: Optional[str],
     metabase_sync: bool,
     metabase_sync_timeout: Optional[int],
     metabase_http_timeout: int,
@@ -376,8 +374,7 @@ def exposures(
     if verbose:
         package_logger.LOGGING_LEVEL = logging.DEBUG
 
-    # Instantiate dbt interface
-    dbt = DbtInterface(
+    dbt_models, _ = DbtInterface(
         path=dbt_path,
         manifest_path=dbt_manifest_path,
         database=dbt_database,
@@ -385,30 +382,20 @@ def exposures(
         schema_excludes=dbt_schema_excludes,
         includes=dbt_includes,
         excludes=dbt_excludes,
-    )
+    ).read_models()
 
-    # Load models
-    dbt_models, _ = dbt.read_models()
-
-    # Instantiate Metabase interface
-    metabase = MetabaseInterface(
+    MetabaseClient(
         host=metabase_host,
         user=metabase_user,
         password=metabase_password,
         session_id=metabase_session_id,
         use_http=metabase_use_http,
         verify=metabase_verify,
-        database=metabase_database,
+        cert=metabase_cert,
+        http_timeout=metabase_http_timeout,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
-        http_timeout=metabase_http_timeout,
-    )
-
-    # Load client
-    metabase.prepare_metabase_client(dbt_models)
-
-    # Execute exposure extraction
-    metabase.client.extract_exposures(
+    ).extract_exposures(
         models=dbt_models,
         output_path=output_path,
         output_name=output_name,
