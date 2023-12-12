@@ -82,6 +82,7 @@ def common_options(func: Callable) -> Callable:
 
     @click.option(
         "--dbt-database",
+        metavar="DATABASE",
         envvar="DBT_DATABASE",
         show_envvar=True,
         required=True,
@@ -92,24 +93,29 @@ def common_options(func: Callable) -> Callable:
         "--dbt-manifest-path",
         envvar="DBT_MANIFEST_PATH",
         show_envvar=True,
-        type=click.Path(exists=True, file_okay=True, dir_okay=False),
+        type=click.Path(exists=True, dir_okay=False),
         help="Path to dbt manifest.json file under /target/ in the dbt project directory. Uses dbt manifest parsing (recommended).",
     )
     @click.option(
         "--dbt-project-path",
         envvar="DBT_PROJECT_PATH",
         show_envvar=True,
-        type=click.Path(exists=True, file_okay=False, dir_okay=True),
+        type=click.Path(exists=True, file_okay=False),
         help="Path to dbt project directory containing models. Uses dbt project parsing (not recommended).",
     )
     @click.option(
         "--dbt-schema",
+        metavar="SCHEMA",
+        envvar="DBT_SCHEMA",
+        show_envvar=True,
         help="Target dbt schema. Must be passed if using project parser.",
         type=click.STRING,
     )
     @click.option(
         "--dbt-schema-excludes",
         metavar="SCHEMAS",
+        envvar="DBT_SCHEMA_EXCLUDES",
+        show_envvar=True,
         type=list,
         cls=OptionEatAll,
         help="Target dbt schemas to exclude. Ignored in project parser.",
@@ -117,6 +123,8 @@ def common_options(func: Callable) -> Callable:
     @click.option(
         "--dbt-includes",
         metavar="MODELS",
+        envvar="DBT_INCLUDES",
+        show_envvar=True,
         type=list,
         cls=OptionEatAll,
         help="Include specific dbt models names.",
@@ -124,13 +132,16 @@ def common_options(func: Callable) -> Callable:
     @click.option(
         "--dbt-excludes",
         metavar="MODELS",
+        envvar="DBT_EXCLUDES",
+        show_envvar=True,
         type=list,
         cls=OptionEatAll,
         help="Exclude specific dbt model names.",
     )
     @click.option(
         "--metabase-database",
-        envvar="MB_DATABASE",
+        metavar="DATABASE",
+        envvar="METABASE_DATABASE",
         show_envvar=True,
         required=True,
         type=click.STRING,
@@ -148,15 +159,15 @@ def common_options(func: Callable) -> Callable:
     @click.option(
         "--metabase-user",
         metavar="USER",
-        envvar="MB_USER",
+        envvar="METABASE_USER",
         show_envvar=True,
         type=click.STRING,
         help="Metabase username.",
     )
     @click.option(
         "--metabase-password",
-        metavar="PASS",
-        envvar="MB_PASSWORD",
+        metavar="PASSWORD",
+        envvar="METABASE_PASSWORD",
         show_envvar=True,
         type=click.STRING,
         help="Metabase password.",
@@ -164,7 +175,7 @@ def common_options(func: Callable) -> Callable:
     @click.option(
         "--metabase-session-id",
         metavar="TOKEN",
-        envvar="MB_SESSION_ID",
+        envvar="METABASE_SESSION_ID",
         show_envvar=True,
         type=click.STRING,
         help="Metabase session ID.",
@@ -172,18 +183,24 @@ def common_options(func: Callable) -> Callable:
     @click.option(
         "--metabase-http/--metabase-https",
         "metabase_use_http",
+        envvar="METABASE_USE_HTTP",
+        show_envvar=True,
         default=False,
         help="Force HTTP instead of HTTPS to connect to Metabase.",
     )
     @click.option(
         "--metabase-verify",
         metavar="CERT",
+        envvar="METABASE_VERIFY",
+        show_envvar=True,
         type=click.Path(exists=True, file_okay=True, dir_okay=False),
         help="Path to certificate bundle used to connect to Metabase.",
     )
     @click.option(
         "--metabase-sync/--metabase-sync-skip",
         "metabase_sync",
+        envvar="METABASE_SYNC",
+        show_envvar=True,
         default=True,
         show_default=True,
         help="Attempt to synchronize Metabase schema with local models.",
@@ -191,16 +208,19 @@ def common_options(func: Callable) -> Callable:
     @click.option(
         "--metabase-sync-timeout",
         metavar="SECS",
+        envvar="METABASE_SYNC_TIMEOUT",
+        show_envvar=True,
         type=click.INT,
         help="Synchronization timeout in secs. When set, command fails on failed synchronization. Otherwise, command proceeds regardless. Only valid if sync is enabled.",
     )
     @click.option(
         "--metabase-http-timeout",
-        type=int,
+        metavar="SECS",
+        envvar="METABASE_HTTP_TIMEOUT",
+        show_envvar=True,
+        type=click.INT,
         default=15,
         show_default=True,
-        envvar="MB_HTTP_TIMEOUT",
-        show_envvar=True,
         help="Set the value for single requests timeout.",
     )
     @click.option(
@@ -221,16 +241,22 @@ def common_options(func: Callable) -> Callable:
 @click.option(
     "--dbt-docs-url",
     metavar="URL",
+    envvar="DBT_DOCS_URL",
+    show_envvar=True,
     type=click.STRING,
     help="URL for dbt docs to be appended to table descriptions in Metabase.",
 )
 @click.option(
     "--dbt-include-tags",
+    envvar="DBT_INCLUDE_TAGS",
+    show_envvar=True,
     is_flag=True,
     help="Append tags to table descriptions in Metabase.",
 )
 @click.option(
     "--metabase-exclude-sources",
+    envvar="METABASE_EXCLUDE_SOURCES",
+    show_envvar=True,
     is_flag=True,
     help="Skip exporting sources to Metabase.",
 )
@@ -308,25 +334,35 @@ def models(
 @common_options
 @click.option(
     "--output-path",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
+    envvar="OUTPUT_PATH",
+    show_envvar=True,
+    type=click.Path(exists=True, file_okay=False),
     default=".",
     show_default=True,
     help="Output path for generated exposure YAML.",
 )
 @click.option(
     "--output-name",
+    metavar="NAME",
+    envvar="OUTPUT_NAME",
+    show_envvar=True,
     type=click.STRING,
     default="metabase_exposures.yml",
     show_default=True,
     help="File name for generated exposure YAML.",
 )
 @click.option(
-    "--include-personal-collections",
+    "--metabase-include-personal-collections",
+    envvar="METABASE_INCLUDE_PERSONAL_COLLECTIONS",
+    show_envvar=True,
     is_flag=True,
     help="Include personal collections when parsing exposures.",
 )
 @click.option(
-    "--collection-excludes",
+    "--metabase-collection-excludes",
+    metavar="COLLECTIONS",
+    envvar="METABASE_COLLECTION_EXCLUDES",
+    show_envvar=True,
     cls=OptionEatAll,
     type=list,
     help="Metabase collection names to exclude.",
@@ -351,8 +387,8 @@ def exposures(
     metabase_http_timeout: int,
     output_path: str,
     output_name: str,
-    include_personal_collections: bool,
-    collection_excludes: Optional[Iterable],
+    metabase_include_personal_collections: bool,
+    metabase_collection_excludes: Optional[Iterable],
     verbose: bool,
 ):
     if verbose:
@@ -394,6 +430,6 @@ def exposures(
         models=dbt_models,
         output_path=output_path,
         output_name=output_name,
-        include_personal_collections=include_personal_collections,
-        collection_excludes=collection_excludes,
+        include_personal_collections=metabase_include_personal_collections,
+        collection_excludes=metabase_collection_excludes,
     )
