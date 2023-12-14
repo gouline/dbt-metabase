@@ -9,7 +9,7 @@ from typing_extensions import cast
 
 from .dbt import DbtReader
 from .logger import logging as package_logger
-from .metabase import MetabaseAuth, MetabaseClient, MetabaseCredentials, MetabaseSession
+from .metabase import MetabaseClient
 
 
 def _comma_separated_list_callback(
@@ -19,19 +19,17 @@ def _comma_separated_list_callback(
 ) -> Optional[List[str]]:
     """Click callback for handling comma-separated lists."""
 
+    if value is None:
+        return None
+
     assert (
         param.type == click.UNPROCESSED or param.type.name == "list"
     ), "comma-separated list options must be of type UNPROCESSED or list"
 
-    if (
-        value is None
-        or ctx.get_parameter_source(str(param.name))
-        in (
-            click.core.ParameterSource.DEFAULT,
-            click.core.ParameterSource.DEFAULT_MAP,
-        )
-        and isinstance(value, list)
-    ):
+    if ctx.get_parameter_source(str(param.name)) in (
+        click.core.ParameterSource.DEFAULT,
+        click.core.ParameterSource.DEFAULT_MAP,
+    ) and isinstance(value, list):
         # Lists in defaults (config or option) should be lists
         return value
 
@@ -172,31 +170,14 @@ def _add_setup(func: Callable) -> Callable:
         help="Path to certificate bundle used to connect to Metabase.",
     )
     @click.option(
-        "--metabase-sync/--metabase-sync-skip",
-        "metabase_sync",
-        envvar="METABASE_SYNC",
-        show_envvar=True,
-        default=True,
-        show_default=True,
-        help="Attempt to synchronize Metabase schema with local models.",
-    )
-    @click.option(
-        "--metabase-sync-timeout",
+        "--metabase-timeout",
         metavar="SECS",
-        envvar="METABASE_SYNC_TIMEOUT",
-        show_envvar=True,
-        type=click.INT,
-        help="Synchronization timeout in secs. When set, command fails on failed synchronization. Otherwise, command proceeds regardless. Only valid if sync is enabled.",
-    )
-    @click.option(
-        "--metabase-http-timeout",
-        metavar="SECS",
-        envvar="METABASE_HTTP_TIMEOUT",
+        envvar="METABASE_TIMEOUT",
         show_envvar=True,
         type=click.INT,
         default=15,
         show_default=True,
-        help="Set the value for single requests timeout.",
+        help="Metabase API HTTP timeout in seconds.",
     )
     @click.option(
         "-v",
@@ -218,8 +199,6 @@ def _add_setup(func: Callable) -> Callable:
         metabase_session_id: Optional[str],
         metabase_verify: bool,
         metabase_cert: Optional[str],
-        metabase_sync: bool,
-        metabase_sync_timeout: Optional[int],
         metabase_http_timeout: int,
         verbose: bool,
         **kwargs,
@@ -236,27 +215,14 @@ def _add_setup(func: Callable) -> Callable:
             excludes=dbt_excludes,
         )
 
-        metabase_auth: MetabaseAuth
-        if metabase_username and metabase_password:
-            metabase_auth = MetabaseCredentials(
-                username=metabase_username,
-                password=metabase_password,
-            )
-        elif metabase_session_id:
-            metabase_auth = MetabaseSession(session_id=metabase_session_id)
-        else:
-            raise click.MissingParameter(
-                "Missing Metabase username/password or session ID"
-            )
-
         metabase_client = MetabaseClient(
             url=metabase_url,
-            auth=metabase_auth,
+            username=metabase_username,
+            password=metabase_password,
+            session_id=metabase_session_id,
             verify=metabase_verify,
             cert=metabase_cert,
             http_timeout=metabase_http_timeout,
-            sync=metabase_sync,
-            sync_timeout=metabase_sync_timeout,
         )
 
         return func(
@@ -295,6 +261,24 @@ def _add_setup(func: Callable) -> Callable:
     help="Target database name in Metabase.",
 )
 @click.option(
+    "--metabase-sync/--metabase-sync-skip",
+    "metabase_sync",
+    envvar="METABASE_SYNC",
+    show_envvar=True,
+    default=True,
+    show_default=True,
+    help="Attempt to synchronize Metabase schema with local models.",
+)
+@click.option(
+    "--metabase-sync-timeout",
+    metavar="SECS",
+    envvar="METABASE_SYNC_TIMEOUT",
+    show_envvar=True,
+    default=30,
+    type=click.INT,
+    help="Synchronization timeout in secs. When set, command fails on failed synchronization. Otherwise, command proceeds regardless. Only valid if sync is enabled.",
+)
+@click.option(
     "--metabase-exclude-sources",
     envvar="METABASE_EXCLUDE_SOURCES",
     show_envvar=True,
@@ -305,6 +289,7 @@ def models(
     dbt_docs_url: Optional[str],
     dbt_include_tags: bool,
     metabase_database: str,
+    metabase_sync_timeout: int,
     metabase_exclude_sources: bool,
     dbt_reader: DbtReader,
     metabase_client: MetabaseClient,
@@ -317,6 +302,7 @@ def models(
         database=metabase_database,
         models=dbt_models,
         exclude_sources=metabase_exclude_sources,
+        sync_timeout=metabase_sync_timeout,
     )
 
 
