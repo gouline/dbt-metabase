@@ -9,22 +9,29 @@ from typing_extensions import cast
 
 from .dbt import DbtReader
 from .logger import logging as package_logger
-from .metabase import MetabaseClient
+from .metabase import MetabaseAuth, MetabaseClient, MetabaseCredentials, MetabaseSession
 
 
 def _comma_separated_list_callback(
-    ctx: click.Context, param: click.Option, value: Union[str, List[str]]
-) -> List[str]:
+    ctx: click.Context,
+    param: click.Option,
+    value: Union[str, List[str]],
+) -> Optional[List[str]]:
     """Click callback for handling comma-separated lists."""
 
     assert (
         param.type == click.UNPROCESSED or param.type.name == "list"
     ), "comma-separated list options must be of type UNPROCESSED or list"
 
-    if ctx.get_parameter_source(str(param.name)) in (
-        click.core.ParameterSource.DEFAULT,
-        click.core.ParameterSource.DEFAULT_MAP,
-    ) and isinstance(value, list):
+    if (
+        value is None
+        or ctx.get_parameter_source(str(param.name))
+        in (
+            click.core.ParameterSource.DEFAULT,
+            click.core.ParameterSource.DEFAULT_MAP,
+        )
+        and isinstance(value, list)
+    ):
         # Lists in defaults (config or option) should be lists
         return value
 
@@ -60,9 +67,17 @@ def cli(ctx: click.Context, config_path: str):
             ctx.default_map = {command: config for command in group.commands}
 
 
-def common_options(func: Callable) -> Callable:
-    """Common click options between commands."""
+def _add_setup(func: Callable) -> Callable:
+    """Add common options and create DbtReader and MetabaseClient."""
 
+    @click.option(
+        "--dbt-manifest-path",
+        envvar="DBT_MANIFEST_PATH",
+        show_envvar=True,
+        required=True,
+        type=click.Path(exists=True, dir_okay=False),
+        help="Path to dbt manifest.json file under /target/ in the dbt project directory. Uses dbt manifest parsing (recommended).",
+    )
     @click.option(
         "--dbt-database",
         metavar="DATABASE",
@@ -71,20 +86,6 @@ def common_options(func: Callable) -> Callable:
         required=True,
         type=click.STRING,
         help="Target database name in dbt models.",
-    )
-    @click.option(
-        "--dbt-manifest-path",
-        envvar="DBT_MANIFEST_PATH",
-        show_envvar=True,
-        type=click.Path(exists=True, dir_okay=False),
-        help="Path to dbt manifest.json file under /target/ in the dbt project directory. Uses dbt manifest parsing (recommended).",
-    )
-    @click.option(
-        "--dbt-project-path",
-        envvar="DBT_PROJECT_PATH",
-        show_envvar=True,
-        type=click.Path(exists=True, file_okay=False),
-        help="Path to dbt project directory containing models. Uses dbt project parsing (not recommended).",
     )
     @click.option(
         "--dbt-schema",
@@ -122,27 +123,18 @@ def common_options(func: Callable) -> Callable:
         help="Exclude specific dbt model names.",
     )
     @click.option(
-        "--metabase-database",
-        metavar="DATABASE",
-        envvar="METABASE_DATABASE",
+        "--metabase-url",
+        metavar="URL",
+        envvar="MB_URL",
         show_envvar=True,
         required=True,
         type=click.STRING,
-        help="Target database name in Metabase.",
+        help="Metabase URL, including protocol and excluding trailing slash.",
     )
     @click.option(
-        "--metabase-host",
-        metavar="HOST",
-        envvar="MB_HOST",
-        show_envvar=True,
-        required=True,
-        type=click.STRING,
-        help="Metabase hostname, excluding protocol.",
-    )
-    @click.option(
-        "--metabase-user",
-        metavar="USER",
-        envvar="METABASE_USER",
+        "--metabase-username",
+        metavar="USERNAME",
+        envvar="METABASE_USERNAME",
         show_envvar=True,
         type=click.STRING,
         help="Metabase username.",
@@ -162,14 +154,6 @@ def common_options(func: Callable) -> Callable:
         show_envvar=True,
         type=click.STRING,
         help="Metabase session ID.",
-    )
-    @click.option(
-        "--metabase-http/--metabase-https",
-        "metabase_use_http",
-        envvar="METABASE_USE_HTTP",
-        show_envvar=True,
-        default=False,
-        help="Force HTTP instead of HTTPS to connect to Metabase.",
     )
     @click.option(
         "--metabase-verify/--metabase-verify-skip",
@@ -221,14 +205,71 @@ def common_options(func: Callable) -> Callable:
         help="Enable verbose logging.",
     )
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
+    def wrapper(
+        metabase_url: str,
+        metabase_username: str,
+        metabase_password: str,
+        dbt_database: str,
+        dbt_manifest_path: str,
+        dbt_schema: Optional[str],
+        dbt_schema_excludes: Optional[Iterable],
+        dbt_includes: Optional[Iterable],
+        dbt_excludes: Optional[Iterable],
+        metabase_session_id: Optional[str],
+        metabase_verify: bool,
+        metabase_cert: Optional[str],
+        metabase_sync: bool,
+        metabase_sync_timeout: Optional[int],
+        metabase_http_timeout: int,
+        verbose: bool,
+        **kwargs,
+    ):
+        if verbose:
+            package_logger.LOGGING_LEVEL = logging.DEBUG
+
+        dbt_reader = DbtReader(
+            manifest_path=dbt_manifest_path,
+            database=dbt_database,
+            schema=dbt_schema,
+            schema_excludes=dbt_schema_excludes,
+            includes=dbt_includes,
+            excludes=dbt_excludes,
+        )
+
+        metabase_auth: MetabaseAuth
+        if metabase_username and metabase_password:
+            metabase_auth = MetabaseCredentials(
+                username=metabase_username,
+                password=metabase_password,
+            )
+        elif metabase_session_id:
+            metabase_auth = MetabaseSession(session_id=metabase_session_id)
+        else:
+            raise click.MissingParameter(
+                "Missing Metabase username/password or session ID"
+            )
+
+        metabase_client = MetabaseClient(
+            url=metabase_url,
+            auth=metabase_auth,
+            verify=metabase_verify,
+            cert=metabase_cert,
+            http_timeout=metabase_http_timeout,
+            sync=metabase_sync,
+            sync_timeout=metabase_sync_timeout,
+        )
+
+        return func(
+            dbt_reader=dbt_reader,
+            metabase_client=metabase_client,
+            **kwargs,
+        )
 
     return wrapper
 
 
 @cli.command(help="Export dbt models to Metabase.")
-@common_options
+@_add_setup
 @click.option(
     "--dbt-docs-url",
     metavar="URL",
@@ -245,6 +286,15 @@ def common_options(func: Callable) -> Callable:
     help="Append tags to table descriptions in Metabase.",
 )
 @click.option(
+    "--metabase-database",
+    metavar="DATABASE",
+    envvar="METABASE_DATABASE",
+    show_envvar=True,
+    required=True,
+    type=click.STRING,
+    help="Target database name in Metabase.",
+)
+@click.option(
     "--metabase-exclude-sources",
     envvar="METABASE_EXCLUDE_SOURCES",
     show_envvar=True,
@@ -252,66 +302,26 @@ def common_options(func: Callable) -> Callable:
     help="Skip exporting sources to Metabase.",
 )
 def models(
-    metabase_host: str,
-    metabase_user: str,
-    metabase_password: str,
-    metabase_database: str,
-    dbt_database: str,
-    dbt_manifest_path: Optional[str],
-    dbt_project_path: Optional[str],
-    dbt_schema: Optional[str],
-    dbt_schema_excludes: Optional[Iterable],
-    dbt_includes: Optional[Iterable],
-    dbt_excludes: Optional[Iterable],
-    metabase_session_id: Optional[str],
-    metabase_use_http: bool,
-    metabase_verify: bool,
-    metabase_cert: Optional[str],
-    metabase_sync: bool,
-    metabase_sync_timeout: Optional[int],
-    metabase_exclude_sources: bool,
-    metabase_http_timeout: int,
-    dbt_include_tags: bool,
     dbt_docs_url: Optional[str],
-    verbose: bool,
+    dbt_include_tags: bool,
+    metabase_database: str,
+    metabase_exclude_sources: bool,
+    dbt_reader: DbtReader,
+    metabase_client: MetabaseClient,
 ):
-    if verbose:
-        package_logger.LOGGING_LEVEL = logging.DEBUG
-
-    dbt_models, aliases = DbtReader(
-        database=dbt_database,
-        manifest_path=dbt_manifest_path,
-        project_path=dbt_project_path,
-        schema=dbt_schema,
-        schema_excludes=dbt_schema_excludes,
-        includes=dbt_includes,
-        excludes=dbt_excludes,
-    ).read_models(
+    dbt_models = dbt_reader.read_models(
         include_tags=dbt_include_tags,
         docs_url=dbt_docs_url,
     )
-
-    MetabaseClient(
-        host=metabase_host,
-        user=metabase_user,
-        password=metabase_password,
-        session_id=metabase_session_id,
-        use_http=metabase_use_http,
-        verify=metabase_verify,
-        cert=metabase_cert,
-        http_timeout=metabase_http_timeout,
-        sync=metabase_sync,
-        sync_timeout=metabase_sync_timeout,
-    ).export_models(
+    metabase_client.export_models(
         database=metabase_database,
         models=dbt_models,
-        aliases=aliases,
         exclude_sources=metabase_exclude_sources,
     )
 
 
 @cli.command(help="Export dbt exposures to Metabase.")
-@common_options
+@_add_setup
 @click.option(
     "--output-path",
     envvar="OUTPUT_PATH",
@@ -348,54 +358,15 @@ def models(
     help="Metabase collection names to exclude.",
 )
 def exposures(
-    metabase_host: str,
-    metabase_user: str,
-    metabase_password: str,
-    dbt_database: str,
-    dbt_manifest_path: Optional[str],
-    dbt_project_path: Optional[str],
-    dbt_schema: Optional[str],
-    dbt_schema_excludes: Optional[Iterable],
-    dbt_includes: Optional[Iterable],
-    dbt_excludes: Optional[Iterable],
-    metabase_session_id: Optional[str],
-    metabase_use_http: bool,
-    metabase_verify: bool,
-    metabase_cert: Optional[str],
-    metabase_sync: bool,
-    metabase_sync_timeout: Optional[int],
-    metabase_http_timeout: int,
     output_path: str,
     output_name: str,
     metabase_include_personal_collections: bool,
     metabase_collection_excludes: Optional[Iterable],
-    verbose: bool,
+    dbt_reader: DbtReader,
+    metabase_client: MetabaseClient,
 ):
-    if verbose:
-        package_logger.LOGGING_LEVEL = logging.DEBUG
-
-    dbt_models, _ = DbtReader(
-        database=dbt_database,
-        manifest_path=dbt_manifest_path,
-        project_path=dbt_project_path,
-        schema=dbt_schema,
-        schema_excludes=dbt_schema_excludes,
-        includes=dbt_includes,
-        excludes=dbt_excludes,
-    ).read_models()
-
-    MetabaseClient(
-        host=metabase_host,
-        user=metabase_user,
-        password=metabase_password,
-        session_id=metabase_session_id,
-        use_http=metabase_use_http,
-        verify=metabase_verify,
-        cert=metabase_cert,
-        http_timeout=metabase_http_timeout,
-        sync=metabase_sync,
-        sync_timeout=metabase_sync_timeout,
-    ).extract_exposures(
+    dbt_models = dbt_reader.read_models()
+    metabase_client.extract_exposures(
         models=dbt_models,
         output_path=output_path,
         output_name=output_name,

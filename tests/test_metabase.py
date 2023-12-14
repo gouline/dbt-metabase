@@ -6,7 +6,7 @@ import unittest
 import yaml
 
 from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
-from dbtmetabase.metabase import MetabaseClient
+from dbtmetabase.metabase import MetabaseClient, MetabaseCredentials
 
 MODELS = [
     MetabaseModel(
@@ -242,10 +242,10 @@ MODELS = [
 
 
 class MockMetabaseClient(MetabaseClient):
-    def get_session_id(self, user: str, password: str) -> str:
+    def get_session_id(self, username: str, password: str) -> str:
         return "dummy"
 
-    def api(self, method: str, path: str, **kwargs):
+    def api(self, method: str, path: str, critical: bool = True, **kwargs):
         BASE_PATH = "tests/fixtures/mock_api/"
         if method == "get":
             if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
@@ -260,10 +260,8 @@ class MockMetabaseClient(MetabaseClient):
 class TestMetabaseClient(unittest.TestCase):
     def setUp(self):
         self.client = MockMetabaseClient(
-            host="localhost:3000",
-            user="dummy",
-            password="dummy",
-            use_http=True,
+            url="http://localhost:3000",
+            auth=MetabaseCredentials(username="dummy", password="dummy"),
         )
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
@@ -303,7 +301,7 @@ class TestMetabaseClient(unittest.TestCase):
             "PUBLIC.STG_ORDERS",
             "PUBLIC.STG_PAYMENTS",
         ]
-        metadata = mbc.build_metadata(database_id=2)
+        metadata = mbc.build_metadata(database_id="2")
         self.assertEqual(baseline_tables, list(metadata.tables.keys()))
         baseline_columns = [
             [

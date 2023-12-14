@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import os
 import re
@@ -26,6 +27,25 @@ from .dbt import (
     NullValue,
 )
 from .logger.logging import logger
+
+
+class MetabaseAuth:
+    pass
+
+
+@dataclasses.dataclass
+class MetabaseCredentials(MetabaseAuth):
+    """Metabase authentication method with username and password credentials."""
+
+    username: str
+    password: str
+
+
+@dataclasses.dataclass
+class MetabaseSession(MetabaseAuth):
+    """Metabase authentication method using established session."""
+
+    session_id: str
 
 
 class MetabaseArgumentError(ValueError):
@@ -128,15 +148,12 @@ class MetabaseClient:
 
     def __init__(
         self,
-        host: str,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        session_id: Optional[str] = None,
-        use_http: bool = False,
+        url: str,
+        auth: MetabaseAuth,
         verify: bool = True,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
         http_timeout: int = 15,
-        http_extra_headers: Optional[dict] = None,
+        http_headers: Optional[dict] = None,
         http_adapter: Optional[HTTPAdapter] = None,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
@@ -144,8 +161,8 @@ class MetabaseClient:
         """Constructor.
 
         Args:
-            host (str): Metabase hostname.
-            user (str, optional): Metabase username (requires password). Defaults to None.
+            url (str): Metabase URL (including protocol, excluding trailing slash).
+            auth (MetabaseAuth): Metabase authentication method (credentials or session).
             password (str, optional): Metabase password (requires username). Defaults to None.
             session_id (str, optional, optional): Metabase session ID (provide this or username and password). Defaults to None.
             use_http (bool, optional): Use HTTP instead of HTTPS. Defaults to False.
@@ -158,29 +175,30 @@ class MetabaseClient:
             sync_timeout (int, optional): Synchronization timeout in secs. Defaults to None.
         """
 
-        self.base_url = f"{'http' if use_http else 'https'}://{host}"
-        self.http_timeout = http_timeout
+        self.url = url
+        if self.url.endswith("/"):
+            self.url = self.url[:-1]
 
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
 
-        if user and password and not session_id:
-            session_header = self.get_session_id(user, password)
-        elif session_id and not (user or password):
-            session_header = session_id
+        if isinstance(auth, MetabaseCredentials):
+            session_header = self.get_session_id(auth.username, auth.password)
+        elif isinstance(auth, MetabaseSession):
+            session_header = auth.session_id
         else:
-            raise MetabaseArgumentError(
-                "Arguments username/password OR session_id are required"
-            )
+            raise MetabaseArgumentError("Valid authentication required")
         self.session.headers["X-Metabase-Session"] = session_header
 
-        if http_extra_headers is not None:
-            self.session.headers.update(http_extra_headers)
+        if http_headers is not None:
+            self.session.headers.update(http_headers)
 
         if not http_adapter:
             http_adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
-        self.session.mount(self.base_url, http_adapter)
+        self.session.mount(self.url, http_adapter)
+
+        self.http_timeout = http_timeout
 
         self.sync = sync
         self.sync_timeout = sync_timeout
@@ -202,21 +220,20 @@ class MetabaseClient:
 
         logger().info("Session established successfully")
 
-    def get_session_id(self, user: Optional[str], password: Optional[str]) -> str:
-        """Obtains new session ID from API.
+    def get_session_id(self, username: str, password: str) -> str:
+        """Request new API session.
 
-        Arguments:
-            user {str} -- Metabase username.
-            password {str} -- Metabase password.
+        Args:
+            username (str): Metabase username.
+            password (str): Metabase password.
 
         Returns:
-            str -- Session ID.
+            str: Session ID.
         """
-
         return self.api(
             "post",
             "/api/session",
-            json={"username": user, "password": password},
+            json={"username": username, "password": password},
         )["id"]
 
     def sync_and_wait(
@@ -323,7 +340,6 @@ class MetabaseClient:
         self,
         database: str,
         models: List[MetabaseModel],
-        aliases: Mapping[str, str],
         exclude_sources: bool = False,
     ):
         """Exports dbt models to Metabase database schema.
@@ -331,7 +347,6 @@ class MetabaseClient:
         Args:
             database (str): Metabase database name.
             models (List[MetabaseModel]): List of dbt models read from project.
-            aliases (Mapping[str, str]): Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
             exclude_sources (bool, optional): Exclude dbt sources from export. Defaults to False.
         """
 
@@ -346,7 +361,7 @@ class MetabaseClient:
                 logger().info("Skipping %s source", model.unique_id)
                 continue
 
-            success &= self.export_model(model, aliases)
+            success &= self.export_model(model)
 
         for update in self.metadata.pop_updates():
             self.api(
@@ -365,12 +380,11 @@ class MetabaseClient:
                 "Model export encountered non-critical errors, check output"
             )
 
-    def export_model(self, model: MetabaseModel, aliases: Mapping[str, str]) -> bool:
+    def export_model(self, model: MetabaseModel) -> bool:
         """Exports one dbt model to Metabase database schema.
 
         Arguments:
             model {dict} -- One dbt model read from project.
-            aliases {dict} -- Provided by reader class. Shuttled down to column exports to resolve FK refs against relations to aliased source tables
 
         Returns:
             bool -- True if exported successfully, false if there were errors.
@@ -380,8 +394,9 @@ class MetabaseClient:
 
         schema_name = model.schema.upper()
         model_name = model.name.upper()
+        ## TODO: what if it was aliased?
 
-        lookup_key = f"{schema_name}.{aliases.get(model_name, model_name)}"
+        lookup_key = f"{schema_name}.{model_name}"
 
         api_table = self.metadata.get_table(lookup_key)
         if not api_table:
@@ -419,7 +434,7 @@ class MetabaseClient:
             logger().info("Table %s is up-to-date", lookup_key)
 
         for column in model.columns:
-            success &= self.export_column(schema_name, model_name, column, aliases)
+            success &= self.export_column(schema_name, model_name, column)
 
         return success
 
@@ -428,14 +443,13 @@ class MetabaseClient:
         schema_name: str,
         model_name: str,
         column: MetabaseColumn,
-        aliases: Mapping[str, str],
     ) -> bool:
         """Exports one dbt column to Metabase database schema.
 
         Arguments:
+            schema_name {str} -- Target schema name.s
             model_name {str} -- One dbt model name read from project.
             column {dict} -- One dbt column read from project.
-            aliases {dict} -- Provided by reader class. Used to resolve FK refs against relations to aliased source tables
 
         Returns:
             bool -- True if exported successfully, false if there were errors.
@@ -483,16 +497,6 @@ class MetabaseClient:
                 )
 
             else:
-                was_aliased = (
-                    aliases.get(target_table.split(".", 1)[-1])
-                    if target_table
-                    else None
-                )
-                if was_aliased:
-                    target_table = ".".join(
-                        [target_table.split(".", 1)[0], was_aliased]
-                    )
-
                 logger().debug(
                     "Looking for field %s in table %s",
                     target_field,
@@ -695,9 +699,13 @@ class MetabaseClient:
                 exposure = self.api("get", f"/api/{exposure_type}/{exposure_id}")
                 exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
                 logger().info(
-                    "\n:bow_and_arrow: Introspecting exposure: %s",
+                    "Introspecting exposure: %s",
                     exposure_name,
                 )
+
+                header = None
+                creator_name = None
+                creator_email = None
 
                 # Process exposure
                 if exposure_type == "card":
@@ -725,6 +733,7 @@ class MetabaseClient:
                         dashboard_item_reference = dashboard_item.get("card", {})
                         if "id" not in dashboard_item_reference:
                             continue
+
                         # Parse Metabase question
                         self._extract_card_exposures(
                             dashboard_item_reference["id"],
@@ -747,11 +756,11 @@ class MetabaseClient:
                         if error.response is None or error.response.status_code != 404:
                             raise
 
-                    creator_email = creator.get("email")
                     creator_name = creator.get("common_name")
+                    creator_email = creator.get("email")
 
                 exposure_label = exposure_name
-                # Only letters, numbers and underscores allowed in model names in dbt docs DAG / No duplicate model names
+                # Only letters, numbers and underscores allowed in model names in dbt docs DAG / no duplicate model names
                 exposure_name = re.sub(r"[^\w]", "_", exposure_name).lower()
                 enumer = 1
                 while exposure_name in documented_exposure_names:
@@ -765,10 +774,10 @@ class MetabaseClient:
                         exposure_id=exposure_id,
                         name=exposure_name,
                         label=exposure_label,
-                        header=header,
+                        header=header or "",
                         created_at=exposure["created_at"],
-                        creator_name=creator_name,
-                        creator_email=creator_email,
+                        creator_name=creator_name or "",
+                        creator_email=creator_email or "",
                         refable_models=refable_models,
                         description=exposure.get("description", ""),
                         native_query=native_query,
@@ -864,7 +873,7 @@ class MetabaseClient:
 
         elif query.get("type") == "native":
             # Metabase native query
-            native_query = query.get("native").get("query")
+            native_query = query["native"].get("query")
             ctes: List[str] = []
 
             # Parse common table expressions for exclusion
@@ -958,17 +967,16 @@ class MetabaseClient:
         )
 
         # Output exposure
-
         return {
             "name": name,
             "label": label,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
-            "url": f"{self.base_url}/{exposure_type}/{exposure_id}",
+            "url": f"{self.url}/{exposure_type}/{exposure_id}",
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
-                "email": creator_email or "",
+                "email": creator_email,
             },
             "depends_on": list(
                 {
@@ -1002,7 +1010,7 @@ class MetabaseClient:
 
         response = self.session.request(
             method,
-            f"{self.base_url}{path}",
+            f"{self.url}{path}",
             timeout=self.http_timeout,
             **kwargs,
         )
