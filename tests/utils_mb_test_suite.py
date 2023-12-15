@@ -5,10 +5,9 @@ from pathlib import Path
 from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
 from dbtmetabase.metabase import MetabaseClient
 
-mbc = MetabaseClient(
+client = MetabaseClient(
     url="http://localhost:3000",
-    username="...",
-    password="...",
+    session_id="...",
 )
 
 logging.basicConfig(level=logging.DEBUG)

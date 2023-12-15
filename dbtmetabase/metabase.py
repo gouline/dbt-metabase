@@ -773,9 +773,7 @@ class MetabaseClient:
             http_adapter (Optional[HTTPAdapter], optional): Custom requests HTTP adapter. Defaults to None.
         """
 
-        self.url = url
-        if self.url.endswith("/"):
-            self.url = self.url[:-1]
+        self.url = url.rstrip("/")
 
         self.http_timeout = http_timeout
 
