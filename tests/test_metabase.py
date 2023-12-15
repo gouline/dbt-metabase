@@ -249,7 +249,9 @@ MODELS = [
 class MockMetabaseClient(MetabaseClient):
     def api(self, method: str, path: str, critical: bool = True, **kwargs):
         if method == "get":
-            json_path = FIXTURES_PATH / "mock_api" / f"{path.lstrip('/')}.json"
+            json_path = Path.joinpath(
+                FIXTURES_PATH, "mock_api", *f"{path.lstrip('/')}.json".split("/")
+            )
             if json_path.exists():
                 with open(json_path, encoding="utf-8") as f:
                     return json.load(f)

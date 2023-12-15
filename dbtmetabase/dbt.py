@@ -1,11 +1,12 @@
 import dataclasses
 import json
+import logging
 import re
 from enum import Enum
 from pathlib import Path
 from typing import Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
-from .logger.logging import logger
+logger = logging.getLogger(__name__)
 
 # Allowed metabase.* fields
 _METABASE_COMMON_META_FIELDS = [
@@ -143,17 +144,17 @@ class DbtReader:
             model_database = node["database"].upper()
 
             if node["resource_type"] != "model":
-                logger().debug("Skipping %s not of resource type model", model_name)
+                logger.debug("Skipping %s not of resource type model", model_name)
                 continue
 
             if node["config"]["materialized"] == "ephemeral":
-                logger().debug(
+                logger.debug(
                     "Skipping ephemeral model %s not manifested in database", model_name
                 )
                 continue
 
             if model_database != self.database:
-                logger().debug(
+                logger.debug(
                     "Skipping %s in database %s, not in target database %s",
                     model_name,
                     model_database,
@@ -162,7 +163,7 @@ class DbtReader:
                 continue
 
             if self.schema and model_schema != self.schema:
-                logger().debug(
+                logger.debug(
                     "Skipping %s in schema %s not in target schema %s",
                     model_name,
                     model_schema,
@@ -171,7 +172,7 @@ class DbtReader:
                 continue
 
             if model_schema in self.schema_excludes:
-                logger().debug(
+                logger.debug(
                     "Skipping %s in schema %s marked for exclusion",
                     model_name,
                     model_schema,
@@ -179,7 +180,7 @@ class DbtReader:
                 continue
 
             if not self.model_selected(model_name):
-                logger().debug(
+                logger.debug(
                     "Skipping %s not included in includes or excluded by excludes",
                     model_name,
                 )
@@ -202,17 +203,17 @@ class DbtReader:
             source_database = node["database"].upper()
 
             if node["resource_type"] != "source":
-                logger().debug("Skipping %s not of resource type source", source_name)
+                logger.debug("Skipping %s not of resource type source", source_name)
                 continue
 
             if source_database != self.database:
-                logger().debug(
+                logger.debug(
                     "Skipping %s not in target database %s", source_name, self.database
                 )
                 continue
 
             if self.schema and source_schema != self.schema:
-                logger().debug(
+                logger.debug(
                     "Skipping %s in schema %s not in target schema %s",
                     source_name,
                     source_schema,
@@ -221,7 +222,7 @@ class DbtReader:
                 continue
 
             if source_schema in self.schema_excludes:
-                logger().debug(
+                logger.debug(
                     "Skipping %s in schema %s marked for exclusion",
                     source_name,
                     source_schema,
@@ -229,7 +230,7 @@ class DbtReader:
                 continue
 
             if not self.model_selected(source_name):
-                logger().debug(
+                logger.debug(
                     "Skipping %s not included in includes or excluded by excludes",
                     source_name,
                 )
@@ -330,7 +331,7 @@ class DbtReader:
                 # Note, sometimes only the referenced model is returned.
                 depends_on_nodes = list(child["depends_on"][model_type])
                 if len(depends_on_nodes) > 2:
-                    logger().warning(
+                    logger.warning(
                         "Expected at most two nodes, got %d {} nodes, skipping %s {}",
                         len(depends_on_nodes),
                         unique_id,
@@ -341,7 +342,7 @@ class DbtReader:
                 # Otherwise, the primary key of the current model would be (incorrectly) determined to be a foreign key.
                 is_incoming_relationship_test = depends_on_nodes[1] != unique_id
                 if len(depends_on_nodes) == 2 and is_incoming_relationship_test:
-                    logger().debug(
+                    logger.debug(
                         "Skip this incoming relationship test, concerning nodes %s.",
                         depends_on_nodes,
                     )
@@ -353,7 +354,7 @@ class DbtReader:
                     depends_on_nodes.remove(unique_id)
 
                 if len(depends_on_nodes) != 1:
-                    logger().warning(
+                    logger.warning(
                         "Expected single node after filtering, got %d nodes, skipping %s",
                         len(depends_on_nodes),
                         unique_id,
@@ -369,7 +370,7 @@ class DbtReader:
                 )
 
                 if not fk_target_table_alias:
-                    logger().debug(
+                    logger.debug(
                         "Could not resolve depends on model id %s to a model in manifest",
                         depends_on_id,
                     )
@@ -447,7 +448,7 @@ class DbtReader:
 
         if not table or not field:
             if table or field:
-                logger().warning(
+                logger.warning(
                     "Foreign key requires table and field for column %s",
                     metabase_column.name,
                 )
@@ -462,7 +463,7 @@ class DbtReader:
             [x.strip('"').upper() for x in table_path]
         )
         metabase_column.fk_target_field = field.strip('"').upper()
-        logger().debug(
+        logger.debug(
             "Relation from %s to %s.%s",
             metabase_column.name,
             metabase_column.fk_target_table,
@@ -503,6 +504,6 @@ class DbtReader:
         # We are catching the rightmost argument of either source or ref which is ultimately the table name
         matches = re.findall(r"['\"]([\w\_\-\ ]+)['\"][ ]*\)$", text.strip())
         if matches:
-            logger().debug("%s -> %s", text, matches[0])
+            logger.debug("%s -> %s", text, matches[0])
             return matches[0]
         return None

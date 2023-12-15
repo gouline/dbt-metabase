@@ -1,15 +1,54 @@
 import functools
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Union
 
 import click
 import yaml
+from rich.logging import RichHandler
 from typing_extensions import cast
 
 from .dbt import DbtReader
-from .logger import logging as package_logger
 from .metabase import MetabaseClient
+
+LOG_PATH = Path.home().absolute() / ".dbt-metabase" / "logs" / "dbtmetabase.log"
+
+logger = logging.getLogger(__name__)
+
+
+def _setup_logger(level: int = logging.INFO):
+    """Basic logger configuration for the CLI.
+
+    Args:
+        level (int, optional): Logging level. Defaults to logging.INFO.
+    """
+
+    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        filename=LOG_PATH,
+        maxBytes=int(1e6),
+        backupCount=3,
+    )
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s — %(name)s — %(levelname)s — %(message)s")
+    )
+    file_handler.setLevel(logging.WARNING)
+
+    rich_handler = RichHandler(
+        level=level,
+        rich_tracebacks=True,
+        markup=True,
+        show_time=False,
+    )
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s — %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S %z",
+        handlers=[file_handler, rich_handler],
+        force=True,
+    )
 
 
 def _comma_separated_list_callback(
@@ -203,8 +242,7 @@ def _add_setup(func: Callable) -> Callable:
         verbose: bool,
         **kwargs,
     ):
-        if verbose:
-            package_logger.LOGGING_LEVEL = logging.DEBUG
+        _setup_logger(level=logging.DEBUG if verbose else logging.INFO)
 
         return func(
             dbt_reader=DbtReader(
