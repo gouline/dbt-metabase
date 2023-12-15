@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import time
 from pathlib import Path
@@ -16,7 +17,8 @@ from .dbt import (
     ModelType,
     NullValue,
 )
-from .logger.logging import logger
+
+logger = logging.getLogger(__name__)
 
 
 class MetabaseArgumentError(ValueError):
@@ -88,7 +90,7 @@ class _ExportModelsJob(_MetabaseClientJob):
 
                 table = tables.get(table_key)
                 if not table:
-                    logger().warning(
+                    logger.warning(
                         "Model %s not found in %s schema", table_key, schema_name
                     )
                     synced = False
@@ -99,7 +101,7 @@ class _ExportModelsJob(_MetabaseClientJob):
 
                     field = table.get("fields", {}).get(column_name)
                     if not field:
-                        logger().warning(
+                        logger.warning(
                             "Column %s not found in %s model", column_name, table_key
                         )
                         synced = False
@@ -122,7 +124,7 @@ class _ExportModelsJob(_MetabaseClientJob):
                 f"/api/{update['kind']}/{update['id']}",
                 json=update["body"],
             )
-            logger().info(
+            logger.info(
                 "Update to %s %s applied successfully",
                 update["kind"],
                 update["id"],
@@ -165,7 +167,7 @@ class _ExportModelsJob(_MetabaseClientJob):
 
         api_table = self.tables.get(table_key)
         if not api_table:
-            logger().error("Table %s does not exist in Metabase", table_key)
+            logger.error("Table %s does not exist in Metabase", table_key)
             return False
 
         # Empty strings not accepted by Metabase
@@ -194,9 +196,9 @@ class _ExportModelsJob(_MetabaseClientJob):
 
         if body_table:
             self.queue_update(entity=api_table, delta=body_table)
-            logger().info("Table %s will be updated", table_key)
+            logger.info("Table %s will be updated", table_key)
         else:
-            logger().info("Table %s is up-to-date", table_key)
+            logger.info("Table %s is up-to-date", table_key)
 
         for column in model.columns:
             success &= self._export_column(schema_name, model_name, column)
@@ -227,7 +229,7 @@ class _ExportModelsJob(_MetabaseClientJob):
 
         api_field = self.tables.get(table_key, {}).get("fields", {}).get(column_name)
         if not api_field:
-            logger().error(
+            logger.error(
                 "Field %s.%s does not exist in Metabase",
                 table_key,
                 column_name,
@@ -255,14 +257,14 @@ class _ExportModelsJob(_MetabaseClientJob):
             )
 
             if not target_table or not target_field:
-                logger().info(
+                logger.info(
                     "Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
                     table_key,
                     target_field,
                 )
 
             else:
-                logger().debug(
+                logger.debug(
                     "Looking for field %s in table %s",
                     target_field,
                     target_table,
@@ -276,7 +278,7 @@ class _ExportModelsJob(_MetabaseClientJob):
                 if fk_target_field:
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
-                        logger().info(
+                        logger.info(
                             "Target field %s will be set to PK for %s column FK",
                             fk_target_field_id,
                             column_name,
@@ -288,13 +290,13 @@ class _ExportModelsJob(_MetabaseClientJob):
                             entity=fk_target_field, delta=body_fk_target_field
                         )
                     else:
-                        logger().info(
+                        logger.info(
                             "Target field %s is already PK, needed for %s column",
                             fk_target_field_id,
                             column_name,
                         )
                 else:
-                    logger().error(
+                    logger.error(
                         "Unable to find foreign key target %s.%s",
                         target_table,
                         target_field,
@@ -351,9 +353,9 @@ class _ExportModelsJob(_MetabaseClientJob):
 
         if body_field:
             self.queue_update(entity=api_field, delta=body_field)
-            logger().info("Field %s.%s will be updated", model_name, column_name)
+            logger.info("Field %s.%s will be updated", model_name, column_name)
         else:
-            logger().info("Field %s.%s is up-to-date", model_name, column_name)
+            logger.info("Field %s.%s is up-to-date", model_name, column_name)
 
         return success
 
@@ -450,7 +452,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
                 continue
 
             # Iter through collection
-            logger().info("Exploring collection %s", collection["name"])
+            logger.info("Exploring collection %s", collection["name"])
             for item in self.client.api(
                 "get", f"/api/collection/{collection['id']}/items"
             ):
@@ -467,7 +469,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
 
                 exposure = self.client.api("get", f"/api/{exposure_type}/{exposure_id}")
                 exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
-                logger().info(
+                logger.info(
                     "Introspecting exposure: %s",
                     exposure_name,
                 )
@@ -507,7 +509,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
                         self._extract_card_exposures(dashboard_item_reference["id"])
 
                 if not self.models_exposed:
-                    logger().info("No models mapped to exposure")
+                    logger.info("No models mapped to exposure")
 
                 # Extract creator info
                 if "creator" in exposure:
@@ -605,7 +607,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
                 # Normal question
                 source_table = self.table_names.get(source_table_id)
                 if source_table:
-                    logger().info(
+                    logger.info(
                         "Model extracted from Metabase question: %s",
                         source_table,
                     )
@@ -623,7 +625,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
                 # Joined model parsed
                 joined_table = self.table_names.get(query_join.get("source-table"))
                 if joined_table:
-                    logger().info(
+                    logger.info(
                         "Model extracted from Metabase question join: %s",
                         joined_table,
                     )
@@ -651,7 +653,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
                     continue
 
                 if clean_exposure:
-                    logger().info(
+                    logger.info(
                         "Model extracted from native query: %s",
                         clean_exposure,
                     )
@@ -801,7 +803,7 @@ class MetabaseClient:
                 raise MetabaseArgumentError("Credentials or session ID required")
         self.session.headers["X-Metabase-Session"] = session_id
 
-        logger().info("Session established successfully")
+        logger.info("Session established successfully")
 
     def api(
         self,
@@ -832,7 +834,7 @@ class MetabaseClient:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             if critical:
-                logger().error("HTTP request failed: %s", response.text)
+                logger.error("HTTP request failed: %s", response.text)
                 raise
             return {}
 
