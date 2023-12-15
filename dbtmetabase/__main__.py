@@ -206,28 +206,24 @@ def _add_setup(func: Callable) -> Callable:
         if verbose:
             package_logger.LOGGING_LEVEL = logging.DEBUG
 
-        dbt_reader = DbtReader(
-            manifest_path=dbt_manifest_path,
-            database=dbt_database,
-            schema=dbt_schema,
-            schema_excludes=dbt_schema_excludes,
-            includes=dbt_includes,
-            excludes=dbt_excludes,
-        )
-
-        metabase_client = MetabaseClient(
-            url=metabase_url,
-            username=metabase_username,
-            password=metabase_password,
-            session_id=metabase_session_id,
-            verify=metabase_verify,
-            cert=metabase_cert,
-            http_timeout=metabase_http_timeout,
-        )
-
         return func(
-            dbt_reader=dbt_reader,
-            metabase_client=metabase_client,
+            dbt_reader=DbtReader(
+                manifest_path=dbt_manifest_path,
+                database=dbt_database,
+                schema=dbt_schema,
+                schema_excludes=dbt_schema_excludes,
+                includes=dbt_includes,
+                excludes=dbt_excludes,
+            ),
+            metabase_client=MetabaseClient(
+                url=metabase_url,
+                username=metabase_username,
+                password=metabase_password,
+                session_id=metabase_session_id,
+                verify=metabase_verify,
+                cert=metabase_cert,
+                http_timeout=metabase_http_timeout,
+            ),
             **kwargs,
         )
 

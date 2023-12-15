@@ -1,12 +1,14 @@
+# pylint: disable=protected-access
+
 import json
 import logging
-import os
 import unittest
+from pathlib import Path
 
 import yaml
 
 from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
-from dbtmetabase.metabase import MetabaseClient, MetabaseCredentials
+from dbtmetabase.metabase import MetabaseClient, _ExportModelsJob
 
 MODELS = [
     MetabaseModel(
@@ -242,26 +244,21 @@ MODELS = [
 
 
 class MockMetabaseClient(MetabaseClient):
-    def get_session_id(self, username: str, password: str) -> str:
-        return "dummy"
-
     def api(self, method: str, path: str, critical: bool = True, **kwargs):
         BASE_PATH = "tests/fixtures/mock_api/"
         if method == "get":
-            if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
-                with open(
-                    f"{BASE_PATH}/{path.lstrip('/')}.json", encoding="utf-8"
-                ) as f:
+            json_path = Path(f"{BASE_PATH}/{path.lstrip('/')}.json")
+            if json_path.exists():
+                with open(json_path, encoding="utf-8") as f:
                     return json.load(f)
-            else:
-                return {}
+            return {}
 
 
 class TestMetabaseClient(unittest.TestCase):
     def setUp(self):
         self.client = MockMetabaseClient(
             url="http://localhost:3000",
-            auth=MetabaseCredentials(username="dummy", password="dummy"),
+            session_id="dummy",
         )
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
@@ -290,7 +287,15 @@ class TestMetabaseClient(unittest.TestCase):
         self.assertEqual(baseline_exposures, sample_exposures)
 
     def test_build_lookups(self):
-        mbc = self.client
+        client = self.client
+        job = _ExportModelsJob(
+            client=client,
+            database="unit_testing",
+            models=[],
+            exclude_sources=True,
+            sync_timeout=0,
+        )
+
         baseline_tables = [
             "PUBLIC.CUSTOMERS",
             "PUBLIC.ORDERS",
@@ -301,8 +306,8 @@ class TestMetabaseClient(unittest.TestCase):
             "PUBLIC.STG_ORDERS",
             "PUBLIC.STG_PAYMENTS",
         ]
-        metadata = mbc.build_metadata(database_id="2")
-        self.assertEqual(baseline_tables, list(metadata.tables.keys()))
+        tables = job._load_tables(database_id="2")
+        self.assertEqual(baseline_tables, list(tables.keys()))
         baseline_columns = [
             [
                 "CUSTOMER_ID",
@@ -332,4 +337,4 @@ class TestMetabaseClient(unittest.TestCase):
             ["PAYMENT_ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
         ]
         for table, columns in zip(baseline_tables, baseline_columns):
-            self.assertEqual(columns, list(metadata.tables[table]["fields"].keys()))
+            self.assertEqual(columns, list(tables[table]["fields"].keys()))

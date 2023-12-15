@@ -1,19 +1,9 @@
-import dataclasses
-import json
-import os
+from __future__ import annotations
+
 import re
 import time
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from pathlib import Path
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import requests
 import yaml
@@ -29,342 +19,105 @@ from .dbt import (
 from .logger.logging import logger
 
 
-class MetabaseAuth:
-    pass
-
-
-@dataclasses.dataclass
-class MetabaseCredentials(MetabaseAuth):
-    """Metabase authentication method with username and password credentials."""
-
-    username: str
-    password: str
-
-
-@dataclasses.dataclass
-class MetabaseSession(MetabaseAuth):
-    """Metabase authentication method using established session."""
-
-    session_id: str
-
-
 class MetabaseArgumentError(ValueError):
     """Invalid Metabase arguments supplied."""
-
-
-class MetabaseSyncError(RuntimeError):
-    """Metabase cannot sync / align models with dbt models."""
 
 
 class MetabaseRuntimeError(RuntimeError):
     """Metabase execution failed."""
 
 
-class MetabaseClient:
-    """Metabase API client."""
+class _MetabaseClientJob:
+    """Scoped abstraction for jobs depending on the Metabase client."""
 
-    _SYNC_PERIOD_SECS = 5
+    def __init__(self, client: MetabaseClient):
+        self.client = client
 
-    class _Metadata:
-        """Mutable state of metadata (tables/fields) for lookups and updates."""
 
-        def __init__(self, tables: Optional[Iterable[Dict]] = None):
-            self.tables = {}
-            self.updates: MutableMapping[str, MutableMapping[str, Any]] = {}
+class _ExportModelsJob(_MetabaseClientJob):
+    """Job abstraction for exporting models."""
 
-            if tables:
-                for table in tables:
-                    fields = {}
-                    for field in table.get("fields", []):
-                        new_field = field.copy()
-                        new_field["kind"] = "field"
-
-                        field_name = field["name"].upper()
-                        fields[field_name] = new_field
-
-                    new_table = table.copy()
-                    new_table["kind"] = "table"
-                    new_table["fields"] = fields
-
-                    schema_name = table["schema"].upper()
-                    table_name = table["name"].upper()
-                    self.tables[f"{schema_name}.{table_name}"] = new_table
-
-        def get_table(self, table_key: str) -> Optional[MutableMapping]:
-            """Looks up table by key.
-
-            Args:
-                table_key (str): Table key of form SCHEMA.TABLE.
-
-            Returns:
-                Optional[MutableMapping]: Table description or none.
-            """
-            return self.tables.get(table_key)
-
-        def get_field(self, table_key: str, field_key: str) -> Optional[MutableMapping]:
-            """Looks up field by table and key.
-
-            Args:
-                table_key (str): Table key of form SCHEMA.TABLE.
-                field_key (str): Field key.
-
-            Returns:
-                Optional[MutableMapping]: Field description or none.
-            """
-            return self.tables.get(table_key, {}).get("fields", {}).get(field_key)
-
-        def update(self, entity: MutableMapping, delta: Mapping):
-            """Updates entity (table or field) with arguments and stages API update.
-
-            Args:
-                entity (MutableMapping): Current state of entity.
-                delta (Mapping): Fields that need to change.
-            """
-            entity.update(delta)
-
-            key = f"{entity['kind']}.{entity['id']}"
-            update = self.updates.get(key, {})
-            update["kind"] = entity["kind"]
-            update["id"] = entity["id"]
-
-            body = update.get("body", {})
-            body.update(delta)
-            update["body"] = body
-
-            self.updates[key] = update
-
-        def pop_updates(self) -> Iterable[MutableMapping]:
-            """Clears and returns currently staged updates.
-
-            Returns:
-                Iterable[MutableMapping]: List of updates.
-            """
-            updates = self.updates.values()
-            self.updates = {}
-            return updates
-
-        def __bool__(self) -> bool:
-            return bool(self.tables)
+    _SYNC_PERIOD = 5
 
     def __init__(
         self,
-        url: str,
-        auth: MetabaseAuth,
-        verify: bool = True,
-        cert: Optional[Union[str, Tuple[str, str]]] = None,
-        http_timeout: int = 15,
-        http_headers: Optional[dict] = None,
-        http_adapter: Optional[HTTPAdapter] = None,
-        sync: bool = True,
-        sync_timeout: Optional[int] = None,
+        client: MetabaseClient,
+        database: str,
+        models: List[MetabaseModel],
+        exclude_sources: bool,
+        sync_timeout: int,
     ):
-        """Constructor.
+        super().__init__(client)
 
-        Args:
-            url (str): Metabase URL (including protocol, excluding trailing slash).
-            auth (MetabaseAuth): Metabase authentication method (credentials or session).
-            password (str, optional): Metabase password (requires username). Defaults to None.
-            session_id (str, optional, optional): Metabase session ID (provide this or username and password). Defaults to None.
-            use_http (bool, optional): Use HTTP instead of HTTPS. Defaults to False.
-            verify (bool, optional): Verify the TLS certificate at the Metabase end. Defaults to True.
-            cert (Union[str, Tuple[str, str]], optional): Path to a custom certificate. Defaults to None.
-            http_timeout (int, optional): HTTP request timeout in secs. Defaults to 15.
-            http_extra_headers (dict, optional): Additional HTTP headers to send to Metabase. Defaults to None.
-            http_adapter (HTTPAdapter, optional): Provide custom HTTP adapter implementation for requests. Defaults to None.
-            sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
-            sync_timeout (int, optional): Synchronization timeout in secs. Defaults to None.
-        """
-
-        self.url = url
-        if self.url.endswith("/"):
-            self.url = self.url[:-1]
-
-        self.session = requests.Session()
-        self.session.verify = verify
-        self.session.cert = cert
-
-        if isinstance(auth, MetabaseCredentials):
-            session_header = self.get_session_id(auth.username, auth.password)
-        elif isinstance(auth, MetabaseSession):
-            session_header = auth.session_id
-        else:
-            raise MetabaseArgumentError("Valid authentication required")
-        self.session.headers["X-Metabase-Session"] = session_header
-
-        if http_headers is not None:
-            self.session.headers.update(http_headers)
-
-        if not http_adapter:
-            http_adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
-        self.session.mount(self.url, http_adapter)
-
-        self.http_timeout = http_timeout
-
-        self.sync = sync
+        self.database = database
+        self.models = [
+            model
+            for model in models
+            if model.model_type != ModelType.sources or not exclude_sources
+        ]
         self.sync_timeout = sync_timeout
 
-        self.metadata = self._Metadata()
-        self.collections: Iterable = []
-        self.tables: Iterable = []
-        self.table_map: MutableMapping = {}
-        self.models_exposed: List = []
-        self.native_query: str = ""
-        # This regex is looking for from and join clauses, and extracting the table part.
-        # It won't recognize some valid sql table references, such as `from "table with spaces"`.
-        self.exposure_parser = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
-        self.cte_parser = re.compile(
-            r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
-        )
+        self.tables: Mapping[str, MutableMapping] = {}
+        self.updates: MutableMapping[str, MutableMapping[str, Any]] = {}
 
-        self._synced_models: Optional[List[MetabaseModel]] = None
-
-        logger().info("Session established successfully")
-
-    def get_session_id(self, username: str, password: str) -> str:
-        """Request new API session.
-
-        Args:
-            username (str): Metabase username.
-            password (str): Metabase password.
-
-        Returns:
-            str: Session ID.
-        """
-        return self.api(
-            "post",
-            "/api/session",
-            json={"username": username, "password": password},
-        )["id"]
-
-    def sync_and_wait(
-        self,
-        database: str,
-        models: List[MetabaseModel],
-        exclude_sources: bool,
-    ) -> bool:
-        """Synchronize with the database and wait for schema compatibility.
-
-        Args:
-            database (str): Metabase database name.
-            models (List[MetabaseModel]): List of dbt models read from project.
-            exclude_sources (bool): Exclude dbt sources from sync.
-
-        Raises:
-            MetabaseSyncError: Timeout reached, database not found or timeout provided but sync unsuccessful.
-
-        Returns:
-            bool: True if sync successful, false otherwise.
-        """
-
-        timeout = self.sync_timeout if self.sync_timeout else 30
-
-        if timeout < self._SYNC_PERIOD_SECS:
-            raise MetabaseSyncError(
-                f"Timeout provided {timeout} secs, must be at least {self._SYNC_PERIOD_SECS}"
-            )
-
-        self.metadata = MetabaseClient._Metadata()
-
-        database_id = self.find_database_id(database)
-        if not database_id:
-            raise MetabaseSyncError(f"Cannot find database by name {database}")
-
-        self.api("post", f"/api/database/{database_id}/sync_schema")
-
-        deadline = int(time.time()) + timeout
-        sync_successful = False
-        while True:
-            self.metadata = self.build_metadata(database_id)
-            sync_successful = self.models_compatible(models, exclude_sources)
-            time_after_wait = int(time.time()) + self._SYNC_PERIOD_SECS
-            if not sync_successful and time_after_wait <= deadline:
-                time.sleep(self._SYNC_PERIOD_SECS)
-            else:
-                break
-
-        if sync_successful:
-            self._synced_models = models.copy()
-        elif self.sync:
-            raise MetabaseSyncError(
-                "Unable to align models between dbt target models and Metabase"
-            )
-
-        return sync_successful
-
-    def models_compatible(
-        self,
-        models: List[MetabaseModel],
-        exclude_sources: bool,
-    ) -> bool:
-        """Checks if models compatible with the Metabase database schema.
-
-        Args:
-            models (List[MetabaseModel]): List of dbt models read from project.
-            exclude_sources (bool): Exclude dbt sources from sync.
-
-        Returns:
-            bool: True if schema compatible with models, false otherwise.
-        """
-
-        are_models_compatible = True
-        for model in models:
-            if model.model_type == ModelType.sources and exclude_sources:
-                continue
-
-            schema_name = model.schema.upper()
-            model_name = model.name.upper()
-
-            lookup_key = f"{schema_name}.{model_name}"
-
-            table = self.metadata.get_table(lookup_key)
-            if not table:
-                logger().warning(
-                    "Model %s not found in %s schema", lookup_key, schema_name
-                )
-                are_models_compatible = False
-                continue
-
-            for column in model.columns:
-                column_name = column.name.upper()
-
-                field = self.metadata.get_field(lookup_key, column_name)
-                if not field:
-                    logger().warning(
-                        "Column %s not found in %s model", column_name, lookup_key
-                    )
-                    are_models_compatible = False
-
-        return are_models_compatible
-
-    def export_models(
-        self,
-        database: str,
-        models: List[MetabaseModel],
-        exclude_sources: bool = False,
-    ):
-        """Exports dbt models to Metabase database schema.
-
-        Args:
-            database (str): Metabase database name.
-            models (List[MetabaseModel]): List of dbt models read from project.
-            exclude_sources (bool, optional): Exclude dbt sources from export. Defaults to False.
-        """
-
+    def execute(self):
         success = True
 
-        if not self.metadata or self._synced_models != models:
-            ## TODO: does this need `if self.sync`?
-            self.sync_and_wait(database, models, exclude_sources)
+        database_id = None
+        for database in self.client.api("get", "/api/database"):
+            if database["name"].upper() == self.database.upper():
+                database_id = database["id"]
+                break
+        if not database_id:
+            raise MetabaseRuntimeError(f"Cannot find database by name {self.database}")
 
-        for model in models:
-            if model.model_type == ModelType.sources and exclude_sources:
-                logger().info("Skipping %s source", model.unique_id)
-                continue
+        if self.sync_timeout:
+            self.client.api("post", f"/api/database/{database_id}/sync_schema")
+            time.sleep(self._SYNC_PERIOD)
 
-            success &= self.export_model(model)
+        deadline = int(time.time()) + self.sync_timeout
+        synced = False
+        while not synced:
+            tables = self._load_tables(database_id)
 
-        for update in self.metadata.pop_updates():
-            self.api(
+            synced = True
+            for model in self.models:
+                schema_name = model.schema.upper()
+                model_name = model.name.upper()
+                table_key = f"{schema_name}.{model_name}"
+
+                table = tables.get(table_key)
+                if not table:
+                    logger().warning(
+                        "Model %s not found in %s schema", table_key, schema_name
+                    )
+                    synced = False
+                    continue
+
+                for column in model.columns:
+                    column_name = column.name.upper()
+
+                    field = table.get("fields", {}).get(column_name)
+                    if not field:
+                        logger().warning(
+                            "Column %s not found in %s model", column_name, table_key
+                        )
+                        synced = False
+                        continue
+
+            self.tables = tables
+
+            if int(time.time()) < deadline:
+                time.sleep(self._SYNC_PERIOD)
+
+        if not synced and self.sync_timeout:
+            raise MetabaseRuntimeError("Unable to sync models between dbt and Metabase")
+
+        for model in self.models:
+            success &= self._export_model(model)
+
+        for update in self.updates.values():
+            self.client.api(
                 "put",
                 f"/api/{update['kind']}/{update['id']}",
                 json=update["body"],
@@ -380,7 +133,21 @@ class MetabaseClient:
                 "Model export encountered non-critical errors, check output"
             )
 
-    def export_model(self, model: MetabaseModel) -> bool:
+    def queue_update(self, entity: MutableMapping, delta: Mapping):
+        entity.update(delta)
+
+        key = f"{entity['kind']}.{entity['id']}"
+        update = self.updates.get(key, {})
+        update["kind"] = entity["kind"]
+        update["id"] = entity["id"]
+
+        body = update.get("body", {})
+        body.update(delta)
+        update["body"] = body
+
+        self.updates[key] = update
+
+    def _export_model(self, model: MetabaseModel) -> bool:
         """Exports one dbt model to Metabase database schema.
 
         Arguments:
@@ -394,13 +161,11 @@ class MetabaseClient:
 
         schema_name = model.schema.upper()
         model_name = model.name.upper()
-        ## TODO: what if it was aliased?
+        table_key = f"{schema_name}.{model_name}"
 
-        lookup_key = f"{schema_name}.{model_name}"
-
-        api_table = self.metadata.get_table(lookup_key)
+        api_table = self.tables.get(table_key)
         if not api_table:
-            logger().error("Table %s does not exist in Metabase", lookup_key)
+            logger().error("Table %s does not exist in Metabase", table_key)
             return False
 
         # Empty strings not accepted by Metabase
@@ -428,17 +193,17 @@ class MetabaseClient:
             body_table["visibility_type"] = model_visibility
 
         if body_table:
-            self.metadata.update(entity=api_table, delta=body_table)
-            logger().info("Table %s will be updated", lookup_key)
+            self.queue_update(entity=api_table, delta=body_table)
+            logger().info("Table %s will be updated", table_key)
         else:
-            logger().info("Table %s is up-to-date", lookup_key)
+            logger().info("Table %s is up-to-date", table_key)
 
         for column in model.columns:
-            success &= self.export_column(schema_name, model_name, column)
+            success &= self._export_column(schema_name, model_name, column)
 
         return success
 
-    def export_column(
+    def _export_column(
         self,
         schema_name: str,
         model_name: str,
@@ -457,14 +222,14 @@ class MetabaseClient:
 
         success = True
 
-        table_lookup_key = f"{schema_name}.{model_name}"
+        table_key = f"{schema_name}.{model_name}"
         column_name = column.name.upper()
 
-        api_field = self.metadata.get_field(table_lookup_key, column_name)
+        api_field = self.tables.get(table_key, {}).get("fields", {}).get(column_name)
         if not api_field:
             logger().error(
                 "Field %s.%s does not exist in Metabase",
-                table_lookup_key,
+                table_key,
                 column_name,
             )
             return False
@@ -492,7 +257,7 @@ class MetabaseClient:
             if not target_table or not target_field:
                 logger().info(
                     "Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
-                    table_lookup_key,
+                    table_key,
                     target_field,
                 )
 
@@ -503,7 +268,11 @@ class MetabaseClient:
                     target_table,
                 )
 
-                fk_target_field = self.metadata.get_field(target_table, target_field)
+                fk_target_field = (
+                    self.tables.get(target_table, {})
+                    .get("fields", {})
+                    .get(target_field)
+                )
                 if fk_target_field:
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
@@ -515,7 +284,7 @@ class MetabaseClient:
                         body_fk_target_field = {
                             semantic_type_key: "type/PK",
                         }
-                        self.metadata.update(
+                        self.queue_update(
                             entity=fk_target_field, delta=body_fk_target_field
                         )
                     else:
@@ -581,41 +350,17 @@ class MetabaseClient:
             body_field[semantic_type_key] = column.semantic_type or None
 
         if body_field:
-            self.metadata.update(entity=api_field, delta=body_field)
+            self.queue_update(entity=api_field, delta=body_field)
             logger().info("Field %s.%s will be updated", model_name, column_name)
         else:
             logger().info("Field %s.%s is up-to-date", model_name, column_name)
 
         return success
 
-    def find_database_id(self, name: str) -> Optional[str]:
-        """Finds Metabase database ID by name.
+    def _load_tables(self, database_id: str) -> Mapping[str, MutableMapping]:
+        tables = {}
 
-        Arguments:
-            name {str} -- Metabase database name.
-
-        Returns:
-            str -- Metabase database ID.
-        """
-
-        for database in self.api("get", "/api/database"):
-            if database["name"].upper() == name.upper():
-                return database["id"]
-        return None
-
-    def build_metadata(self, database_id: str) -> _Metadata:
-        """Builds metadata lookups.
-
-        Arguments:
-            database_id {str} -- Metabase database ID.
-
-        Returns:
-            _Metadata -- Metadata lookup object.
-        """
-
-        tables = []
-
-        metadata = self.api(
+        metadata = self.client.api(
             "get",
             f"/api/database/{database_id}/metadata",
             params={"include_hidden": True},
@@ -629,62 +374,86 @@ class MetabaseClient:
                 table.get("schema") or bigquery_schema or METABASE_MODEL_DEFAULT_SCHEMA
             ).upper()
 
-            tables.append(table)
+            fields = {}
+            for field in table.get("fields", []):
+                new_field = field.copy()
+                new_field["kind"] = "field"
 
-        return MetabaseClient._Metadata(tables)
+                field_name = field["name"].upper()
+                fields[field_name] = new_field
 
-    def extract_exposures(
+            new_table = table.copy()
+            new_table["kind"] = "table"
+            new_table["fields"] = fields
+
+            schema_name = table["schema"].upper()
+            table_name = table["name"].upper()
+            tables[f"{schema_name}.{table_name}"] = new_table
+
+        return tables
+
+
+class _ExtractExposuresJob(_MetabaseClientJob):
+    _RESOURCE_VERSION = 2
+
+    # This regex is looking for from and join clauses, and extracting the table part.
+    # It won't recognize some valid sql table references, such as `from "table with spaces"`.
+    _EXPOSURE_PARSER = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"]+)")
+    _CTE_PARSER = re.compile(
+        r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
+    )
+
+    class DbtDumper(yaml.Dumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super().increase_indent(flow, indentless=False)
+
+    def __init__(
         self,
+        client: MetabaseClient,
         models: List[MetabaseModel],
-        output_path: str = ".",
-        output_name: str = "metabase_exposures",
-        include_personal_collections: bool = True,
-        collection_excludes: Optional[Iterable] = None,
-    ) -> Mapping:
-        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader.
+        output_path: str,
+        output_name: str,
+        include_personal_collections: bool,
+        collection_excludes: Optional[Iterable],
+    ):
+        super().__init__(client)
 
-        Args:
-            models (List[MetabaseModel]): List of models as output by dbt reader.
-            output_path (str, optional): The path to output the generated YAML. Defaults to ".".
-            output_name (str, optional): The name of the generated YAML. Defaults to "metabase_exposures".
-            include_personal_collections (bool, optional): Include personal collections in Metabase processing. Defaults to True.
-            collection_excludes (Optional[Iterable], optional): List of collection names to exclude. Defaults to None.
+        self.model_refs = {model.name.upper(): model.ref for model in models}
+        self.output_file = Path(output_path).expanduser() / f"{output_name}.yml"
+        self.include_personal_collections = include_personal_collections
+        self.collection_excludes = collection_excludes or []
+
+        self.table_names: Mapping = {}
+        self.models_exposed: List = []
+        self.native_query: str = ""
+
+    def execute(self) -> Mapping:
+        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader.
 
         Returns:
             Mapping: JSON object representation of all exposures parsed.
         """
 
-        _RESOURCE_VERSION = 2
-
-        class DbtDumper(yaml.Dumper):
-            def increase_indent(self, flow=False, indentless=False):
-                indentless = False
-                return super(DbtDumper, self).increase_indent(flow, indentless)
-
-        if collection_excludes is None:
-            collection_excludes = []
-
-        refable_models = {node.name.upper(): node.ref for node in models}
-
-        self.collections = self.api("get", "/api/collection")
-        self.tables = self.api("get", "/api/table")
-        self.table_map = {table["id"]: table["name"] for table in self.tables}
+        self.table_names = {
+            table["id"]: table["name"] for table in self.client.api("get", "/api/table")
+        }
 
         documented_exposure_names = []
         parsed_exposures = []
 
-        for collection in self.collections:
-            # Exclude collections by name
-            if collection["name"] in collection_excludes:
-                continue
-
-            # Optionally exclude personal collections
-            if not include_personal_collections and collection.get("personal_owner_id"):
+        for collection in self.client.api("get", "/api/collection"):
+            # Exclude collections by name or personal collections (unless included)
+            if collection["name"] in self.collection_excludes or (
+                collection.get("personal_owner_id")
+                and not self.include_personal_collections
+            ):
                 continue
 
             # Iter through collection
             logger().info("Exploring collection %s", collection["name"])
-            for item in self.api("get", f"/api/collection/{collection['id']}/items"):
+            for item in self.client.api(
+                "get", f"/api/collection/{collection['id']}/items"
+            ):
                 # Ensure collection item is of parsable type
                 exposure_type = item["model"]
                 exposure_id = item["id"]
@@ -696,7 +465,7 @@ class MetabaseClient:
                 self.native_query = ""
                 native_query = ""
 
-                exposure = self.api("get", f"/api/{exposure_type}/{exposure_id}")
+                exposure = self.client.api("get", f"/api/{exposure_type}/{exposure_id}")
                 exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
                 logger().info(
                     "Introspecting exposure: %s",
@@ -715,7 +484,7 @@ class MetabaseClient:
                     )
 
                     # Parse Metabase question
-                    self._extract_card_exposures(exposure_id, exposure, refable_models)
+                    self._extract_card_exposures(exposure_id, exposure)
                     native_query = self.native_query
 
                 elif exposure_type == "dashboard":
@@ -735,10 +504,7 @@ class MetabaseClient:
                             continue
 
                         # Parse Metabase question
-                        self._extract_card_exposures(
-                            dashboard_item_reference["id"],
-                            refable_models=refable_models,
-                        )
+                        self._extract_card_exposures(dashboard_item_reference["id"])
 
                 if not self.models_exposed:
                     logger().info("No models mapped to exposure")
@@ -750,7 +516,9 @@ class MetabaseClient:
                 elif "creator_id" in exposure:
                     # If a metabase user is deactivated, the API returns a 404
                     try:
-                        creator = self.api("get", f"/api/user/{exposure['creator_id']}")
+                        creator = self.client.api(
+                            "get", f"/api/user/{exposure['creator_id']}"
+                        )
                     except requests.exceptions.HTTPError as error:
                         creator = {}
                         if error.response is None or error.response.status_code != 404:
@@ -778,7 +546,6 @@ class MetabaseClient:
                         created_at=exposure["created_at"],
                         creator_name=creator_name or "",
                         creator_email=creator_email or "",
-                        refable_models=refable_models,
                         description=exposure.get("description", ""),
                         native_query=native_query,
                     )
@@ -787,28 +554,25 @@ class MetabaseClient:
                 documented_exposure_names.append(exposure_name)
 
         # Output dbt YAML
-        with open(
-            os.path.expanduser(os.path.join(output_path, f"{output_name}.yml")),
-            "w",
-            encoding="utf-8",
-        ) as docs:
+        result = {
+            "version": self._RESOURCE_VERSION,
+            "exposures": parsed_exposures,
+        }
+        with open(self.output_file, "w", encoding="utf-8") as docs:
             yaml.dump(
-                {"version": _RESOURCE_VERSION, "exposures": parsed_exposures},
+                result,
                 docs,
-                Dumper=DbtDumper,
+                Dumper=self.DbtDumper,
                 default_flow_style=False,
                 allow_unicode=True,
                 sort_keys=False,
             )
-
-        # Return object
-        return {"version": _RESOURCE_VERSION, "exposures": parsed_exposures}
+        return result
 
     def _extract_card_exposures(
         self,
         card_id: int,
         exposure: Optional[Mapping] = None,
-        refable_models: Optional[MutableMapping] = None,
     ):
         """Extracts exposures from Metabase questions populating `self.models_exposed`
 
@@ -822,12 +586,9 @@ class MetabaseClient:
             None -- self.models_exposed is populated through this method.
         """
 
-        if refable_models is None:
-            refable_models = {}
-
         # If an exposure is not passed, pull from id
         if not exposure:
-            exposure = self.api("get", f"/api/card/{card_id}")
+            exposure = self.client.api("get", f"/api/card/{card_id}")
 
         query = exposure.get("dataset_query", {})
 
@@ -839,12 +600,10 @@ class MetabaseClient:
 
             if str(source_table_id).startswith("card__"):
                 # Handle questions based on other question in virtual db
-                self._extract_card_exposures(
-                    int(source_table_id.split("__")[-1]), refable_models=refable_models
-                )
+                self._extract_card_exposures(int(source_table_id.split("__")[-1]))
             else:
                 # Normal question
-                source_table = self.table_map.get(source_table_id)
+                source_table = self.table_names.get(source_table_id)
                 if source_table:
                     logger().info(
                         "Model extracted from Metabase question: %s",
@@ -857,13 +616,12 @@ class MetabaseClient:
                 # Handle questions based on other question in virtual db
                 if str(query_join.get("source-table", "")).startswith("card__"):
                     self._extract_card_exposures(
-                        int(query_join.get("source-table").split("__")[-1]),
-                        refable_models=refable_models,
+                        int(query_join.get("source-table").split("__")[-1])
                     )
                     continue
 
                 # Joined model parsed
-                joined_table = self.table_map.get(query_join.get("source-table"))
+                joined_table = self.table_names.get(query_join.get("source-table"))
                 if joined_table:
                     logger().info(
                         "Model extracted from Metabase question join: %s",
@@ -877,11 +635,11 @@ class MetabaseClient:
             ctes: List[str] = []
 
             # Parse common table expressions for exclusion
-            for matched_cte in re.findall(self.cte_parser, native_query):
+            for matched_cte in re.findall(self._CTE_PARSER, native_query):
                 ctes.extend(group.upper() for group in matched_cte if group)
 
             # Parse SQL for exposures through FROM or JOIN clauses
-            for sql_ref in re.findall(self.exposure_parser, native_query):
+            for sql_ref in re.findall(self._EXPOSURE_PARSER, native_query):
                 # Grab just the table / model name
                 clean_exposure = sql_ref.split(".")[-1].strip('"').upper()
 
@@ -889,7 +647,7 @@ class MetabaseClient:
                 if clean_exposure in ctes and "." not in sql_ref:
                     continue
                 # Verify this is one of our parsed refable models so exposures dont break the DAG
-                if not refable_models.get(clean_exposure):
+                if not self.model_refs.get(clean_exposure):
                     continue
 
                 if clean_exposure:
@@ -910,7 +668,6 @@ class MetabaseClient:
         created_at: str,
         creator_name: str,
         creator_email: str,
-        refable_models: Mapping,
         description: str = "",
         native_query: str = "",
     ) -> Mapping:
@@ -925,7 +682,6 @@ class MetabaseClient:
             created_at {str} -- Timestamp of exposure creation derived from Metabase
             creator_name {str} -- Creator name derived from Metabase
             creator_email {str} -- Creator email derived from Metabase
-            refable_models {str} -- List of dbt models from dbt reader which can validly be referenced, parsed exposures are always checked against this list to avoid generating invalid yaml
 
         Keyword Arguments:
             description {str} -- The description of the exposure as documented in Metabase. (default: No description provided in Metabase)
@@ -972,7 +728,7 @@ class MetabaseClient:
             "label": label,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
-            "url": f"{self.url}/{exposure_type}/{exposure_id}",
+            "url": f"{self.client.url}/{exposure_type}/{exposure_id}",
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
@@ -980,12 +736,74 @@ class MetabaseClient:
             },
             "depends_on": list(
                 {
-                    refable_models[exposure.upper()]
+                    self.model_refs[exposure.upper()]
                     for exposure in list({m for m in self.models_exposed})
-                    if exposure.upper() in refable_models
+                    if exposure.upper() in self.model_refs
                 }
             ),
         }
+
+
+class MetabaseClient:
+    """Metabase API client."""
+
+    def __init__(
+        self,
+        url: str,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        session_id: Optional[str] = None,
+        verify: bool = True,
+        cert: Optional[Union[str, Tuple[str, str]]] = None,
+        http_timeout: int = 15,
+        http_headers: Optional[dict] = None,
+        http_adapter: Optional[HTTPAdapter] = None,
+    ):
+        """New Metabase client.
+
+        Args:
+            url (str): Metabase URL, e.g. "https://metabase.example.com".
+            username (Optional[str], optional): Metabase username (required unless providing session_id). Defaults to None.
+            password (Optional[str], optional): Metabase password (required unless providing session_id). Defaults to None.
+            session_id (Optional[str], optional): Metabase session ID. Defaults to None.
+            verify (bool, optional): Verify the TLS certificate at the Metabase end. Defaults to True.
+            cert (Optional[Union[str, Tuple[str, str]]], optional): Path to a custom certificate. Defaults to None.
+            http_timeout (int, optional): HTTP request timeout in secs. Defaults to 15.
+            http_headers (Optional[dict], optional): Additional HTTP headers. Defaults to None.
+            http_adapter (Optional[HTTPAdapter], optional): Custom requests HTTP adapter. Defaults to None.
+        """
+
+        self.url = url
+        if self.url.endswith("/"):
+            self.url = self.url[:-1]
+
+        self.http_timeout = http_timeout
+
+        self.session = requests.Session()
+        self.session.verify = verify
+        self.session.cert = cert
+
+        if http_headers:
+            self.session.headers.update(http_headers)
+
+        self.session.mount(
+            self.url,
+            http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5)),
+        )
+
+        if not session_id:
+            if username and password:
+                session = self.api(
+                    "post",
+                    "/api/session",
+                    json={"username": username, "password": password},
+                )
+                session_id = str(session["id"])
+            else:
+                raise MetabaseArgumentError("Credentials or session ID required")
+        self.session.headers["X-Metabase-Session"] = session_id
+
+        logger().info("Session established successfully")
 
     def api(
         self,
@@ -996,16 +814,13 @@ class MetabaseClient:
     ) -> Mapping:
         """Unified way of calling Metabase API.
 
-        Arguments:
-            method {str} -- HTTP verb, e.g. get, post, put.
-            path {str} -- Relative path of endpoint, e.g. /api/database.
-
-        Keyword Arguments:
-            authenticated {bool} -- Includes session ID when true. (default: {True})
-            critical {bool} -- Raise on any HTTP errors. (default: {True})
+        Args:
+            method (str): HTTP verb, e.g. get, post, put.
+            path (str): Relative path of endpoint, e.g. /api/database.
+            critical (bool, optional): Raise on any HTTP errors. Defaults to True.
 
         Returns:
-            Any -- JSON payload of the endpoint.
+            Mapping: JSON payload of the endpoint.
         """
 
         response = self.session.request(
@@ -1015,26 +830,68 @@ class MetabaseClient:
             **kwargs,
         )
 
-        if critical:
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError:
-                if "json" in kwargs and "password" in kwargs["json"]:
-                    logger().error("HTTP request failed. Response: %s", response.text)
-                else:
-                    logger().error(
-                        "HTTP request failed. Payload: %s. Response: %s",
-                        kwargs.get("json"),
-                        response.text,
-                    )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            if critical:
+                logger().error("HTTP request failed: %s", response.text)
                 raise
-        elif not response.ok:
             return {}
 
-        response_json = json.loads(response.text)
-
-        # Since X.40.0 responses are encapsulated in "data" with pagination parameters
+        response_json = response.json()
         if "data" in response_json:
+            # Since X.40.0 responses are encapsulated in "data" with pagination parameters
             return response_json["data"]
 
         return response_json
+
+    def export_models(
+        self,
+        database: str,
+        models: List[MetabaseModel],
+        exclude_sources: bool = False,
+        sync_timeout: int = 30,
+    ):
+        """Exports dbt models to Metabase database schema.
+
+        Args:
+            database (str): Metabase database name.
+            models (List[MetabaseModel]): List of dbt models read from project.
+            exclude_sources (bool, optional): Exclude dbt sources from export. Defaults to False.
+        """
+        _ExportModelsJob(
+            client=self,
+            database=database,
+            models=models,
+            exclude_sources=exclude_sources,
+            sync_timeout=sync_timeout,
+        ).execute()
+
+    def extract_exposures(
+        self,
+        models: List[MetabaseModel],
+        output_path: str = ".",
+        output_name: str = "metabase_exposures",
+        include_personal_collections: bool = True,
+        collection_excludes: Optional[Iterable] = None,
+    ) -> Mapping:
+        """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader.
+
+        Args:
+            models (List[MetabaseModel]): List of dbt models.
+            output_path (str, optional): Path for output YAML. Defaults to ".".
+            output_name (str, optional): Name for output YAML. Defaults to "metabase_exposures".
+            include_personal_collections (bool, optional): Include personal Metabase collections. Defaults to True.
+            collection_excludes (Optional[Iterable], optional): Exclude certain Metabase collections. Defaults to None.
+
+        Returns:
+            Mapping: _description_
+        """
+        return _ExtractExposuresJob(
+            client=self,
+            models=models,
+            output_path=output_path,
+            output_name=output_name,
+            include_personal_collections=include_personal_collections,
+            collection_excludes=collection_excludes,
+        ).execute()

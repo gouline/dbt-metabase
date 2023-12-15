@@ -1,16 +1,14 @@
 import json
 import logging
-import os
+from pathlib import Path
 
 from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
 from dbtmetabase.metabase import MetabaseClient
 
 mbc = MetabaseClient(
-    host="localhost:3000",
-    user="...",
+    url="http://localhost:3000",
+    username="...",
     password="...",
-    # use http for localhost docker
-    use_http=True,
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -19,10 +17,9 @@ logging.basicConfig(level=logging.DEBUG)
 def test_mock_api(method: str, path: str):
     BASE_PATH = "tests/fixtures/mock_api/"
     if method == "get":
-        if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
-            return json.load(
-                open(f"{BASE_PATH}/{path.lstrip('/')}.json", encoding="utf-8")
-            )
+        json_path = Path(f"{BASE_PATH}/{path.lstrip('/')}.json")
+        if json_path.exists():
+            return json.load(open(json_path, encoding="utf-8"))
         return {}
 
 
