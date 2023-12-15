@@ -1,26 +1,127 @@
+import dataclasses
 import json
-from typing import List, Mapping, MutableMapping, Optional, Tuple
+import re
+from enum import Enum
+from pathlib import Path
+from typing import Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
-from ..logger.logging import logger
-from ..models.metabase import (
-    METABASE_COLUMN_META_FIELDS,
-    METABASE_MODEL_DEFAULT_SCHEMA,
-    METABASE_MODEL_META_FIELDS,
-    MetabaseColumn,
-    MetabaseModel,
-    ModelType,
-)
-from .dbt import DbtReader
+from .logger.logging import logger
+
+# Allowed metabase.* fields
+_METABASE_COMMON_META_FIELDS = [
+    "display_name",
+    "visibility_type",
+]
+# Must be covered by MetabaseColumn attributes
+METABASE_COLUMN_META_FIELDS = _METABASE_COMMON_META_FIELDS + [
+    "semantic_type",
+    "has_field_values",
+    "coercion_strategy",
+    "number_style",
+]
+# Must be covered by MetabaseModel attributes
+METABASE_MODEL_META_FIELDS = _METABASE_COMMON_META_FIELDS + [
+    "points_of_interest",
+    "caveats",
+]
+
+# Default model schema (only schema in BigQuery)
+METABASE_MODEL_DEFAULT_SCHEMA = "PUBLIC"
 
 
-class DbtManifestReader(DbtReader):
-    """Reader for dbt manifest artifact."""
+class ModelType(str, Enum):
+    nodes = "nodes"
+    sources = "sources"
+
+
+@dataclasses.dataclass
+class MetabaseColumn:
+    name: str
+    description: Optional[str] = None
+
+    display_name: Optional[str] = None
+    visibility_type: Optional[str] = None
+    semantic_type: Optional[str] = None
+    has_field_values: Optional[str] = None
+    coercion_strategy: Optional[str] = None
+    number_style: Optional[str] = None
+
+    fk_target_table: Optional[str] = None
+    fk_target_field: Optional[str] = None
+
+    meta_fields: MutableMapping = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class MetabaseModel:
+    name: str
+    schema: str
+    description: str = ""
+
+    display_name: Optional[str] = None
+    visibility_type: Optional[str] = None
+    points_of_interest: Optional[str] = None
+    caveats: Optional[str] = None
+
+    model_type: ModelType = ModelType.nodes
+    source: Optional[str] = None
+    unique_id: Optional[str] = None
+
+    columns: Sequence[MetabaseColumn] = dataclasses.field(default_factory=list)
+
+    @property
+    def ref(self) -> Optional[str]:
+        if self.model_type == ModelType.nodes:
+            return f"ref('{self.name}')"
+        elif self.model_type == ModelType.sources:
+            return f"source('{self.source}', '{self.name}')"
+        return None
+
+
+class _NullValue(str):
+    """Explicitly null field value."""
+
+    def __eq__(self, other: object) -> bool:
+        return other is None
+
+
+NullValue = _NullValue()
+
+
+class DbtReader:
+    def __init__(
+        self,
+        manifest_path: str,
+        database: str,
+        schema: Optional[str] = None,
+        schema_excludes: Optional[Iterable] = None,
+        includes: Optional[Iterable] = None,
+        excludes: Optional[Iterable] = None,
+    ):
+        """Reader for compiled dbt manifest.json file.
+
+        Args:
+            manifest_path (str, optional): Path to dbt manifest.json (usually under target/). Defaults to None.
+            database (str, optional): Target database name specified in dbt models. Default to None.
+            schema (str, optional): Target schema. Defaults to None.
+            schema_excludes (Iterable, optional): Target schemas to exclude. Defaults to None.
+            includes (Iterable, optional): Model names to limit selection. Defaults to None.
+            excludes (Iterable, optional): Model names to exclude from selection. Defaults to None.
+        """
+
+        self.manifest_path = Path(manifest_path).expanduser()
+        self.database = database.upper()
+        self.schema = schema.upper() if schema else None
+        self.schema_excludes = [x.upper() for x in schema_excludes or []]
+
+        self.includes = [x.upper() for x in includes or []]
+        self.excludes = [x.upper() for x in excludes or []]
 
     def read_models(
         self,
         include_tags: bool = True,
         docs_url: Optional[str] = None,
-    ) -> Tuple[List[MetabaseModel], MutableMapping]:
+    ) -> List[MetabaseModel]:
         """Reads dbt models in Metabase-friendly format.
 
         Keyword Arguments:
@@ -31,12 +132,10 @@ class DbtManifestReader(DbtReader):
             list -- List of dbt models in Metabase-friendly format.
         """
 
-        manifest = {}
+        with open(self.manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
 
         mb_models: List[MetabaseModel] = []
-
-        with open(self.path, "r", encoding="utf-8") as manifest_file:
-            manifest = json.load(manifest_file)
 
         for _, node in manifest["nodes"].items():
             model_name = node["name"].upper()
@@ -147,7 +246,7 @@ class DbtManifestReader(DbtReader):
                 )
             )
 
-        return mb_models, self.alias_mapping
+        return mb_models
 
     def _read_model(
         self,
@@ -158,23 +257,58 @@ class DbtManifestReader(DbtReader):
         include_tags: bool = True,
         docs_url: Optional[str] = None,
     ) -> MetabaseModel:
-        """Reads one dbt model in Metabase-friendly format.
-
-        Arguments:
-            model {dict} -- One dbt model to read.
-            source {str, optional} -- Name of the source if source
-            model_type {str} -- The type of the node which can be one of either nodes or sources
-            include_tags: {bool} -- Flag to append tags to description of model
-
-        Returns:
-            dict -- One dbt model in Metabase-friendly format.
-        """
-
         metabase_columns: List[MetabaseColumn] = []
 
         schema = model["schema"].upper()
         unique_id = model["unique_id"]
 
+        relationships = self._read_model_relationships(
+            manifest=manifest,
+            model_type=model_type,
+            unique_id=unique_id,
+        )
+
+        for _, column in model.get("columns", {}).items():
+            metabase_columns.append(
+                self._read_column(
+                    column=column,
+                    schema=schema,
+                    relationship=relationships.get(column["name"]),
+                )
+            )
+
+        description = model.get("description", "")
+
+        if include_tags:
+            tags = model.get("tags", [])
+            if tags:
+                tags = ", ".join(tags)
+                if description != "":
+                    description += "\n\n"
+                description += f"Tags: {tags}"
+
+        if docs_url:
+            full_path = f"{docs_url}/#!/model/{unique_id}"
+            if description != "":
+                description += "\n\n"
+            description += f"dbt docs link: {full_path}"
+
+        resolved_name = model.get("alias", model.get("identifier", model["name"]))
+
+        return MetabaseModel(
+            name=resolved_name,
+            schema=schema,
+            description=description,
+            columns=metabase_columns,
+            model_type=model_type,
+            unique_id=unique_id,
+            source=source,
+            **self.read_meta_fields(model, METABASE_MODEL_META_FIELDS),
+        )
+
+    def _read_model_relationships(
+        self, manifest: Mapping, model_type: ModelType, unique_id: str
+    ) -> Mapping[str, Mapping[str, str]]:
         children = manifest["child_map"][unique_id]
         relationship_tests = {}
 
@@ -182,6 +316,7 @@ class DbtManifestReader(DbtReader):
             child = {}
             if manifest[model_type]:
                 child = manifest[model_type].get(child_id, {})
+
             # Only proceed if we are seeing an explicitly declared relationship test
             if (
                 child.get("resource_type") == "test"
@@ -250,49 +385,7 @@ class DbtManifestReader(DbtReader):
                     "fk_target_field": fk_target_field,
                 }
 
-        for _, column in model.get("columns", {}).items():
-            metabase_columns.append(
-                self._read_column(
-                    column=column,
-                    schema=schema,
-                    relationship=relationship_tests.get(column["name"]),
-                )
-            )
-
-        description = model.get("description", "")
-
-        if include_tags:
-            tags = model.get("tags", [])
-            if tags:
-                tags = ", ".join(tags)
-                if description != "":
-                    description += "\n\n"
-                description += f"Tags: {tags}"
-
-        if docs_url:
-            full_path = f"{docs_url}/#!/model/{unique_id}"
-            if description != "":
-                description += "\n\n"
-            description += f"dbt docs link: {full_path}"
-
-        resolved_name = model.get("alias", model.get("identifier"))
-        dbt_name = None
-        if not resolved_name:
-            resolved_name = model["name"]
-        else:
-            dbt_name = model["name"]
-
-        return MetabaseModel(
-            name=resolved_name,
-            schema=schema,
-            description=description,
-            columns=metabase_columns,
-            model_type=model_type,
-            unique_id=unique_id,
-            source=source,
-            dbt_name=dbt_name,
-            **self.read_meta_fields(model, METABASE_MODEL_META_FIELDS),
-        )
+        return relationship_tests
 
     def _read_column(
         self,
@@ -300,17 +393,6 @@ class DbtManifestReader(DbtReader):
         schema: str,
         relationship: Optional[Mapping],
     ) -> MetabaseColumn:
-        """Reads one dbt column in Metabase-friendly format.
-
-        Arguments:
-            column {dict} -- One dbt column to read.
-            schema {str} -- Schema as passed down from CLI args or parsed from `source`
-            relationship {Mapping, optional} -- Mapping of columns to their foreign key relationships
-
-        Returns:
-            dict -- One dbt column in Metabase-friendly format.
-        """
-
         column_name = column.get("name", "").upper().strip('"')
         column_description = column.get("description")
         metabase_column = MetabaseColumn(
@@ -328,3 +410,99 @@ class DbtManifestReader(DbtReader):
         )
 
         return metabase_column
+
+    def model_selected(self, name: str) -> bool:
+        """Checks whether model passes inclusion/exclusion criteria.
+
+        Args:
+            name (str): Model name.
+
+        Returns:
+            bool: True if included, false otherwise.
+        """
+        n = name.upper()
+        return n not in self.excludes and (not self.includes or n in self.includes)
+
+    def set_column_foreign_key(
+        self,
+        column: Mapping,
+        metabase_column: MetabaseColumn,
+        table: Optional[str],
+        field: Optional[str],
+        schema: Optional[str],
+    ):
+        """Sets foreign key target on a column.
+
+        Args:
+            column (Mapping): Schema column definition.
+            metabase_column (MetabaseColumn): Metabase column definition.
+            table (str): Foreign key target table.
+            field (str): Foreign key target field.
+            schema (str): Current schema name.
+        """
+        # Meta fields take precedence
+        meta = column.get("meta", {})
+        table = meta.get("metabase.fk_target_table", table)
+        field = meta.get("metabase.fk_target_field", field)
+
+        if not table or not field:
+            if table or field:
+                logger().warning(
+                    "Foreign key requires table and field for column %s",
+                    metabase_column.name,
+                )
+            return
+
+        table_path = table.split(".")
+        if len(table_path) == 1 and schema:
+            table_path.insert(0, schema)
+
+        metabase_column.semantic_type = "type/FK"
+        metabase_column.fk_target_table = ".".join(
+            [x.strip('"').upper() for x in table_path]
+        )
+        metabase_column.fk_target_field = field.strip('"').upper()
+        logger().debug(
+            "Relation from %s to %s.%s",
+            metabase_column.name,
+            metabase_column.fk_target_table,
+            metabase_column.fk_target_field,
+        )
+
+    @staticmethod
+    def read_meta_fields(obj: Mapping, fields: List) -> Mapping:
+        """Reads meta fields from a schem object.
+
+        Args:
+            obj (Mapping): Schema object.
+            fields (List): List of fields to read.
+
+        Returns:
+            Mapping: Field values.
+        """
+
+        vals = {}
+        meta = obj.get("meta", {})
+        for field in fields:
+            if f"metabase.{field}" in meta:
+                value = meta[f"metabase.{field}"]
+                vals[field] = value if value is not None else NullValue
+        return vals
+
+    @staticmethod
+    def parse_ref(text: str) -> Optional[str]:
+        """Parses dbt ref() or source() statement.
+
+        Arguments:
+            text {str} -- Full statement in dbt YAML.
+
+        Returns:
+            str -- Name of the reference.
+        """
+
+        # We are catching the rightmost argument of either source or ref which is ultimately the table name
+        matches = re.findall(r"['\"]([\w\_\-\ ]+)['\"][ ]*\)$", text.strip())
+        if matches:
+            logger().debug("%s -> %s", text, matches[0])
+            return matches[0]
+        return None

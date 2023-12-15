@@ -1,12 +1,17 @@
+# pylint: disable=protected-access
+
 import json
 import logging
-import os
 import unittest
+from operator import itemgetter
+from pathlib import Path
 
 import yaml
 
-from dbtmetabase.metabase import MetabaseClient
-from dbtmetabase.models.metabase import MetabaseColumn, MetabaseModel, ModelType
+from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
+from dbtmetabase.metabase import MetabaseClient, _ExportModelsJob, _ExtractExposuresJob
+
+FIXTURES_PATH = Path("tests") / "fixtures"
 
 MODELS = [
     MetabaseModel(
@@ -242,56 +247,57 @@ MODELS = [
 
 
 class MockMetabaseClient(MetabaseClient):
-    def get_session_id(self, user: str, password: str) -> str:
-        return "dummy"
-
-    def api(self, method: str, path: str, **kwargs):
-        BASE_PATH = "tests/fixtures/mock_api/"
+    def api(self, method: str, path: str, critical: bool = True, **kwargs):
         if method == "get":
-            if os.path.exists(f"{BASE_PATH}/{path.lstrip('/')}.json"):
-                with open(f"{BASE_PATH}/{path.lstrip('/')}.json") as f:
+            json_path = FIXTURES_PATH / "mock_api" / f"{path.lstrip('/')}.json"
+            if json_path.exists():
+                with open(json_path, encoding="utf-8") as f:
                     return json.load(f)
-            else:
-                return {}
+            return {}
 
 
 class TestMetabaseClient(unittest.TestCase):
     def setUp(self):
         self.client = MockMetabaseClient(
-            host="localhost:3000",
-            user="dummy",
-            password="dummy",
-            use_http=True,
+            url="http://localhost:3000",
+            session_id="dummy",
         )
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
 
     def test_exposures(self):
-        mbc = self.client
-        mbc.extract_exposures(
-            MODELS,
-            output_name="unittest_exposures",
-            output_path="tests/fixtures/exposure/",
+        output_path = FIXTURES_PATH / "exposure"
+        output_name = "unittest_exposures"
+        job = _ExtractExposuresJob(
+            client=self.client,
+            models=MODELS,
+            output_path=str(output_path),
+            output_name=output_name,
+            include_personal_collections=False,
+            collection_excludes=None,
         )
-        # Baseline in SCM
-        with open(
-            "tests/fixtures/exposure/baseline_test_exposures.yml", "r", encoding="utf-8"
-        ) as f:
-            baseline = yaml.safe_load(f)
-        # Load from YAML and tear down
-        with open(
-            "tests/fixtures/exposure/unittest_exposures.yml", "r", encoding="utf-8"
-        ) as f:
-            sample = yaml.safe_load(f)
+        job.execute()
 
-        baseline_exposures = sorted(baseline["exposures"], key=lambda ele: ele["name"])
-        sample_exposures = sorted(sample["exposures"], key=lambda ele: ele["name"])
+        with open(output_path / "baseline_test_exposures.yml", encoding="utf-8") as f:
+            expected = yaml.safe_load(f)
+        with open(output_path / f"{output_name}.yml", encoding="utf-8") as f:
+            actual = yaml.safe_load(f)
 
-        self.assertEqual(baseline_exposures, sample_exposures)
+        expected_exposures = sorted(expected["exposures"], key=itemgetter("name"))
+        actual_exposures = sorted(actual["exposures"], key=itemgetter("name"))
+
+        self.assertEqual(expected_exposures, actual_exposures)
 
     def test_build_lookups(self):
-        mbc = self.client
-        baseline_tables = [
+        job = _ExportModelsJob(
+            client=self.client,
+            database="unit_testing",
+            models=[],
+            exclude_sources=True,
+            sync_timeout=0,
+        )
+
+        expected_tables = [
             "PUBLIC.CUSTOMERS",
             "PUBLIC.ORDERS",
             "PUBLIC.RAW_CUSTOMERS",
@@ -301,9 +307,10 @@ class TestMetabaseClient(unittest.TestCase):
             "PUBLIC.STG_ORDERS",
             "PUBLIC.STG_PAYMENTS",
         ]
-        metadata = mbc.build_metadata(database_id=2)
-        self.assertEqual(baseline_tables, list(metadata.tables.keys()))
-        baseline_columns = [
+        actual_tables = job._load_tables(database_id="2")
+        self.assertEqual(expected_tables, list(actual_tables.keys()))
+
+        expected_columns = [
             [
                 "CUSTOMER_ID",
                 "FIRST_NAME",
@@ -331,5 +338,5 @@ class TestMetabaseClient(unittest.TestCase):
             ["ORDER_ID", "CUSTOMER_ID", "ORDER_DATE", "STATUS"],
             ["PAYMENT_ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
         ]
-        for table, columns in zip(baseline_tables, baseline_columns):
-            self.assertEqual(columns, list(metadata.tables[table]["fields"].keys()))
+        for table, columns in zip(expected_tables, expected_columns):
+            self.assertEqual(columns, list(actual_tables[table]["fields"].keys()))
