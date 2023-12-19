@@ -1,0 +1,6 @@
+name: "sandbox"
+profile: "dbtmetabase"
+
+config-version: 2
+
+model-paths: ["models"]

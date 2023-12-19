@@ -1,0 +1,40 @@
+version: "3"
+
+name: dbt-metabase-sandbox
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - POSTGRES_DB=${POSTGRES_DB:-}
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    restart: always
+
+  metabase:
+    image: metabase/metabase:latest
+    environment:
+      - MB_DB_FILE=/metabase-data/metabase.db
+    ports:
+      - ${MB_PORT}:3000
+    volumes:
+      - ./metabase-data:/metabase-data
+    restart: always
+  
+  dbt:
+    build: .
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - POSTGRES_DB=${POSTGRES_DB:-}
+      - POSTGRES_SCHEMA=${POSTGRES_SCHEMA:-}
+      - POSTGRES_PORT=${POSTGRES_PORT:-}
+      - POSTGRES_HOST=172.17.0.1
+    volumes:
+      - ./target:/app/target
+    depends_on:
+      - postgres
