@@ -1,0 +1,8 @@
+config:
+  dbt_manifest_path: ./sandbox/target/manifest.json
+  dbt_database: dbtmetabase
+  metabase_url: http://localhost:3000
+  # Pre-configured in Metabase fixtures
+  metabase_database: dbtmetabase
+  metabase_username: dbtmetabase@example.com
+  metabase_password: dbtmetabase1

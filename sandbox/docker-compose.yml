@@ -11,19 +11,31 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-}
     ports:
       - ${POSTGRES_PORT}:5432
+    networks:
+      - common
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   metabase:
     image: metabase/metabase:latest
     environment:
-      - MB_DB_FILE=/metabase-data/metabase.db
+      - MB_DB_FILE=/metabase.db
     ports:
       - ${MB_PORT}:3000
+    networks:
+      - common
     volumes:
-      - ./metabase-data:/metabase-data
+      - ./volumes/metabase.db:/metabase.db
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
   
   dbt:
     build: .
@@ -33,8 +45,17 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-}
       - POSTGRES_SCHEMA=${POSTGRES_SCHEMA:-}
       - POSTGRES_PORT=${POSTGRES_PORT:-}
-      - POSTGRES_HOST=172.17.0.1
+      - POSTGRES_HOST=postgres
+    networks:
+      - common
     volumes:
       - ./target:/app/target
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
+networks:
+  common:
+
+volumes:
+  postgres-data:

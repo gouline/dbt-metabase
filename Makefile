@@ -58,3 +58,11 @@ dev-install: build
 	python3 -m pip uninstall -y dbt-metabase \
 		&& python3 -m pip install dist/dbt_metabase-*-py3-none-any.whl
 .PHONY: dev-install
+
+dev-sandbox:
+	( cd sandbox \
+		&& mkdir -p volumes \
+		&& cp -r fixtures/* volumes/ \
+		&& docker-compose up \
+		; docker-compose down )
+.PHONY: dev-sandbox
