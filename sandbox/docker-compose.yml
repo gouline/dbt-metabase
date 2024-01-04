@@ -13,32 +13,36 @@ services:
       - ${POSTGRES_PORT}:5432
     networks:
       - common
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
     restart: always
 
   metabase:
     image: metabase/metabase:latest
     environment:
-      - MB_DB_FILE=/metabase.db
+      - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
     ports:
       - ${MB_PORT}:3000
     networks:
       - common
-    volumes:
-      - ./volumes/metabase.db:/metabase.db
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: always
     depends_on:
       postgres:
         condition: service_healthy
   
-  dbt:
+  app:
     build: .
+    command: init
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
@@ -46,6 +50,11 @@ services:
       - POSTGRES_SCHEMA=${POSTGRES_SCHEMA:-}
       - POSTGRES_PORT=${POSTGRES_PORT:-}
       - POSTGRES_HOST=postgres
+      - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
+      - MB_USER=${MB_USER:-}
+      - MB_PASSWORD=${MB_PASSWORD:-}
+      - MB_PORT=${MB_PORT:-}
+      - MB_HOST=metabase
     networks:
       - common
     volumes:
@@ -53,9 +62,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      metabase:
+        condition: service_healthy
 
 networks:
   common:
-
-volumes:
-  postgres-data:

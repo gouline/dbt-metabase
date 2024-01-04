@@ -60,9 +60,5 @@ dev-install: build
 .PHONY: dev-install
 
 dev-sandbox:
-	( cd sandbox \
-		&& mkdir -p volumes \
-		&& cp -r fixtures/* volumes/ \
-		&& docker-compose up \
-		; docker-compose down )
+	( cd sandbox && docker-compose up --build ; docker-compose down )
 .PHONY: dev-sandbox
