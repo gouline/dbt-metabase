@@ -1,5 +1,6 @@
 import logging
 import unittest
+from pathlib import Path
 
 from dbtmetabase.dbt import (
     DbtReader,
@@ -14,7 +15,13 @@ class TestDbtReader(unittest.TestCase):
     def setUp(self):
         """Must specify dbt root dir"""
         self.reader = DbtReader(
-            manifest_path="tests/fixtures/sample_project/target/manifest.json",
+            manifest_path=str(
+                Path("tests")
+                / "fixtures"
+                / "sample_project"
+                / "target"
+                / "manifest.json"
+            ),
             database="test",
             schema="public",
         )
