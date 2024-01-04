@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import requests
-from molot import target, envarg, envarg_int, evaluate, shell
+from molot import envarg, envarg_int, evaluate, shell, target
 
 POSTGRES_HOST = envarg("POSTGRES_HOST")
 POSTGRES_PORT = envarg_int("POSTGRES_PORT")
