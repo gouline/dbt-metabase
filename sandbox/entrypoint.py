@@ -64,6 +64,7 @@ def setup_metabase():
 
 @target(description="run dbt project")
 def run_dbt():
+    shell("dbt seed --profiles-dir .")
     shell("dbt run --profiles-dir .")
 
 

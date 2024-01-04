@@ -41,7 +41,10 @@ services:
         condition: service_healthy
   
   app:
-    build: .
+    build:
+      context: .
+      additional_contexts:
+        sample_project: ../tests/fixtures/sample_project
     command: init
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
