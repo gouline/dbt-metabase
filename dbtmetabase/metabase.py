@@ -125,9 +125,10 @@ class _ExportModelsJob(_MetabaseClientJob):
                 json=update["body"],
             )
             logger.info(
-                "Update to %s %s applied successfully",
+                "API %s/%s updated successfully: %s",
                 update["kind"],
                 update["id"],
+                ", ".join(update.get("body", {}).keys()),
             )
 
         if not success:
@@ -180,8 +181,10 @@ class _ExportModelsJob(_MetabaseClientJob):
         body_table = {}
 
         # Update if specified, otherwise reset one that had been set
-        if api_table.get("display_name") != model_display_name and (
-            model_display_name or api_table.get("display_name") != api_table.get("name")
+        api_display_name = api_table.get("display_name")
+        if api_display_name != model_display_name and (
+            model_display_name
+            or not self._friendly_equal(api_display_name, api_table.get("name"))
         ):
             body_table["display_name"] = model_display_name
 
@@ -258,7 +261,7 @@ class _ExportModelsJob(_MetabaseClientJob):
 
             if not target_table or not target_field:
                 logger.info(
-                    "Passing on fk resolution for %s. Target field %s was not resolved during dbt model parsing.",
+                    "Skipping FK resolution for %s table, %s field not resolved during dbt parsing",
                     table_key,
                     target_field,
                 )
@@ -279,7 +282,7 @@ class _ExportModelsJob(_MetabaseClientJob):
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         logger.info(
-                            "Target field %s will be set to PK for %s column FK",
+                            "API field/%s will become PK (for %s column FK)",
                             fk_target_field_id,
                             column_name,
                         )
@@ -291,13 +294,13 @@ class _ExportModelsJob(_MetabaseClientJob):
                         )
                     else:
                         logger.info(
-                            "Target field %s is already PK, needed for %s column",
+                            "API field/%s is already PK (for %s column FK)",
                             fk_target_field_id,
                             column_name,
                         )
                 else:
                     logger.error(
-                        "Unable to find foreign key target %s.%s",
+                        "Unable to find PK for %s.%s column FK",
                         target_table,
                         target_field,
                     )
@@ -315,9 +318,10 @@ class _ExportModelsJob(_MetabaseClientJob):
         body_field: MutableMapping[str, Optional[Any]] = {}
 
         # Update if specified, otherwise reset one that had been set
-        if api_field.get("display_name") != column_display_name and (
+        api_display_name = api_field.get("display_name")
+        if api_display_name != column_display_name and (
             column_display_name
-            or api_field.get("display_name") != api_field.get("name")
+            or not self._friendly_equal(api_display_name, api_field.get("name"))
         ):
             body_field["display_name"] = column_display_name
 
@@ -346,8 +350,9 @@ class _ExportModelsJob(_MetabaseClientJob):
             body_field["settings"] = settings
 
         # Allow explicit null type to override detected one
-        if api_field.get(semantic_type_key) != column.semantic_type and (
-            column.semantic_type or column.semantic_type is NullValue
+        api_semantic_type = api_field.get(semantic_type_key)
+        if (column.semantic_type and api_semantic_type != column.semantic_type) or (
+            column.semantic_type is NullValue and api_semantic_type
         ):
             body_field[semantic_type_key] = column.semantic_type or None
 
@@ -365,7 +370,7 @@ class _ExportModelsJob(_MetabaseClientJob):
         metadata = self.client.api(
             "get",
             f"/api/database/{database_id}/metadata",
-            params={"include_hidden": True},
+            params={"include_hidden": "true"},
         )
 
         bigquery_schema = metadata.get("details", {}).get("dataset-id")
@@ -393,6 +398,24 @@ class _ExportModelsJob(_MetabaseClientJob):
             tables[f"{schema_name}.{table_name}"] = new_table
 
         return tables
+
+    def _friendly_equal(self, a: Optional[str], b: Optional[str]) -> bool:
+        """Equality test for parameters susceptible to Metabase "friendly names".
+
+        For example, "Some Name" is a friendly name for "some_name".
+
+        Args:
+            a (Optional[str]): Possibly-friendly string.
+            b (Optional[str]): Possibly-friendly string.
+
+        Returns:
+            bool: True if strings are equal normalization.
+        """
+
+        def normalize(x: Optional[str]) -> str:
+            return (x or "").replace(" ", "_").replace("-", "_").lower()
+
+        return normalize(a) == normalize(b)
 
 
 class _ExtractExposuresJob(_MetabaseClientJob):
@@ -788,7 +811,7 @@ class MetabaseClient:
 
         self.session.mount(
             self.url,
-            http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5)),
+            http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1)),
         )
 
         if not session_id:

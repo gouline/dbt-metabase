@@ -31,7 +31,7 @@ models:
           metabase.display_name: order_count
           metabase.semantic_type: null
 
-      - name: total_order_amount
+      - name: customer_lifetime_value
         description: Total value (AUD) of a customer's orders
 
   - name: orders
