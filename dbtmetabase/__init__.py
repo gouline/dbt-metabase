@@ -1,4 +1,3 @@
-import importlib.metadata
 import logging
 
 from .dbt import DbtReader
@@ -9,7 +8,9 @@ logger = logging.getLogger(__name__)
 __all__ = ["DbtReader", "MetabaseClient"]
 
 try:
-    __version__ = importlib.metadata.version("dbt-metabase")
-except importlib.metadata.PackageNotFoundError:
-    logger.warning("No version found in metadata")
-    __version__ = "0.0.0-UNKONWN"
+    from ._version import __version__ as version  # type: ignore
+
+    __version__ = version
+except ModuleNotFoundError:
+    logging.warning("No _version.py file")
+    __version__ = "0.0.0"
