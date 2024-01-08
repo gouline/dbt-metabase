@@ -59,6 +59,20 @@ dev-install: build
 		&& python3 -m pip install dist/dbt_metabase-*-py3-none-any.whl
 .PHONY: dev-install
 
-dev-sandbox:
-	( cd sandbox && docker-compose up --build ; docker-compose down )
-.PHONY: dev-sandbox
+dev-sandbox-up:
+	( cd sandbox && docker-compose up --build --detach --wait )
+.PHONY: dev-sandbox-up
+
+dev-sandbox-models:
+	( source sandbox/.env && python3 -m dbtmetabase models \
+		--dbt-manifest-path sandbox/target/manifest.json \
+		--dbt-database $$POSTGRES_DB \
+		--metabase-url http://localhost:$$MB_PORT \
+		--metabase-username $$MB_USER \
+		--metabase-password $$MB_PASSWORD \
+		--metabase-database $$POSTGRES_DB )
+.PHONY: dev-sandbox-models
+
+dev-sandbox-down:
+	( cd sandbox && docker-compose down )
+.PHONY: dev-sandbox-up

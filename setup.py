@@ -30,9 +30,7 @@ setup(
     packages=find_packages(exclude=["tests"]),
     test_suite="tests",
     install_requires=requires_from_file("requirements.txt"),
-    extras_require={
-        "test": requires_from_file("requirements-test.txt"),
-    },
+    tests_require=requires_from_file("requirements-test.txt"),
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",

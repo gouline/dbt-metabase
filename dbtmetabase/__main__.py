@@ -238,7 +238,7 @@ def _add_setup(func: Callable) -> Callable:
         metabase_session_id: Optional[str],
         metabase_verify: bool,
         metabase_cert: Optional[str],
-        metabase_http_timeout: int,
+        metabase_timeout: int,
         verbose: bool,
         **kwargs,
     ):
@@ -260,7 +260,7 @@ def _add_setup(func: Callable) -> Callable:
                 session_id=metabase_session_id,
                 verify=metabase_verify,
                 cert=metabase_cert,
-                http_timeout=metabase_http_timeout,
+                http_timeout=metabase_timeout,
             ),
             **kwargs,
         )
@@ -293,15 +293,6 @@ def _add_setup(func: Callable) -> Callable:
     required=True,
     type=click.STRING,
     help="Target database name in Metabase.",
-)
-@click.option(
-    "--metabase-sync/--metabase-sync-skip",
-    "metabase_sync",
-    envvar="METABASE_SYNC",
-    show_envvar=True,
-    default=True,
-    show_default=True,
-    help="Attempt to synchronize Metabase schema with local models.",
 )
 @click.option(
     "--metabase-sync-timeout",
