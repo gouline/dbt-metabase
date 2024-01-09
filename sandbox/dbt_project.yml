@@ -1,4 +1,4 @@
-name: "jaffle_shop"
+name: "sandbox"
 profile: "default"
 
 config-version: 2
@@ -13,7 +13,7 @@ clean-targets:
   - "logs"
 
 models:
-  jaffle_shop:
+  sandbox:
     materialized: table
     staging:
       materialized: view

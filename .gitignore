@@ -133,3 +133,4 @@ dmypy.json
 # dbt
 dbt_modules/
 logs/
+.user.yml
