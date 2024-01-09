@@ -20,7 +20,7 @@ exposures:
   url: http://localhost:3000/card/1
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -43,7 +43,7 @@ exposures:
   url: http://localhost:3000/card/2
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('orders')
@@ -66,7 +66,7 @@ exposures:
   url: http://localhost:3000/dashboard/1
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -89,7 +89,7 @@ exposures:
   url: http://localhost:3000/card/11
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -112,7 +112,7 @@ exposures:
   url: http://localhost:3000/card/9
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -135,7 +135,7 @@ exposures:
   url: http://localhost:3000/card/4
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -158,7 +158,7 @@ exposures:
   url: http://localhost:3000/card/5
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -181,7 +181,7 @@ exposures:
   url: http://localhost:3000/card/7
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -204,7 +204,7 @@ exposures:
   url: http://localhost:3000/card/6
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -227,7 +227,7 @@ exposures:
   url: http://localhost:3000/card/8
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -250,7 +250,7 @@ exposures:
   url: http://localhost:3000/card/10
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -273,7 +273,7 @@ exposures:
   url: http://localhost:3000/card/12
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -296,7 +296,7 @@ exposures:
   url: http://localhost:3000/card/13
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -319,7 +319,7 @@ exposures:
   url: http://localhost:3000/card/15
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -342,7 +342,7 @@ exposures:
   url: http://localhost:3000/card/14
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -365,7 +365,7 @@ exposures:
   url: http://localhost:3000/card/17
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')
@@ -388,7 +388,7 @@ exposures:
   url: http://localhost:3000/card/16
   maturity: medium
   owner:
-    name: Alexander Butler
+    name: dbtmetabase
     email: user@example.com
   depends_on:
   - ref('customers')

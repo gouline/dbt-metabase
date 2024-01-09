@@ -9,7 +9,8 @@ clean:
 requirements:
 	python3 -m pip install \
 		-r requirements.txt \
-		-r requirements-test.txt
+		-r requirements-test.txt \
+		-r sandbox/requirements.txt
 .PHONY: requirements
 
 fix-fmt:
@@ -60,7 +61,11 @@ dev-install: build
 .PHONY: dev-install
 
 dev-sandbox-up:
-	( cd sandbox && docker-compose up --build --detach --wait )
+	( cd sandbox && docker-compose up --build --attach app )
+.PHONY: dev-sandbox-up
+
+dev-sandbox-down:
+	( cd sandbox && docker-compose down )
 .PHONY: dev-sandbox-up
 
 dev-sandbox-models:
@@ -74,27 +79,26 @@ dev-sandbox-models:
 .PHONY: dev-sandbox-models
 
 dev-sandbox-exposures:
-	rm -rf tests/fixtures/sample_project/models/exposures
-	mkdir -p tests/fixtures/sample_project/models/exposures
+	rm -rf sandbox/models/exposures
+	mkdir -p sandbox/models/exposures
 	( source sandbox/.env && python3 -m dbtmetabase exposures \
 		--dbt-manifest-path sandbox/target/manifest.json \
 		--dbt-database $$POSTGRES_DB \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
 		--metabase-password $$MB_PASSWORD \
-		--output-path tests/fixtures/sample_project/models/exposures \
+		--output-path sandbox/models/exposures \
 		--output-grouping collection )
 	
-	( source sandbox/.env && cd tests/fixtures/sample_project && \
+	( source sandbox/.env && cd sandbox && \
 		POSTGRES_HOST=localhost \
 		POSTGRES_PORT=$$POSTGRES_PORT \
 		POSTGRES_USER=$$POSTGRES_USER \
 		POSTGRES_PASSWORD=$$POSTGRES_PASSWORD \
 		POSTGRES_DB=$$POSTGRES_DB \
 		POSTGRES_SCHEMA=$$POSTGRES_SCHEMA \
-		dbt docs generate --profiles-dir ../../../sandbox )
+		dbt docs generate )
 .PHONY: dev-sandbox-exposures
 
-dev-sandbox-down:
-	( cd sandbox && docker-compose down )
-.PHONY: dev-sandbox-up
+dev-sandbox-e2e: dev-sandbox-up dev-sandbox-models dev-sandbox-exposures dev-sandbox-down
+.PHONY: dev-sandbox-e2e

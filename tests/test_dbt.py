@@ -15,13 +15,7 @@ class TestDbtReader(unittest.TestCase):
     def setUp(self):
         """Must specify dbt root dir"""
         self.reader = DbtReader(
-            manifest_path=str(
-                Path("tests")
-                / "fixtures"
-                / "sample_project"
-                / "target"
-                / "manifest.json"
-            ),
+            manifest_path=str(Path("tests") / "fixtures" / "dbt" / "manifest.json"),
             database="test",
             schema="public",
         )

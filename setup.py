@@ -27,7 +27,7 @@ setup(
     entry_points={
         "console_scripts": ["dbt-metabase = dbtmetabase.__main__:cli"],
     },
-    packages=find_packages(exclude=["tests"]),
+    packages=find_packages(exclude=["tests", "sandbox"]),
     test_suite="tests",
     install_requires=requires_from_file("requirements.txt"),
     tests_require=requires_from_file("requirements-test.txt"),
