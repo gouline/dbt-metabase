@@ -269,20 +269,20 @@ class TestMetabaseClient(unittest.TestCase):
 
     def test_exposures(self):
         output_path = FIXTURES_PATH / "exposure"
-        output_name = "unittest_exposures"
         job = _ExtractExposuresJob(
             client=self.client,
             models=MODELS,
             output_path=str(output_path),
-            output_name=output_name,
+            output_grouping=None,
             include_personal_collections=False,
+            collection_includes=None,
             collection_excludes=None,
         )
         job.execute()
 
         with open(output_path / "baseline_test_exposures.yml", encoding="utf-8") as f:
             expected = yaml.safe_load(f)
-        with open(output_path / f"{output_name}.yml", encoding="utf-8") as f:
+        with open(output_path / "exposures.yml", encoding="utf-8") as f:
             actual = yaml.safe_load(f)
 
         expected_exposures = sorted(expected["exposures"], key=itemgetter("name"))
