@@ -73,6 +73,28 @@ dev-sandbox-models:
 		--metabase-database $$POSTGRES_DB )
 .PHONY: dev-sandbox-models
 
+dev-sandbox-exposures:
+	rm -rf tests/fixtures/sample_project/models/exposures
+	mkdir -p tests/fixtures/sample_project/models/exposures
+	( source sandbox/.env && python3 -m dbtmetabase exposures \
+		--dbt-manifest-path sandbox/target/manifest.json \
+		--dbt-database $$POSTGRES_DB \
+		--metabase-url http://localhost:$$MB_PORT \
+		--metabase-username $$MB_USER \
+		--metabase-password $$MB_PASSWORD \
+		--output-path tests/fixtures/sample_project/models/exposures \
+		--output-grouping collection )
+	
+	( source sandbox/.env && cd tests/fixtures/sample_project && \
+		POSTGRES_HOST=localhost \
+		POSTGRES_PORT=$$POSTGRES_PORT \
+		POSTGRES_USER=$$POSTGRES_USER \
+		POSTGRES_PASSWORD=$$POSTGRES_PASSWORD \
+		POSTGRES_DB=$$POSTGRES_DB \
+		POSTGRES_SCHEMA=$$POSTGRES_SCHEMA \
+		dbt docs generate --profiles-dir ../../../sandbox )
+.PHONY: dev-sandbox-exposures
+
 dev-sandbox-down:
 	( cd sandbox && docker-compose down )
 .PHONY: dev-sandbox-up

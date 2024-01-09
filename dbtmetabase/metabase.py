@@ -4,12 +4,23 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import requests
 import yaml
 from requests.adapters import HTTPAdapter, Retry
 
+from ._format import safe_description, safe_name
 from .dbt import (
     METABASE_MODEL_DEFAULT_SCHEMA,
     MetabaseColumn,
@@ -184,7 +195,7 @@ class _ExportModelsJob(_MetabaseClientJob):
         api_display_name = api_table.get("display_name")
         if api_display_name != model_display_name and (
             model_display_name
-            or not self._friendly_equal(api_display_name, api_table.get("name"))
+            or safe_name(api_display_name) != safe_name(api_table.get("name"))
         ):
             body_table["display_name"] = model_display_name
 
@@ -321,7 +332,7 @@ class _ExportModelsJob(_MetabaseClientJob):
         api_display_name = api_field.get("display_name")
         if api_display_name != column_display_name and (
             column_display_name
-            or not self._friendly_equal(api_display_name, api_field.get("name"))
+            or safe_name(api_display_name) != safe_name(api_field.get("name"))
         ):
             body_field["display_name"] = column_display_name
 
@@ -399,24 +410,6 @@ class _ExportModelsJob(_MetabaseClientJob):
 
         return tables
 
-    def _friendly_equal(self, a: Optional[str], b: Optional[str]) -> bool:
-        """Equality test for parameters susceptible to Metabase "friendly names".
-
-        For example, "Some Name" is a friendly name for "some_name".
-
-        Args:
-            a (Optional[str]): Possibly-friendly string.
-            b (Optional[str]): Possibly-friendly string.
-
-        Returns:
-            bool: True if strings are equal normalization.
-        """
-
-        def normalize(x: Optional[str]) -> str:
-            return (x or "").replace(" ", "_").replace("-", "_").lower()
-
-        return normalize(a) == normalize(b)
-
 
 class _ExtractExposuresJob(_MetabaseClientJob):
     _RESOURCE_VERSION = 2
@@ -437,15 +430,23 @@ class _ExtractExposuresJob(_MetabaseClientJob):
         client: MetabaseClient,
         models: List[MetabaseModel],
         output_path: str,
-        output_name: str,
+        output_grouping: Optional[str],
         include_personal_collections: bool,
+        collection_includes: Optional[Iterable],
         collection_excludes: Optional[Iterable],
     ):
         super().__init__(client)
 
         self.model_refs = {model.name.upper(): model.ref for model in models}
-        self.output_file = Path(output_path).expanduser() / f"{output_name}.yml"
+        self.output_path = Path(output_path).expanduser()
+
+        if output_grouping in (None, "collection", "type"):
+            self.output_grouping = output_grouping
+        else:
+            raise ValueError(f"Unsupported output_grouping: {output_grouping}")
+
         self.include_personal_collections = include_personal_collections
+        self.collection_includes = collection_includes or []
         self.collection_excludes = collection_excludes or []
 
         self.table_names: Mapping = {}
@@ -467,11 +468,17 @@ class _ExtractExposuresJob(_MetabaseClientJob):
         parsed_exposures = []
 
         for collection in self.client.api("get", "/api/collection"):
-            # Exclude collections by name or personal collections (unless included)
-            if collection["name"] in self.collection_excludes or (
-                collection.get("personal_owner_id")
-                and not self.include_personal_collections
-            ):
+            # Inclusion/exclusion criteria check
+            name_included = (
+                collection["name"] in self.collection_includes
+                or not self.collection_includes
+            )
+            name_excluded = collection["name"] in self.collection_excludes
+            personal_included = self.include_personal_collections or not collection.get(
+                "personal_owner_id"
+            )
+            if not name_included or name_excluded or not personal_included:
+                logging.debug("Skipping collection %s", collection["name"])
                 continue
 
             # Iter through collection
@@ -554,7 +561,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
 
                 exposure_label = exposure_name
                 # Only letters, numbers and underscores allowed in model names in dbt docs DAG / no duplicate model names
-                exposure_name = re.sub(r"[^\w]", "_", exposure_name).lower()
+                exposure_name = safe_name(exposure_name)
                 enumer = 1
                 while exposure_name in documented_exposure_names:
                     exposure_name = f"{exposure_name}_{enumer}"
@@ -562,37 +569,48 @@ class _ExtractExposuresJob(_MetabaseClientJob):
 
                 # Construct exposure
                 parsed_exposures.append(
-                    self._build_exposure(
-                        exposure_type=exposure_type,
-                        exposure_id=exposure_id,
-                        name=exposure_name,
-                        label=exposure_label,
-                        header=header or "",
-                        created_at=exposure["created_at"],
-                        creator_name=creator_name or "",
-                        creator_email=creator_email or "",
-                        description=exposure.get("description", ""),
-                        native_query=native_query,
-                    )
+                    {
+                        "id": item["id"],
+                        "type": item["model"],
+                        "collection": collection,
+                        "exposure": self._build_exposure(
+                            exposure_type=exposure_type,
+                            exposure_id=exposure_id,
+                            name=exposure_name,
+                            label=exposure_label,
+                            header=header or "",
+                            created_at=exposure["created_at"],
+                            creator_name=creator_name or "",
+                            creator_email=creator_email or "",
+                            description=exposure.get("description", ""),
+                            native_query=native_query,
+                        ),
+                    }
                 )
 
                 documented_exposure_names.append(exposure_name)
 
-        # Output dbt YAML
-        result = {
-            "version": self._RESOURCE_VERSION,
-            "exposures": parsed_exposures,
-        }
-        with open(self.output_file, "w", encoding="utf-8") as docs:
-            yaml.dump(
-                result,
-                docs,
-                Dumper=self.DbtDumper,
-                default_flow_style=False,
-                allow_unicode=True,
-                sort_keys=False,
-            )
-        return result
+        for group, exposures in self._group_exposures(parsed_exposures).items():
+            path = self.output_path.joinpath(*group[:-1]) / f"{group[-1]}.yml"
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+            exposures_unwrapped = map(lambda x: x["exposure"], exposures)
+            exposures_sorted = sorted(exposures_unwrapped, key=lambda x: x["name"])
+
+            with open(path, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    {
+                        "version": self._RESOURCE_VERSION,
+                        "exposures": exposures_sorted,
+                    },
+                    f,
+                    Dumper=self.DbtDumper,
+                    default_flow_style=False,
+                    allow_unicode=True,
+                    sort_keys=False,
+                )
+
+        return {"exposures": parsed_exposures}  # todo: decide on output?
 
     def _extract_card_exposures(
         self,
@@ -751,7 +769,7 @@ class _ExtractExposuresJob(_MetabaseClientJob):
         return {
             "name": name,
             "label": label,
-            "description": description,
+            "description": safe_description(description),
             "type": "analysis" if exposure_type == "card" else "dashboard",
             "url": f"{self.client.url}/{exposure_type}/{exposure_id}",
             "maturity": "medium",
@@ -767,6 +785,35 @@ class _ExtractExposuresJob(_MetabaseClientJob):
                 }
             ),
         }
+
+    def _group_exposures(
+        self, exposures: Iterable[Mapping]
+    ) -> Mapping[Tuple[str, ...], Iterable[Mapping]]:
+        """Group exposures by configured output grouping.
+
+        Args:
+            exposures (Iterable[Mapping]): Collection of exposures.
+
+        Returns:
+            Mapping[Tuple[str, ...], Iterable[Mapping]]: Exposures indexed by configured grouping.
+        """
+
+        results: Dict[Tuple[str, ...], List[Mapping]] = {}
+
+        for exposure in exposures:
+            group: Tuple[str, ...] = ("exposures",)
+            if self.output_grouping == "collection":
+                collection = exposure["collection"]
+                group = (collection.get("slug") or safe_name(collection["name"]),)
+            elif self.output_grouping == "type":
+                group = (exposure["type"], exposure["id"])
+
+            result = results.get(group, [])
+            result.append(exposure)
+            if group not in results:
+                results[group] = result
+
+        return results
 
 
 class MetabaseClient:
@@ -894,17 +941,19 @@ class MetabaseClient:
         self,
         models: List[MetabaseModel],
         output_path: str = ".",
-        output_name: str = "metabase_exposures",
+        output_grouping: Optional[str] = None,
         include_personal_collections: bool = True,
+        collection_includes: Optional[Iterable] = None,
         collection_excludes: Optional[Iterable] = None,
     ) -> Mapping:
         """Extracts exposures in Metabase downstream of dbt models and sources as parsed by dbt reader.
 
         Args:
             models (List[MetabaseModel]): List of dbt models.
-            output_path (str, optional): Path for output YAML. Defaults to ".".
-            output_name (str, optional): Name for output YAML. Defaults to "metabase_exposures".
+            output_path (str, optional): Path for output files. Defaults to ".".
+            output_grouping (Optional[str], optional): Grouping for output YAML files, supported values: "collection" (by collection slug) or "type" (by entity type). Defaults to None.
             include_personal_collections (bool, optional): Include personal Metabase collections. Defaults to True.
+            collection_includes (Optional[Iterable], optional): Include certain Metabase collections. Defaults to None.
             collection_excludes (Optional[Iterable], optional): Exclude certain Metabase collections. Defaults to None.
 
         Returns:
@@ -914,7 +963,8 @@ class MetabaseClient:
             client=self,
             models=models,
             output_path=output_path,
-            output_name=output_name,
+            output_grouping=output_grouping,
             include_personal_collections=include_personal_collections,
+            collection_includes=collection_includes,
             collection_excludes=collection_excludes,
         ).execute()

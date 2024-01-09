@@ -340,17 +340,14 @@ def models(
     type=click.Path(exists=True, file_okay=False),
     default=".",
     show_default=True,
-    help="Output path for generated exposure YAML.",
+    help="Output path for generated exposure YAML files.",
 )
 @click.option(
-    "--output-name",
-    metavar="NAME",
-    envvar="OUTPUT_NAME",
+    "--output-grouping",
+    envvar="OUTPUT_GROUPING",
     show_envvar=True,
-    type=click.STRING,
-    default="metabase_exposures.yml",
-    show_default=True,
-    help="File name for generated exposure YAML.",
+    type=click.Choice(["collection", "type"]),
+    help="Grouping for output YAML files",
 )
 @click.option(
     "--metabase-include-personal-collections",
@@ -358,6 +355,15 @@ def models(
     show_envvar=True,
     is_flag=True,
     help="Include personal collections when parsing exposures.",
+)
+@click.option(
+    "--metabase-collection-includes",
+    metavar="COLLECTIONS",
+    envvar="METABASE_COLLECTION_INCLUDES",
+    show_envvar=True,
+    type=click.UNPROCESSED,
+    callback=_comma_separated_list_callback,
+    help="Metabase collection names to includes.",
 )
 @click.option(
     "--metabase-collection-excludes",
@@ -370,8 +376,9 @@ def models(
 )
 def exposures(
     output_path: str,
-    output_name: str,
+    output_grouping: Optional[str],
     metabase_include_personal_collections: bool,
+    metabase_collection_includes: Optional[Iterable],
     metabase_collection_excludes: Optional[Iterable],
     dbt_reader: DbtReader,
     metabase_client: MetabaseClient,
@@ -380,8 +387,9 @@ def exposures(
     metabase_client.extract_exposures(
         models=dbt_models,
         output_path=output_path,
-        output_name=output_name,
+        output_grouping=output_grouping,
         include_personal_collections=metabase_include_personal_collections,
+        collection_includes=metabase_collection_includes,
         collection_excludes=metabase_collection_excludes,
     )
 
