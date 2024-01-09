@@ -1,11 +1,12 @@
 import logging
 
-from .dbt import DbtReader
-from .metabase import MetabaseClient
+from .core import DbtMetabase
+from .interface import Filter, MetabaseArgumentError, MetabaseRuntimeError
 
-logger = logging.getLogger(__name__)
-
-__all__ = ["DbtReader", "MetabaseClient"]
+__all__ = [
+    "DbtMetabase",
+    "Filter",
+]
 
 try:
     from ._version import __version__ as version  # type: ignore

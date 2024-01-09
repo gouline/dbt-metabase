@@ -57,40 +57,40 @@ dist-upload: check
 	twine upload dist/*
 .PHONY: dist-upload
 
-dev-install: build
+install: build
 	python3 -m pip uninstall -y dbt-metabase \
 		&& python3 -m pip install dist/dbt_metabase-*-py3-none-any.whl
-.PHONY: dev-install
+.PHONY: install
 
-dev-sandbox-up:
+sandbox-up:
 	( cd sandbox && docker-compose up --build --attach app )
-.PHONY: dev-sandbox-up
+.PHONY: sandbox-up
 
-dev-sandbox-down:
+sandbox-down:
 	( cd sandbox && docker-compose down )
-.PHONY: dev-sandbox-up
+.PHONY: sandbox-up
 
-dev-sandbox-models:
+sandbox-models:
 	( source sandbox/.env && python3 -m dbtmetabase models \
-		--dbt-manifest-path sandbox/target/manifest.json \
-		--dbt-database $$POSTGRES_DB \
+		--manifest-path sandbox/target/manifest.json \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
 		--metabase-password $$MB_PASSWORD \
-		--metabase-database $$POSTGRES_DB )
-.PHONY: dev-sandbox-models
+		--metabase-database $$POSTGRES_DB \
+		--verbose )
+.PHONY: sandbox-models
 
-dev-sandbox-exposures:
+sandbox-exposures:
 	rm -rf sandbox/models/exposures
 	mkdir -p sandbox/models/exposures
 	( source sandbox/.env && python3 -m dbtmetabase exposures \
-		--dbt-manifest-path sandbox/target/manifest.json \
-		--dbt-database $$POSTGRES_DB \
+		--manifest-path sandbox/target/manifest.json \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
 		--metabase-password $$MB_PASSWORD \
 		--output-path sandbox/models/exposures \
-		--output-grouping collection )
+		--output-grouping collection \
+		--verbose )
 	
 	( source sandbox/.env && cd sandbox && \
 		POSTGRES_HOST=localhost \
@@ -100,7 +100,7 @@ dev-sandbox-exposures:
 		POSTGRES_DB=$$POSTGRES_DB \
 		POSTGRES_SCHEMA=$$POSTGRES_SCHEMA \
 		dbt docs generate )
-.PHONY: dev-sandbox-exposures
+.PHONY: sandbox-exposures
 
-dev-sandbox-e2e: dev-sandbox-up dev-sandbox-models dev-sandbox-exposures dev-sandbox-down
-.PHONY: dev-sandbox-e2e
+sandbox-e2e: sandbox-up sandbox-models sandbox-exposures sandbox-down
+.PHONY: sandbox-e2e
