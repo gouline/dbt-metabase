@@ -41,7 +41,10 @@ services:
         condition: service_healthy
   
   app:
-    build: .
+    build:
+      context: .
+      additional_contexts:
+        root: ..
     command: init
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
@@ -58,7 +61,7 @@ services:
     networks:
       - common
     volumes:
-      - ./target:/app/target
+      - .:/app/sandbox
     depends_on:
       postgres:
         condition: service_healthy

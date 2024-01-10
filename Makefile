@@ -9,8 +9,7 @@ clean:
 requirements:
 	python3 -m pip install \
 		-r requirements.txt \
-		-r requirements-test.txt \
-		-r sandbox/requirements.txt
+		-r requirements-test.txt
 .PHONY: requirements
 
 fix-fmt:
@@ -46,6 +45,9 @@ check: check-fmt check-imports check-lint-python check-type
 test:
 	python3 -m unittest tests
 .PHONY: test
+
+pre: fix check test
+.PHONY: pre
 
 dist-check: build
 	twine check dist/*

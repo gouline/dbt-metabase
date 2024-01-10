@@ -27,6 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 */_version.py
+tmp/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -133,4 +134,5 @@ dmypy.json
 # dbt
 dbt_modules/
 logs/
+target/
 .user.yml

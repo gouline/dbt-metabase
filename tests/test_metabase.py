@@ -12,6 +12,7 @@ from dbtmetabase.dbt import MetabaseColumn, MetabaseModel, ModelType
 from dbtmetabase.metabase import MetabaseClient, _ExportModelsJob, _ExtractExposuresJob
 
 FIXTURES_PATH = Path("tests") / "fixtures"
+TMP_PATH = Path("tests") / "tmp"
 
 MODELS = [
     MetabaseModel(
@@ -266,9 +267,22 @@ class TestMetabaseClient(unittest.TestCase):
         )
         logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
+        TMP_PATH.mkdir(exist_ok=True)
+
+    def _assert_exposures(self, expected_path: Path, actual_path: Path):
+        with open(expected_path, encoding="utf-8") as f:
+            expected = yaml.safe_load(f)
+        with open(actual_path, encoding="utf-8") as f:
+            actual = yaml.safe_load(f)
+
+        self.assertEqual(
+            sorted(expected["exposures"], key=itemgetter("name")),
+            actual["exposures"],
+        )
 
     def test_exposures(self):
-        output_path = FIXTURES_PATH / "exposure"
+        fixtures_path = FIXTURES_PATH / "exposure" / "default"
+        output_path = TMP_PATH / "exposure" / "default"
         job = _ExtractExposuresJob(
             client=self.client,
             models=MODELS,
@@ -280,15 +294,59 @@ class TestMetabaseClient(unittest.TestCase):
         )
         job.execute()
 
-        with open(output_path / "baseline_test_exposures.yml", encoding="utf-8") as f:
-            expected = yaml.safe_load(f)
-        with open(output_path / "exposures.yml", encoding="utf-8") as f:
-            actual = yaml.safe_load(f)
+        self._assert_exposures(
+            fixtures_path / "exposures.yml",
+            output_path / "exposures.yml",
+        )
 
-        expected_exposures = sorted(expected["exposures"], key=itemgetter("name"))
-        actual_exposures = sorted(actual["exposures"], key=itemgetter("name"))
+    def test_exposures_collection_grouping(self):
+        fixtures_path = FIXTURES_PATH / "exposure" / "collection"
+        output_path = TMP_PATH / "exposure" / "collection"
+        job = _ExtractExposuresJob(
+            client=self.client,
+            models=MODELS,
+            output_path=str(output_path),
+            output_grouping="collection",
+            include_personal_collections=False,
+            collection_includes=None,
+            collection_excludes=None,
+        )
+        job.execute()
 
-        self.assertEqual(expected_exposures, actual_exposures)
+        self._assert_exposures(
+            fixtures_path / "a_look_at_your_customers_table.yml",
+            output_path / "a_look_at_your_customers_table.yml",
+        )
+        self._assert_exposures(
+            fixtures_path / "our_analytics.yml",
+            output_path / "our_analytics.yml",
+        )
+
+    def test_exposures_type_grouping(self):
+        fixtures_path = FIXTURES_PATH / "exposure" / "type"
+        output_path = TMP_PATH / "exposure" / "type"
+        job = _ExtractExposuresJob(
+            client=self.client,
+            models=MODELS,
+            output_path=str(output_path),
+            output_grouping="type",
+            include_personal_collections=False,
+            collection_includes=None,
+            collection_excludes=None,
+        )
+        job.execute()
+
+        for i in range(1, 18):
+            self._assert_exposures(
+                fixtures_path / "card" / f"{i}.yml",
+                output_path / "card" / f"{i}.yml",
+            )
+
+        for i in range(1, 2):
+            self._assert_exposures(
+                fixtures_path / "dashboard" / f"{i}.yml",
+                output_path / "dashboard" / f"{i}.yml",
+            )
 
     def test_build_lookups(self):
         job = _ExportModelsJob(

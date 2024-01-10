@@ -1,0 +1,25 @@
+version: 2
+exposures:
+  - name: timestamp_by_quarter_of_the_year_1
+    label: Timestamp by quarter of the year
+    description: '### Visualization: Bar
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase Id: __16__
+
+
+      Created On: __2021-07-21T08:01:39.228965Z__'
+    type: analysis
+    url: http://localhost:3000/card/16
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
