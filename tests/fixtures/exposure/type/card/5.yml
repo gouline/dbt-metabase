@@ -1,0 +1,25 @@
+version: 2
+exposures:
+  - name: customers_added_in_the_last_30_days_1
+    label: Customers added in the last 30 days
+    description: '### Visualization: Scalar
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase Id: __5__
+
+
+      Created On: __2021-07-21T08:01:37.630969Z__'
+    type: analysis
+    url: http://localhost:3000/card/5
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')

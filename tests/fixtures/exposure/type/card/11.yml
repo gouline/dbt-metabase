@@ -1,0 +1,25 @@
+version: 2
+exposures:
+  - name: customer_lifetime_value_over_time
+    label: Customer_lifetime_value over time
+    description: '### Visualization: Line
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase Id: __11__
+
+
+      Created On: __2021-07-21T08:01:38.52841Z__'
+    type: analysis
+    url: http://localhost:3000/card/11
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')

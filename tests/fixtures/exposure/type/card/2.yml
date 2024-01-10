@@ -1,0 +1,25 @@
+version: 2
+exposures:
+  - name: orders__count
+    label: Orders, Count
+    description: '### Visualization: Scalar
+
+
+      Nice KPI
+
+
+      #### Metadata
+
+
+      Metabase Id: __2__
+
+
+      Created On: __2021-07-21T08:01:14.290572Z__'
+    type: analysis
+    url: http://localhost:3000/card/2
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('orders')

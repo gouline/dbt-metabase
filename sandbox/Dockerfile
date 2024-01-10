@@ -2,15 +2,11 @@ FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
-COPY requirements.txt ./
+COPY --from=root requirements.txt ./
+COPY --from=root requirements-test.txt ./
 
-RUN python3 -m pip install -r requirements.txt
+RUN pip install -r requirements.txt -r requirements-test.txt
 
-COPY entrypoint.py ./
-COPY profiles.yml ./
-
-COPY models/ ./models/
-COPY seeds/ ./seeds/
-COPY dbt_project.yml ./
+WORKDIR /app/sandbox
 
 ENTRYPOINT ["python3", "entrypoint.py"]
