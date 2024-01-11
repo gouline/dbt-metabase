@@ -8,7 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from .core_exposures import ExposuresExtractorMixin
-from .core_model import ModelsExporterMixin
+from .core_models import ModelsExporterMixin
 from .interface import MetabaseArgumentError
 from .manifest import Manifest, Model
 

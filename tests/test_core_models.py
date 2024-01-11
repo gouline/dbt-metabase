@@ -2,16 +2,16 @@
 
 import unittest
 
-from ._mocks import MockCore
+from ._mocks import MockDbtMetabase
 
 
 class TestModels(unittest.TestCase):
     def setUp(self):
-        self.core = MockCore()
-        self.core._ModelsExporterMixin__SYNC_PERIOD = 1  # type: ignore
+        self.client = MockDbtMetabase()
+        self.client._ModelsExporterMixin__SYNC_PERIOD = 1  # type: ignore
 
     def test_export(self):
-        self.core.export_models(
+        self.client.export_models(
             metabase_database="unit_testing",
             skip_sources=True,
             sync_timeout=0,
@@ -28,7 +28,7 @@ class TestModels(unittest.TestCase):
             "PUBLIC.STG_ORDERS",
             "PUBLIC.STG_PAYMENTS",
         ]
-        actual_tables = self.core._ModelsExporterMixin__get_tables(database_id="2")  # type: ignore
+        actual_tables = self.client._ModelsExporterMixin__get_tables(database_id="2")  # type: ignore
         self.assertEqual(expected_tables, list(actual_tables.keys()))
 
         expected_columns = [

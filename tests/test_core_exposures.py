@@ -6,13 +6,13 @@ from pathlib import Path
 
 import yaml
 
-from ._mocks import FIXTURES_PATH, TMP_PATH, MockCore
+from ._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
 
 
 class TestExposures(unittest.TestCase):
     def setUp(self):
         TMP_PATH.mkdir(exist_ok=True)
-        self.core = MockCore()
+        self.client = MockDbtMetabase()
 
     def _assert_exposures(self, expected_path: Path, actual_path: Path):
         with open(expected_path, encoding="utf-8") as f:
@@ -28,7 +28,7 @@ class TestExposures(unittest.TestCase):
     def test_exposures(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "default"
         output_path = TMP_PATH / "exposure" / "default"
-        self.core.extract_exposures(
+        self.client.extract_exposures(
             output_path=str(output_path),
             output_grouping=None,
         )
@@ -41,7 +41,7 @@ class TestExposures(unittest.TestCase):
     def test_exposures_collection_grouping(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "collection"
         output_path = TMP_PATH / "exposure" / "collection"
-        self.core.extract_exposures(
+        self.client.extract_exposures(
             output_path=str(output_path),
             output_grouping="collection",
         )
@@ -58,7 +58,7 @@ class TestExposures(unittest.TestCase):
     def test_exposures_grouping_type(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "type"
         output_path = TMP_PATH / "exposure" / "type"
-        self.core.extract_exposures(
+        self.client.extract_exposures(
             output_path=str(output_path),
             output_grouping="type",
         )
