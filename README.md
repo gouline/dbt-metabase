@@ -6,28 +6,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gouline/dbt-metabase/blob/master/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Model synchronization from [dbt](https://www.getdbt.com/) to [Metabase](https://www.metabase.com/).
+Integration between [dbt](https://www.getdbt.com/) and [Metabase](https://www.metabase.com/).
 
-If dbt is your source of truth for database schemas and you use Metabase as
-your analytics tool, dbt-metabase can propagate table relationships, model and
-column descriptions and semantic types (e.g. currency, category, URL) to your
-Metabase data model.
+If dbt is your source of truth for database schemas and you use Metabase as your analytics tool, dbt-metabase can propagate table relationships, model and column descriptions and semantic types (e.g. currency, category, URL) to your Metabase data model, and extract questions and dashboards as exposures in your dbt project.
 
 ## Requirements
 
 Requires Python 3.8 or above.
-
-## Main Features
-
-The main features provided by dbt-metabase are:
-
-* Parsing your dbt project (either through the `manifest.json` or directly through the YAML files)
-* Triggering a Metabase schema sync before propagating the metadata
-* Propagating table descriptions to Metabase
-* Propagating columns description to Metabase
-* Propagating columns semantic types and visibility types to Metabase through the use of dbt meta fields
-* Propagating table relationships represented as dbt `relationships` column tests
-* Extracting dbt model exposures from Metabase and generating YAML files to be included and revisioned with your dbt deployment
 
 ## Usage
 
@@ -43,9 +28,15 @@ Sections below demonstrate basic usage examples, for all CLI options:
 dbt-metabase --help
 ```
 
-When invoking programmatically, click through to implementation and refer to header comments.
+## Manifest
 
-### Basic Example
+Before running dbt-metabase, you need a compiled `manifest.json` file to parse. These are part of the [dbt artifact](https://docs.getdbt.com/reference/artifacts/dbt-artifacts) generated during compilation.
+
+Once `dbt compile` finishes, `manifest.json` can be found in the `target/` directory of your dbt project.
+
+See [dbt documentation](https://docs.getdbt.com/docs/running-a-dbt-project/run-your-dbt-projects) for more information.
+
+## Exporting Models
 
 Let's start by defining a short sample `schema.yml` as below.
 
@@ -59,8 +50,10 @@ models:
         tests:
           - not_null
           - unique
+
       - name: email
         description: User's email address.
+
       - name: group_id
         description: Foreign key to user group.
         tests:
@@ -77,110 +70,43 @@ models:
         tests:
           - not_null
           - unique
+
       - name: name
         description: Group name.
 ```
 
-That's already enough to propagate the primary keys, foreign keys and
-descriptions to Metabase by executing the below command.
+This is already enough to propagate the primary keys, foreign keys and descriptions to Metabase:
 
 ```shell
 dbt-metabase models \
-    --dbt_path . \
-    --dbt_database business \
-    --metabase_host metabase.example.com \
-    --metabase_user user@example.com \
-    --metabase_password Password123 \
-    --metabase_database business \
-    --dbt_schema public
+    --manifest-path target/manifest.json \
+    --metabase-url https://metabase.example.com \
+    --metabase-username user@example.com \
+    --metabase-password Password123 \
+    --metabase-database business
 ```
 
-Check your Metabase instance by going into Settings > Admin > Data Model, you
-will notice that `ID` in `STG_USERS` is now marked as "Entity Key" and
-`GROUP_ID` is marked as "Foreign Key" pointing to `ID` in `STG_GROUPS`.
+Open Metabase and go to Settings > Admin Settings > Table Metadata, you will notice that `id` column in `stg_users` is now marked as "Entity Key" and `group_id` is a "Foreign Key" pointing to `id` in `stg_groups`.
 
-### Exposure Extraction
+Try running `dbt-metabase models --help` to see all the options available for fine tuning.
 
-dbt-metabase also allows us to extract exposures from Metabase. The invocation is almost identical to
-our models function with the addition of output name and location args. [dbt exposures](https://docs.getdbt.com/docs/building-a-dbt-project/exposures) let us understand
-how our dbt models are exposed in BI which closes the loop between ELT, modelling, and consumption.
+### Foreign Keys
 
-```shell
-dbt-metabase exposures \
-    --dbt_manifest_path ./target/manifest.json \
-    --dbt_database business \
-    --metabase_host metabase.example.com \
-    --metabase_user user@example.com \
-    --metabase_password Password123 \
-    --metabase_database business \
-    --output_path ./models/ \
-    --output_name metabase_exposures
-```
-
-Once execution completes, a look at the output `metabase_exposures.yml` will
-reveal all metabase exposures documented with the documentation, descriptions, creator
-emails & names, links to exposures, and even native SQL propagated over from Metabase.
+Built-in relationship tests are the recommended way of defining foreign keys, however you can alternatively use `fk_target_table` and `fk_target_field` meta fields. If both are set for a column, meta fields take precedence.
 
 ```yaml
-exposures:
-  - name: number_of_orders_over_time
-    description: '
-      ### Visualization: Line
-
-      A line chart depicting how order volume changes over time
-
-      #### Metadata
-
-      Metabase Id: __8__
-
-      Created On: __2021-07-21T08:01:38.016244Z__'
-    type: analysis
-    url: http://your.metabase.com/card/8
-    maturity: medium
-    owner:
-      name: Indiana Jones
-      email: user@example.com
-    depends_on:
-      - ref('orders')
+- name: country_id
+  description: FK to User's country in the dim_countries table.
+  meta:
+    metabase.fk_target_table: analytics_dims.dim_countries
+    metabase.fk_target_field: id
 ```
 
-Questions which are native queries will have the SQL propagated to a code block in the documentation's
-description for full visibility. This YAML, like the rest of your dbt project can be committed to source
-control to understand how exposures change over time. In a production environment, one can trigger
-`dbt docs generate` after `dbt-metabase exposures` (or alternatively run the exposure extraction job
-on a cadence every X days) in order to keep a dbt docs site fully synchronized with BI. This makes `dbt docs` a
-useful utility for introspecting the data model from source -> consumption with zero extra/repeated human input.
-
-### Reading Your dbt Project
-
-There are two approaches provided by this library to read your dbt project:
-
-#### 1. Artifacts
-
-You can instruct dbt-metabase to read your `manifest.json`, a [dbt artifact](https://docs.getdbt.com/reference/artifacts/dbt-artifacts) containing 
-the full representation of your dbt project's resources. If your dbt project uses multiple schemas, 
-multiple databases or model aliases, you must use this approach.
-
-Note that you you have to run `dbt compile --target prod` or any of the other dbt commands
-listed in the dbt documentation above to get a fresh copy of your `manifest.json`. Remember
-to run it against your production target.
-
-When using the `dbt-metabase` CLI, you must provide a `--dbt_manifest_path` argument
-pointing to your `manifest.json` file (usually in the `target/` folder of your dbt
-project).
-
-#### 2. Direct Parsing
-
-Alternatively, you can provide the path to your dbt project root folder using the argument
-`--dbt_path`. dbt-metabase will then look for all .yml files and parse your documentation
-and tests directly from there. It does not support dbt projects with custom schemas.
+You can provide `fk_target_table` as `schema_name.table_name` or just `table_name` to use the current schema. If your model has an alias, provide that alias rather than the original name.
 
 ### Semantic Types
 
-Now that we have primary and foreign keys, let's tell Metabase that `email`
-column contains email addresses.
-
-Change the `email` column as follows:
+Now that we have foreign keys configured, let's tell Metabase that `email` column contains email addresses:
 
 ```yaml
 - name: email
@@ -189,10 +115,9 @@ Change the `email` column as follows:
     metabase.semantic_type: type/Email
 ```
 
-Once you run `dbt-metabase models` again, you will notice that `EMAIL` is
-now marked as "Email".
+Once you run `dbt-metabase models` again, you will notice that `email` column is now marked as "Email".
 
-Here are common semantic types (formerly known as special types) accepted by Metabase:
+Below are common semantic types (formerly known as _special types_) accepted by Metabase:
 
 * `type/PK`
 * `type/FK`
@@ -213,34 +138,13 @@ Here are common semantic types (formerly known as special types) accepted by Met
 * `type/SerializedJSON`
 * `type/CreationTimestamp`
 
-See [documentation](https://www.metabase.com/docs/latest/users-guide/field-types.html) for a more complete list.
-
-### Foreign Keys
-
-Built-in relationship tests are the recommended way of defining foreign keys,
-however you can alternatively use `fk_target_table` and `fk_target_field`
-meta fields (`semantic_type` is optional and will be inferred). If both are 
-set for a column, meta fields take precedence.
-
-```yaml
-- name: country_id
-  description: FK to User's country in the dim_countries table.
-  meta:
-    metabase.semantic_type: type/FK
-    metabase.fk_target_table: analytics_dims.dim_countries
-    metabase.fk_target_field: id
-```
-
-You can provide `fk_target_table` in the format `schema_name.table_name` or
-just `table_name` to use the current schema. If your model has an alias, provide
-that alias (rather than the original name).
+See [Metabase documentation](https://www.metabase.com/docs/latest/users-guide/field-types.html) for a more complete list.
 
 ### Visibility Types
 
-In addition to semantic types, you can optionally specify visibility for each
-table and field. This affects whether or not they are displayed in the Metabase UI.
+You can optionally specify visibility for tables and columns, this controls whether they are displayed in Metabase.
 
-Here is how you would hide that same email:
+Here is how you would hide that email column:
 
 ```yaml
 - name: email
@@ -250,151 +154,145 @@ Here is how you would hide that same email:
     metabase.visibility_type: sensitive
 ```
 
-Here are the field visibility types supported by Metabase:
+Below are the visibility types supported for columns:
 
-* `normal` (default)
-* `details-only`
-* `sensitive`
+* `normal` (default) - This field will be displayed normally in tables and charts.
+* `details-only` - This field will only be displayed when viewing the details of a single record.
+* `sensitive` - This field won't be visible or selectable in questions created with the GUI interfaces.
 
-Tables only support the following:
+Tables support the following:
 
 * No value for visible (default)
 * `hidden`
 * `technical`
 * `cruft`
 
-If you notice new ones, please submit a PR to update this readme.
+If you notice any changes to these, please submit a pull request with an update.
 
-### Model Extra Fields
+### Other Meta Fields
 
-In addition to the model description, Metabase accepts two extra information fields. Those optional
-fields are called `caveats` and `points_of_interest` and can be defined under the `meta` tag
-of the model.
-
-This is how you can specify them in the `stg_users` example:
-
-.. code-block:: yaml
+In addition to foreign keys, semantic types and visibility types, Metabase also accepts the following meta fields:
 
 ```yaml
-- name: stg_users
-  description: User records.
+- name: model_name
   meta:
+    metabase.display_name: another_model_name
+    metabase.visibility_type: normal
     metabase.points_of_interest: Relevant records.
     metabase.caveats: Sensitive information about users.
+  columns:
+    - name: column_name
+      meta:
+        metabase.display_name: another_column_name
+        metabase.visibility_type: sensitive
+        metabase.semantic_type: type/Number
+        metabase.has_field_values: list
+        metabase.coercion_strategy: keyword
+        metabase.number_style: decimal
 ```
 
-### Database Sync
+See [Metabase documentation](https://www.metabase.com/docs/latest/api) for details and accepted values.
 
-By default, dbt-metabase will tell Metabase to synchronize database fields
-and wait for the data model to contain all the tables and columns in your dbt
-project.
+### Synchronization
 
-You can control this behavior with two arguments:
+By default, dbt-metabase waits for tables and columns to be synchronized between your dbt project and Metabase database, otherwise the export fails when the sync timeout expires. 
 
-* `--metabase_sync_skip` - boolean to optionally disable pre-synchronization
-* `--metabase_sync_timeout` - number of seconds to wait and re-check data model before
-  giving up
+If you have known discrepancies between dbt and Metabase and wish to proceed without synchronization, set the sync timeout to zero (e.g. `--sync-timeout 0`). This is discouraged, because you will still encounter errors if you have a table or column in your dbt project that is missing from Metabase and dbt-metabase attempts to export it.
 
-### Configuration
+## Exposure Extraction
+
+dbt-metabase allows you to extract questions and dashboards from Metabase as [dbt exposures](https://docs.getdbt.com/docs/building-a-dbt-project/exposures) in your project:
+
+```shell
+dbt-metabase exposures \
+    --manifest-path ./target/manifest.json \
+    --metabase-url https://metabase.example.com \
+    --metabase-username user@example.com \
+    --metabase-password Password123 \
+    --output-path models/
+```
+
+Once the execution completes, check your output path for exposures files containing descriptions, creator details and links for Metabase questions and dashboards:
 
 ```yaml
-dbt-metabase config
+exposures:
+  - name: number_of_orders_over_time
+    description: '
+      ### Visualization: Line
+
+      A line chart depicting how order volume changes over time
+
+      #### Metadata
+
+      Metabase Id: __8__
+
+      Created On: __2021-07-21T08:01:38.016244Z__'
+    type: analysis
+    url: https://metabase.example.com/card/8
+    maturity: medium
+    owner:
+      name: Indiana Jones
+      email: indiana@example.com
+    depends_on:
+      - ref('orders')
 ```
 
-Using the above command, you can enter an interactive configuration session where you can cache default selections
-for arguments. This creates a `config.yml` in `~/.dbt-metabase`. This is particularly useful for arguments which are
-repeated on every invocation like metabase_user, metabase_host, metabase_password, dbt_manifest_path, etc.
+Native query questions will have SQL code blocks inside the descriptions, formatted to look nice in [dbt docs](https://docs.getdbt.com/docs/collaborate/documentation). These YAML files can be committed to source control to understand how exposures change over time.
 
-In addition, there are a few injected env vars that make deploying dbt-metabase in a CI/CD environment simpler without exposing
-secrets. Listed below are acceptable env vars which correspond to their CLI flags:
+Try running `dbt-metabase exposures --help` to see all the options available for fine tuning.
 
-* `DBT_DATABASE`
-* `DBT_PATH`
-* `DBT_MANIFEST_PATH`
-* `MB_USER`
-* `MB_PASSWORD`
-* `MB_HOST`
-* `MB_DATABASE`
+## Configuration
 
-If any one of the above is present in the environment, the corresponding CLI flag is not needed unless overriding
-the environment value. In the absence of a CLI flag, dbt-metabase will first look to the environment for any
-env vars to inject, then we will look to the config.yml for cached defaults.
+There are 3 levels of configuration in decreasing order of precedence:
 
-A `config.yml` can be created or updated manually as well if needed. The only
-requirement is that it must be located in `~/.dbt-metabase`. The layout is as follows:
+* CLI arguments, e.g. `--manifest-path target/manifest.json`
+* Environment variables, e.g. `MANIFEST_PATH=target/manifest.json`
+* Configuration file, e.g. `manifest_path: target/manifest.json`
+
+Try running `--help` for any command to see the full list of CLI arguments and environment variables.
+
+A configuration file can be created in `~/.dbt-metabase/config.yml` for dbt-metabase to pick it up automatically or anywhere else by specifying `dbt-metabase --config-path path/to/config.yml` (must come **before** the command). Here is an example YAML file:
 
 ```yaml
 config:
-    dbt_database: reporting
-    dbt_manifest_path: /home/user/dbt/target/manifest.json
-    metabase_database: Reporting
-    metabase_host: reporting.metabase.io
-    metabase_user: user@source.co
-    metabase_password: ...
-    metabase_use_http: false
-    metabase_sync: true
-    metabase_sync_timeout: null
-    dbt_schema_excludes:
-      - development
-      - testing
-    dbt_excludes:
-      - test_monday_io_site_diff
+    manifest_path: target/manifest.json
+    metabase_url: https://metabase.example.com
+    metabase_username: user@example.com
+    metabase_password: Password123
+    # Configuration specific to models command
+    models:
+      metabase_database: business
+    # Configuration specific to exposures command
+    exposures:
+      output_path: models
 ```
 
-### Programmatic Invocation
+Note that common configurations are in the outer block and command-specific ones are in separate blocks.
 
-As you have already seen, you can invoke dbt-metabase from the command
-line. But if you prefer to call it from your code, here's how to do it:
+## Programmatic API
+
+Alternatively, you can invoke dbt-metabase programmatically. Below is the equivalent of CLI examples:
 
 ```python
-from dbtmetabase.models.interface import MetabaseInterface, DbtInterface
+from dbtmetabase import DbtMetabase
 
-# Instantiate dbt interface
-dbt = DbtInterface(
-    path=dbt_path,
-    manifest_path=dbt_manifest_path,
-    database=dbt_database,
-    schema=dbt_schema,
-    schema_excludes=dbt_schema_excludes,
-    includes=dbt_includes,
-    excludes=dbt_excludes,
+# Initializing client instance
+client = DbtMetabase(
+    manifest_path="target/manifest.json",
+    metabase_url="https://metabase.example.com",
+    metabase_username="user@example.com",
+    metabase_password="Password123",
 )
 
-# Load models
-dbt_models, aliases = dbt.read_models(
-    include_tags=dbt_include_tags,
-    docs_url=dbt_docs_url,
-)
+# Exporting models
+client.export_models(metabase_database="business")
 
-# Instantiate Metabase interface
-metabase = MetabaseInterface(
-    host=metabase_host,
-    user=metabase_user,
-    password=metabase_password,
-    use_http=metabase_use_http,
-    verify=metabase_verify,
-    database=metabase_database,
-    sync=metabase_sync,
-    sync_timeout=metabase_sync_timeout,
-)
-
-# Propagate models to Metabase
-metabase.client.export_models(
-    database=metabase.database,
-    models=dbt_models,
-    aliases=aliases,
-)
-
-# Parse exposures from Metabase into dbt schema yml
-metabase.client.extract_exposures(
-    models=dbt_models,
-    output_path=output_path,
-    output_name=output_name,
-    include_personal_collections=include_personal_collections,
-    collection_excludes=collection_excludes,
-)
+# Extracting exposures
+client.extract_exposures(output_path=".")
 ```
+
+See function header comments for information about other parameters.
 
 ## Code of Conduct
 
-All contributors are expected to follow the [PyPA Code of Conduct](https://www.pypa.io/en/latest/code-of-conduct/).
+All contributors are expected to follow the [PSF Code of Conduct](https://www.python.org/psf/conduct/).
