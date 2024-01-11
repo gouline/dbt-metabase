@@ -10,7 +10,7 @@ from typing_extensions import cast
 from ._format import click_list_option_kwargs, setup_logging
 from .core import DbtMetabase
 from .core_exposures import ExposuresExtractorMixin
-from .core_model import ModelsExporterMixin
+from .core_models import ModelsExporterMixin
 from .interface import Filter
 
 

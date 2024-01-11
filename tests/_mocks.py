@@ -12,7 +12,7 @@ FIXTURES_PATH = Path("tests") / "fixtures"
 TMP_PATH = Path("tests") / "tmp"
 
 
-class MockCore(DbtMetabase):
+class MockDbtMetabase(DbtMetabase):
     def __init__(self):
         super().__init__(
             manifest_path=Path("tests") / "fixtures" / "manifest.json",
