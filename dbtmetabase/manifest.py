@@ -182,8 +182,7 @@ class Manifest:
 
                 # Skip the incoming relationship tests, in which the fk_target_table is the model currently being read.
                 # Otherwise, the primary key of the current model would be (incorrectly) determined to be FK.
-                is_incoming_relationship_test = depends_on_nodes[1] != unique_id
-                if len(depends_on_nodes) == 2 and is_incoming_relationship_test:
+                if len(depends_on_nodes) == 2 and depends_on_nodes[1] != unique_id:
                     _logger.debug(
                         "Skip this incoming relationship test, concerning nodes %s",
                         depends_on_nodes,
