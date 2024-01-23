@@ -276,8 +276,8 @@ Alternatively, you can invoke dbt-metabase programmatically. Below is the equiva
 ```python
 from dbtmetabase import DbtMetabase
 
-# Initializing client instance
-client = DbtMetabase(
+# Initializing instance
+c = DbtMetabase(
     manifest_path="target/manifest.json",
     metabase_url="https://metabase.example.com",
     metabase_username="user@example.com",
@@ -285,10 +285,10 @@ client = DbtMetabase(
 )
 
 # Exporting models
-client.export_models(metabase_database="business")
+c.export_models(metabase_database="business")
 
 # Extracting exposures
-client.extract_exposures(output_path=".")
+c.extract_exposures(output_path=".")
 ```
 
 See function header comments for information about other parameters.

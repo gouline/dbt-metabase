@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
-import requests
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter
 
-from .core_exposures import ExposuresExtractorMixin
-from .core_models import ModelsExporterMixin
-from .interface import MetabaseArgumentError
-from .manifest import Manifest, Model
+from ._exposures import ExposuresMixin
+from ._models import ModelsMixin
+from .manifest import Manifest
+from .metabase import Metabase
 
 _logger = logging.getLogger(__name__)
 
 
-class DbtMetabase(ModelsExporterMixin, ExposuresExtractorMixin):
+class DbtMetabase(ModelsMixin, ExposuresMixin):
     """dbt + Metabase integration."""
 
     DEFAULT_HTTP_TIMEOUT = 15
@@ -47,87 +46,25 @@ class DbtMetabase(ModelsExporterMixin, ExposuresExtractorMixin):
             http_adapter (Optional[HTTPAdapter], optional): Custom requests HTTP adapter. Defaults to None.
         """
 
-        self.manifest_reader = Manifest(path=manifest_path)
-
-        self.metabase_url = metabase_url.rstrip("/")
-
-        self.http_timeout = http_timeout
-
-        self.session = requests.Session()
-        self.session.verify = not skip_verify
-        self.session.cert = cert
-
-        if http_headers:
-            self.session.headers.update(http_headers)
-
-        self.session.mount(
-            self.metabase_url,
-            http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1)),
+        self._manifest = Manifest(
+            path=manifest_path,
+        )
+        self._metabase = Metabase(
+            url=metabase_url,
+            username=metabase_username,
+            password=metabase_password,
+            session_id=metabase_session_id,
+            skip_verify=skip_verify,
+            cert=cert,
+            http_timeout=http_timeout,
+            http_headers=http_headers,
+            http_adapter=http_adapter,
         )
 
-        if not metabase_session_id:
-            if metabase_username and metabase_password:
-                session = self.metabase_api(
-                    method="post",
-                    path="/api/session",
-                    json={"username": metabase_username, "password": metabase_password},
-                )
-                metabase_session_id = str(session["id"])
-            else:
-                raise MetabaseArgumentError("Credentials or session ID required")
-        self.session.headers["X-Metabase-Session"] = metabase_session_id
+    @property
+    def manifest(self) -> Manifest:
+        return self._manifest
 
-        _logger.info("Metabase session established")
-
-    def read_models(self) -> Iterable[Model]:
-        return self.manifest_reader.read_models()
-
-    def metabase_api(
-        self,
-        method: str,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        critical: bool = True,
-        **kwargs,
-    ) -> Mapping:
-        """Unified way of calling Metabase API.
-
-        Args:
-            method (str): HTTP verb, e.g. get, post, put.
-            path (str): Relative path of endpoint, e.g. /api/database.
-            critical (bool, optional): Raise on any HTTP errors. Defaults to True.
-
-        Returns:
-            Mapping: JSON payload of the endpoint.
-        """
-
-        if params:
-            for key, value in params.items():
-                if isinstance(value, bool):
-                    params[key] = str(value).lower()
-
-        response = self.session.request(
-            method=method,
-            url=f"{self.metabase_url}{path}",
-            params=params,
-            timeout=self.http_timeout,
-            **kwargs,
-        )
-
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            if critical:
-                _logger.error("HTTP request failed: %s", response.text)
-                raise
-            return {}
-
-        response_json = response.json()
-        if "data" in response_json:
-            # Since X.40.0 responses are encapsulated in "data" with pagination parameters
-            return response_json["data"]
-
-        return response_json
-
-    def format_metabase_url(self, path: str) -> str:
-        return self.metabase_url + path
+    @property
+    def metabase(self) -> Metabase:
+        return self._metabase

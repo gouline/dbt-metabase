@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses as dc
 import logging
 import re
 from abc import ABCMeta, abstractmethod
@@ -10,9 +11,11 @@ from typing import Iterable, Mapping, MutableMapping, MutableSequence, Optional,
 import requests
 import yaml
 
-from ._format import safe_description, safe_name
-from .interface import Filter, MetabaseArgumentError
-from .manifest import Model
+from dbtmetabase.metabase import Metabase
+
+from .errors import ArgumentError
+from .format import Filter, YAMLDumper, safe_description, safe_name
+from .manifest import Manifest
 
 _RESOURCE_VERSION = 2
 
@@ -25,26 +28,24 @@ _CTE_PARSER = re.compile(
 _logger = logging.getLogger(__name__)
 
 
-class ExposuresExtractorMixin(metaclass=ABCMeta):
+class ExposuresMixin(metaclass=ABCMeta):
     """Abstraction for extracting exposures."""
 
-    DEFAULT_OUTPUT_PATH = "."
+    DEFAULT_EXPOSURES_OUTPUT_PATH = "."
 
+    @property
     @abstractmethod
-    def read_models(self) -> Iterable[Model]:
+    def manifest(self) -> Manifest:
         pass
 
+    @property
     @abstractmethod
-    def metabase_api(self, method: str, path: str, **kwargs) -> Mapping:
-        pass
-
-    @abstractmethod
-    def format_metabase_url(self, path: str) -> str:
+    def metabase(self) -> Metabase:
         pass
 
     def extract_exposures(
         self,
-        output_path: str = DEFAULT_OUTPUT_PATH,
+        output_path: str = DEFAULT_EXPOSURES_OUTPUT_PATH,
         output_grouping: Optional[str] = None,
         collection_filter: Optional[Filter] = None,
         allow_personal_collections: bool = False,
@@ -62,23 +63,21 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
         """
 
         if output_grouping not in (None, "collection", "type"):
-            raise MetabaseArgumentError(
-                f"Unsupported output_grouping: {output_grouping}"
-            )
+            raise ArgumentError(f"Unsupported grouping: {output_grouping}")
 
-        models = self.read_models()
+        models = self.manifest.read_models()
 
-        ctx = _Context(
+        ctx = self.__Context(
             model_refs={m.name.upper(): m.ref for m in models if m.ref},
             table_names={
-                t["id"]: t["name"] for t in self.metabase_api("get", "/api/table")
+                t["id"]: t["name"] for t in self.metabase.api("get", "/api/table")
             },
         )
 
         exposures = []
         exposure_counts: MutableMapping[str, int] = {}
 
-        for collection in self.metabase_api(
+        for collection in self.metabase.api(
             method="get",
             path="/api/collection",
             params={"exclude-other-user-collections": not allow_personal_collections},
@@ -86,7 +85,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
             name = collection["name"]
             is_personal = collection.get("personal_owner_id", False)
 
-            name_selected = not collection_filter or collection_filter.selected(name)
+            name_selected = not collection_filter or collection_filter.match(name)
             personal_skipped = not allow_personal_collections and is_personal
             if not name_selected or personal_skipped:
                 _logger.debug("Skipping collection %s", collection["name"])
@@ -94,7 +93,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
 
             _logger.info("Exploring collection: %s", collection["name"])
             expected_models = ["card", "dashboard"]
-            for item in self.metabase_api(
+            for item in self.metabase.api(
                 method="get",
                 path=f"/api/collection/{collection['id']}/items",
                 params={"models": expected_models},
@@ -110,7 +109,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
                 ctx.native_query = ""
                 native_query = ""
 
-                exposure = self.metabase_api(
+                exposure = self.metabase.api(
                     "get", f"/api/{exposure_type}/{exposure_id}"
                 )
                 exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
@@ -160,7 +159,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
                     creator_name = exposure["creator"]["common_name"]
                 elif "creator_id" in exposure:
                     try:
-                        creator = self.metabase_api(
+                        creator = self.metabase.api(
                             "get", f"/api/user/{exposure['creator_id']}"
                         )
                     except requests.exceptions.HTTPError as error:
@@ -206,7 +205,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
 
     def __extract_card_exposures(
         self,
-        ctx: _Context,
+        ctx: __Context,
         card_id: int,
         exposure: Optional[Mapping] = None,
     ):
@@ -224,7 +223,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
 
         # If an exposure is not passed, pull from id
         if not exposure:
-            exposure = self.metabase_api("get", f"/api/card/{card_id}")
+            exposure = self.metabase.api("get", f"/api/card/{card_id}")
 
         query = exposure.get("dataset_query", {})
 
@@ -300,7 +299,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
 
     def __build_exposure(
         self,
-        ctx: _Context,
+        ctx: __Context,
         exposure_type: str,
         exposure_id: int,
         name: str,
@@ -369,7 +368,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
             "label": label,
             "description": safe_description(description),
             "type": "analysis" if exposure_type == "card" else "dashboard",
-            "url": self.format_metabase_url(f"/{exposure_type}/{exposure_id}"),
+            "url": self.metabase.format_url(f"/{exposure_type}/{exposure_id}"),
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
@@ -412,7 +411,7 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
                         "exposures": exposures_sorted,
                     },
                     f,
-                    Dumper=_YAMLDumper,
+                    Dumper=YAMLDumper,
                     default_flow_style=False,
                     allow_unicode=True,
                     sort_keys=False,
@@ -449,15 +448,9 @@ class ExposuresExtractorMixin(metaclass=ABCMeta):
 
         return results
 
-
-class _Context:
-    def __init__(self, model_refs: Mapping[str, str], table_names: Mapping[str, str]):
-        self.model_refs = model_refs
-        self.table_names = table_names
-        self.models_exposed: MutableSequence[str] = []
-        self.native_query = ""
-
-
-class _YAMLDumper(yaml.Dumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super().increase_indent(flow, indentless=False)
+    @dc.dataclass
+    class __Context:
+        model_refs: Mapping[str, str]
+        table_names: Mapping[str, str]
+        models_exposed: MutableSequence[str] = dc.field(default_factory=list)
+        native_query = ""

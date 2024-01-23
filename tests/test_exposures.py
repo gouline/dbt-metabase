@@ -1,18 +1,17 @@
 # pylint: disable=protected-access,no-member
 
-import unittest
 from operator import itemgetter
 from pathlib import Path
 
 import yaml
 
-from ._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
+from ._common import FIXTURES_PATH, TMP_PATH, TestCore
 
 
-class TestExposures(unittest.TestCase):
+class TestExposures(TestCore):
     def setUp(self):
+        super().setUp()
         TMP_PATH.mkdir(exist_ok=True)
-        self.client = MockDbtMetabase()
 
     def _assert_exposures(self, expected_path: Path, actual_path: Path):
         with open(expected_path, encoding="utf-8") as f:
@@ -28,7 +27,7 @@ class TestExposures(unittest.TestCase):
     def test_exposures(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "default"
         output_path = TMP_PATH / "exposure" / "default"
-        self.client.extract_exposures(
+        self.c.extract_exposures(
             output_path=str(output_path),
             output_grouping=None,
         )
@@ -41,7 +40,7 @@ class TestExposures(unittest.TestCase):
     def test_exposures_collection_grouping(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "collection"
         output_path = TMP_PATH / "exposure" / "collection"
-        self.client.extract_exposures(
+        self.c.extract_exposures(
             output_path=str(output_path),
             output_grouping="collection",
         )
@@ -58,7 +57,7 @@ class TestExposures(unittest.TestCase):
     def test_exposures_grouping_type(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "type"
         output_path = TMP_PATH / "exposure" / "type"
-        self.client.extract_exposures(
+        self.c.extract_exposures(
             output_path=str(output_path),
             output_grouping="type",
         )

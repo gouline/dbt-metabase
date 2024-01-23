@@ -1,17 +1,15 @@
 # pylint: disable=protected-access,no-member
 
-import unittest
-
-from ._mocks import MockDbtMetabase
+from ._common import TestCore
 
 
-class TestModels(unittest.TestCase):
+class TestModels(TestCore):
     def setUp(self):
-        self.client = MockDbtMetabase()
-        self.client._ModelsExporterMixin__SYNC_PERIOD = 1  # type: ignore
+        super().setUp()
+        self.c._ModelsMixin__SYNC_PERIOD = 1  # type: ignore
 
     def test_export(self):
-        self.client.export_models(
+        self.c.export_models(
             metabase_database="unit_testing",
             skip_sources=True,
             sync_timeout=0,
@@ -28,7 +26,7 @@ class TestModels(unittest.TestCase):
             "PUBLIC.STG_ORDERS",
             "PUBLIC.STG_PAYMENTS",
         ]
-        actual_tables = self.client._ModelsExporterMixin__get_tables(database_id="2")  # type: ignore
+        actual_tables = self.c._ModelsMixin__get_tables(database_id="2")  # type: ignore
         self.assertEqual(expected_tables, list(actual_tables.keys()))
 
         expected_columns = [
