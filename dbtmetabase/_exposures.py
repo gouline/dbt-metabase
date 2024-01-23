@@ -8,7 +8,6 @@ from operator import itemgetter
 from pathlib import Path
 from typing import Iterable, Mapping, MutableMapping, MutableSequence, Optional, Tuple
 
-import requests
 import yaml
 
 from dbtmetabase.metabase import Metabase
@@ -65,136 +64,110 @@ class ExposuresMixin(metaclass=ABCMeta):
         if output_grouping not in (None, "collection", "type"):
             raise ArgumentError(f"Unsupported grouping: {output_grouping}")
 
+        collection_filter = collection_filter or Filter()
+
         models = self.manifest.read_models()
 
         ctx = self.__Context(
             model_refs={m.name.upper(): m.ref for m in models if m.ref},
-            table_names={
-                t["id"]: t["name"] for t in self.metabase.api("get", "/api/table")
-            },
+            table_names={t["id"]: t["name"] for t in self.metabase.get_tables()},
         )
 
         exposures = []
-        exposure_counts: MutableMapping[str, int] = {}
+        counts: MutableMapping[str, int] = {}
 
-        for collection in self.metabase.api(
-            method="get",
-            path="/api/collection",
-            params={"exclude-other-user-collections": not allow_personal_collections},
+        for collection in self.metabase.get_collections(
+            exclude_personal=not allow_personal_collections
         ):
-            name = collection["name"]
-            is_personal = collection.get("personal_owner_id", False)
+            collection_name = collection["name"]
+            collection_slug = collection.get("slug", safe_name(collection["name"]))
 
-            name_selected = not collection_filter or collection_filter.match(name)
-            personal_skipped = not allow_personal_collections and is_personal
-            if not name_selected or personal_skipped:
+            if not collection_filter.match(collection_name):
                 _logger.debug("Skipping collection %s", collection["name"])
                 continue
 
             _logger.info("Exploring collection: %s", collection["name"])
-            expected_models = ["card", "dashboard"]
-            for item in self.metabase.api(
-                method="get",
-                path=f"/api/collection/{collection['id']}/items",
-                params={"models": expected_models},
+            for item in self.metabase.get_collection_items(
+                uid=collection["id"],
+                models=("card", "dashboard"),
             ):
-                # Ensure collection item is of parsable type
-                exposure_type = item["model"]
-                exposure_id = item["id"]
-                if exposure_type not in expected_models:
-                    continue
-
-                # Prepare attributes for population through _extract_card_exposures calls
-                ctx.models_exposed = []
-                ctx.native_query = ""
+                depends = []
                 native_query = ""
+                header = ""
 
-                exposure = self.metabase.api(
-                    "get", f"/api/{exposure_type}/{exposure_id}"
-                )
-                exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
-                _logger.info("Introspecting exposure: %s", exposure_name)
+                entity: Mapping
+                if item["model"] == "card":
+                    entity = self.metabase.get_card(uid=item["id"])
 
-                header = None
-                creator_name = None
-                creator_email = None
-
-                # Process exposure
-                if exposure_type == "card":
-                    # Build header for card and extract models to self.models_exposed
-                    header = "### Visualization: {}\n\n".format(
-                        exposure.get("display", "Unknown").title()
+                    header = (
+                        f"Visualization: {entity.get('display', 'Unknown').title()}"
                     )
 
-                    # Parse Metabase question
-                    self.__extract_card_exposures(ctx, exposure_id, exposure)
-                    native_query = ctx.native_query
+                    result = self.__extract_card_exposures(ctx, card=entity)
+                    depends += result["depends"]
+                    native_query = result["native_query"]
 
-                elif exposure_type == "dashboard":
-                    # We expect this dict key in order to iter through questions
-                    cards = exposure.get("ordered_cards", [])
+                elif item["model"] == "dashboard":
+                    entity = self.metabase.get_dashboard(uid=item["id"])
+
+                    cards = entity.get("ordered_cards", [])
                     if not cards:
                         continue
 
-                    # Build header for dashboard and extract models for each question to self.models_exposed
-                    header = f"### Dashboard Cards: {len(cards)}\n\n"
-
-                    # Iterate through dashboard questions
-                    for dashboard_item in cards:
-                        dashboard_item_reference = dashboard_item.get("card", {})
-                        if "id" not in dashboard_item_reference:
+                    header = f"Dashboard Cards: {len(cards)}"
+                    for card_ref in cards:
+                        card = card_ref.get("card", {})
+                        if "id" not in card:
                             continue
 
-                        # Parse Metabase question
-                        self.__extract_card_exposures(
-                            ctx, dashboard_item_reference["id"]
-                        )
+                        depends += self.__extract_card_exposures(
+                            ctx,
+                            card=self.metabase.get_card(uid=card["id"]),
+                        )["depends"]
+                else:
+                    _logger.warning("Unexpected exposure type: %s", item["model"])
+                    continue
 
-                if not ctx.models_exposed:
-                    _logger.info("No models mapped to exposure")
+                name = entity.get("name", "Exposure [Unresolved Name]")
+                _logger.info("Inspecting exposure: %s", name)
 
-                # Extract creator info
-                if "creator" in exposure:
-                    creator_email = exposure["creator"]["email"]
-                    creator_name = exposure["creator"]["common_name"]
-                elif "creator_id" in exposure:
-                    try:
-                        creator = self.metabase.api(
-                            "get", f"/api/user/{exposure['creator_id']}"
-                        )
-                    except requests.exceptions.HTTPError as error:
-                        # If a Metabase user is deactivated, the API returns a 404
-                        creator = {}
-                        if error.response is None or error.response.status_code != 404:
-                            raise
+                creator_name = None
+                creator_email = None
+                if "creator" in entity:
+                    creator_email = entity["creator"]["email"]
+                    creator_name = entity["creator"]["common_name"]
+                elif "creator_id" in entity:
+                    creator = self.metabase.find_user(uid=entity["creator_id"])
+                    if creator:
+                        creator_name = creator.get("common_name")
+                        creator_email = creator.get("email")
 
-                    creator_name = creator.get("common_name")
-                    creator_email = creator.get("email")
-
-                exposure_label = exposure_name
-                # Unique names with letters, numbers and underscores allowed in dbt docs DAG
-                exposure_name = safe_name(exposure_name)
-                exposure_count = exposure_counts.get(exposure_name, 0)
-                exposure_counts[exposure_name] = exposure_count + 1
-                exposure_suffix = f"_{exposure_count}" if exposure_count > 0 else ""
+                label = name
+                name = safe_name(name)
+                count = counts.get(name, 0)
+                counts[name] = count + 1
 
                 exposures.append(
                     {
                         "id": item["id"],
                         "type": item["model"],
-                        "collection": collection,
-                        "body": self.__build_exposure(
-                            ctx,
-                            exposure_type=exposure_type,
-                            exposure_id=exposure_id,
-                            name=exposure_name + exposure_suffix,
-                            label=exposure_label,
-                            header=header or "",
-                            created_at=exposure["created_at"],
+                        "collection": collection_slug,
+                        "body": self.__format_exposure(
+                            model=item["model"],
+                            uid=item["id"],
+                            name=name + (f"_{count}" if count > 0 else ""),
+                            label=label,
+                            header=header,
+                            description=entity.get("description", ""),
+                            created_at=entity["created_at"],
                             creator_name=creator_name or "",
                             creator_email=creator_email or "",
-                            description=exposure.get("description", ""),
                             native_query=native_query,
+                            depends_on={
+                                ctx.model_refs[depend.upper()]
+                                for depend in depends
+                                if depend.upper() in ctx.model_refs
+                            },
                         ),
                     }
                 )
@@ -206,67 +179,62 @@ class ExposuresMixin(metaclass=ABCMeta):
     def __extract_card_exposures(
         self,
         ctx: __Context,
-        card_id: int,
-        exposure: Optional[Mapping] = None,
-    ):
-        """Extracts exposures from Metabase questions populating `ctx.models_exposed`
+        card: Mapping,
+    ) -> Mapping:
+        """Extracts exposures from Metabase questions.
 
-        Arguments:
-            card_id {int} -- Metabase question ID used to pull question from API.
-
-        Keyword Arguments:
-            exposure {str} -- API response from a question in Metabase, allows us to use the object if already in memory.
+        Args:
+            card (Mapping): Metabase card payload.
 
         Returns:
-            None -- ctx.models_exposed is populated through this method.
+            Mapping: Map of depends and native_query.
         """
 
-        # If an exposure is not passed, pull from id
-        if not exposure:
-            exposure = self.metabase.api("get", f"/api/card/{card_id}")
+        depends = []
+        native_query = ""
 
-        query = exposure.get("dataset_query", {})
-
+        query = card.get("dataset_query", {})
         if query.get("type") == "query":
             # Metabase GUI derived query
-            source_table_id = query.get("query", {}).get(
-                "source-table", exposure.get("table_id")
+            query_source = query.get("query", {}).get(
+                "source-table", card.get("table_id")
             )
 
-            if str(source_table_id).startswith("card__"):
-                # Handle questions based on other question in virtual db
-                self.__extract_card_exposures(
+            if str(query_source).startswith("card__"):
+                # Handle questions based on other questions
+                depends += self.__extract_card_exposures(
                     ctx,
-                    card_id=int(source_table_id.split("__")[-1]),
-                )
-            else:
+                    card=self.metabase.get_card(uid=query_source.split("__")[-1]),
+                )["models"]
+            elif query_source in ctx.table_names:
                 # Normal question
-                source_table = ctx.table_names.get(source_table_id)
-                if source_table:
-                    _logger.info(
-                        "Model extracted from Metabase question: %s",
-                        source_table,
-                    )
-                    ctx.models_exposed.append(source_table)
+                source_table = ctx.table_names.get(query_source)
+                _logger.info(
+                    "Model extracted from Metabase question: %s",
+                    source_table,
+                )
+                depends.append(source_table)
 
             # Find models exposed through joins
-            for query_join in query.get("query", {}).get("joins", []):
-                # Handle questions based on other question in virtual db
-                if str(query_join.get("source-table", "")).startswith("card__"):
-                    self.__extract_card_exposures(
+            for join in query.get("query", {}).get("joins", []):
+                join_source = join.get("source-table")
+
+                if str(join_source).startswith("card__"):
+                    # Handle questions based on other questions
+                    depends += self.__extract_card_exposures(
                         ctx,
-                        card_id=int(query_join.get("source-table").split("__")[-1]),
-                    )
+                        card=self.metabase.get_card(uid=join_source.split("__")[-1]),
+                    )["models"]
                     continue
 
                 # Joined model parsed
-                joined_table = ctx.table_names.get(query_join.get("source-table"))
+                joined_table = ctx.table_names.get(join_source)
                 if joined_table:
                     _logger.info(
                         "Model extracted from Metabase question join: %s",
                         joined_table,
                     )
-                    ctx.models_exposed.append(joined_table)
+                    depends.append(joined_table)
 
         elif query.get("type") == "native":
             # Metabase native query
@@ -280,135 +248,141 @@ class ExposuresMixin(metaclass=ABCMeta):
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
                 # Grab just the table / model name
-                clean_exposure = sql_ref.split(".")[-1].strip('"').upper()
+                parsed_model = sql_ref.split(".")[-1].strip('"').upper()
 
                 # Scrub CTEs (qualified sql_refs can not reference CTEs)
-                if clean_exposure in ctes and "." not in sql_ref:
-                    continue
-                # Verify this is one of our parsed refable models so exposures dont break the DAG
-                if not ctx.model_refs.get(clean_exposure):
+                if parsed_model in ctes and "." not in sql_ref:
                     continue
 
-                if clean_exposure:
+                # Verify this is one of our parsed refable models so exposures dont break the DAG
+                if not ctx.model_refs.get(parsed_model):
+                    continue
+
+                if parsed_model:
                     _logger.info(
                         "Model extracted from native query: %s",
-                        clean_exposure,
+                        parsed_model,
                     )
-                    ctx.models_exposed.append(clean_exposure)
-                    ctx.native_query = native_query
+                    depends.append(parsed_model)
 
-    def __build_exposure(
+        return {
+            "depends": depends,
+            "native_query": native_query,
+        }
+
+    def __format_exposure(
         self,
-        ctx: __Context,
-        exposure_type: str,
-        exposure_id: int,
+        model: str,
+        uid: str,
         name: str,
         label: str,
         header: str,
+        description: str,
         created_at: str,
         creator_name: str,
         creator_email: str,
-        description: str = "",
-        native_query: str = "",
+        native_query: Optional[str],
+        depends_on: Iterable[str],
     ) -> Mapping:
-        """Builds an exposure object representation as defined here: https://docs.getdbt.com/reference/exposure-properties
+        """Builds an exposure representation (see https://docs.getdbt.com/reference/exposure-properties).
 
-        Arguments:
-            exposure_type {str} -- Model type in Metabase being either `card` or `dashboard`
-            exposure_id {str} -- Card or Dashboard id in Metabase
-            name {str} -- Name of exposure
-            label {str} -- Title of the card or dashboard in Metabase
-            header {str} -- The header goes at the top of the description and is useful for prefixing metadata
-            created_at {str} -- Timestamp of exposure creation derived from Metabase
-            creator_name {str} -- Creator name derived from Metabase
-            creator_email {str} -- Creator email derived from Metabase
-
-        Keyword Arguments:
-            description {str} -- The description of the exposure as documented in Metabase. (default: No description provided in Metabase)
-            native_query {str} -- If exposure contains SQL, this arg will include the SQL in the dbt exposure documentation. (default: {""})
+        Args:
+            model (str): Metabase item model (card or dashboard).
+            uid (str): Metabase item unique ID.
+            name (str): Exposure name.
+            label (str): Exposure label.
+            header (str): Exposure header.
+            depends_on (Iterable[str]): List of model dependencies.
+            created_at (str): Timestamp of exposure creation derived from Metabase.
+            creator_name (str): Creator name derived from Metabase.
+            creator_email (str): Creator email derived from Metabase.
+            description (str): documented in Metabase.
+            native_query (Optional[str]): SQL query to be included in the exposure documentation (only for native questions).
 
         Returns:
-            Mapping -- JSON object representation of single exposure.
+            Mapping: Compiled exposure in dbt format.
         """
 
-        # Ensure model type is compatible
-        assert exposure_type in (
-            "card",
-            "dashboard",
-        ), "Cannot construct exposure for object type of {}".format(exposure_type)
+        dbt_type: str
+        url: str
+        if model == "card":
+            dbt_type = "analysis"
+            url = self.metabase.format_card_url(uid=uid)
+        elif model == "dashboard":
+            dbt_type = "dashboard"
+            url = self.metabase.format_dashboard_url(uid=uid)
+        else:
+            raise ValueError("Unexpected exposure type")
+
+        if header:
+            header = f"### {header}\n\n"
+
+        if description:
+            description = description.strip()
+        else:
+            description = "No description provided in Metabase"
 
         if native_query:
             # Format query into markdown code block
-            native_query = "#### Query\n\n```\n{}\n```\n\n".format(
-                "\n".join(
-                    sql_line
-                    for sql_line in ctx.native_query.strip().split("\n")
-                    if sql_line.strip() != ""
-                )
-            )
+            native_query = "\n".join(l for l in native_query.split("\n") if l.strip())
+            native_query = f"#### Query\n\n```\n{native_query}\n```\n\n"
 
-        if not description:
-            description = "No description provided in Metabase\n\n"
-
-        # Format metadata as markdown
         metadata = (
             "#### Metadata\n\n"
-            + "Metabase Id: __{}__\n\n".format(exposure_id)
-            + "Created On: __{}__".format(created_at)
+            + f"Metabase ID: __{uid}__\n\n"
+            + f"Created On: __{created_at}__"
         )
 
-        # Build description
-        description = (
-            header + ("{}\n\n".format(description.strip())) + native_query + metadata
-        )
-
-        # Output exposure
         return {
             "name": name,
             "label": label,
-            "description": safe_description(description),
-            "type": "analysis" if exposure_type == "card" else "dashboard",
-            "url": self.metabase.format_url(f"/{exposure_type}/{exposure_id}"),
+            "description": safe_description(
+                f"{header}{description}\n\n{native_query}{metadata}"
+            ),
+            "type": dbt_type,
+            "url": url,
             "maturity": "medium",
             "owner": {
                 "name": creator_name,
                 "email": creator_email,
             },
-            "depends_on": list(
-                {
-                    ctx.model_refs[exposure.upper()]
-                    for exposure in list({m for m in ctx.models_exposed})
-                    if exposure.upper() in ctx.model_refs
-                }
-            ),
+            "depends_on": list(depends_on),
         }
 
+    @staticmethod
     def __write_exposures(
-        self,
         exposures: Iterable[Mapping],
         output_path: str,
         output_grouping: Optional[str],
     ):
-        """Write exposures to output files.
+        """Write exposures to output files."""
 
-        Args:
-            output_path (str): Path for output files.
-            exposures (Iterable[Mapping]): Collection of exposures.
-        """
+        grouped: MutableMapping[Tuple[str, ...], MutableSequence[Mapping]] = {}
+        for exposure in exposures:
+            group: Tuple[str, ...] = ("exposures",)
+            if output_grouping == "collection":
+                group = (exposure["collection"],)
+            elif output_grouping == "type":
+                group = (exposure["type"], exposure["id"])
 
-        for group, exp in self.__group_exposures(exposures, output_grouping).items():
+            exps = grouped.get(group, [])
+            exps.append(exposure)
+            if group not in grouped:
+                grouped[group] = exps
+
+        for group, exps in grouped.items():
             path = Path(output_path).expanduser()
             path = path.joinpath(*group[:-1]) / f"{group[-1]}.yml"
             path.parent.mkdir(parents=True, exist_ok=True)
 
-            exposures_unwrapped = map(lambda x: x["body"], exp)
-            exposures_sorted = sorted(exposures_unwrapped, key=itemgetter("name"))
+            exps_unwrapped = map(lambda x: x["body"], exps)
+            exps_sorted = sorted(exps_unwrapped, key=itemgetter("name"))
 
             with open(path, "w", encoding="utf-8") as f:
                 yaml.dump(
                     {
                         "version": _RESOURCE_VERSION,
-                        "exposures": exposures_sorted,
+                        "exposures": exps_sorted,
                     },
                     f,
                     Dumper=YAMLDumper,
@@ -417,40 +391,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     sort_keys=False,
                 )
 
-    def __group_exposures(
-        self,
-        exposures: Iterable[Mapping],
-        output_grouping: Optional[str],
-    ) -> Mapping[Tuple[str, ...], Iterable[Mapping]]:
-        """Group exposures by configured output grouping.
-
-        Args:
-            exposures (Iterable[Mapping]): Collection of exposures.
-
-        Returns:
-            Mapping[Tuple[str, ...], Iterable[Mapping]]: Exposures indexed by configured grouping.
-        """
-
-        results: MutableMapping[Tuple[str, ...], MutableSequence[Mapping]] = {}
-
-        for exposure in exposures:
-            group: Tuple[str, ...] = ("exposures",)
-            if output_grouping == "collection":
-                collection = exposure["collection"]
-                group = (collection.get("slug") or safe_name(collection["name"]),)
-            elif output_grouping == "type":
-                group = (exposure["type"], exposure["id"])
-
-            result = results.get(group, [])
-            result.append(exposure)
-            if group not in results:
-                results[group] = result
-
-        return results
-
     @dc.dataclass
     class __Context:
         model_refs: Mapping[str, str]
         table_names: Mapping[str, str]
-        models_exposed: MutableSequence[str] = dc.field(default_factory=list)
-        native_query = ""

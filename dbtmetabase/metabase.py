@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -40,10 +40,12 @@ class Metabase:
 
         if not session_id:
             if username and password:
-                session = self.api(
-                    method="post",
-                    path="/api/session",
-                    json={"username": username, "password": password},
+                session = dict(
+                    self._api(
+                        method="post",
+                        path="/api/session",
+                        json={"username": username, "password": password},
+                    )
                 )
                 session_id = str(session["id"])
             else:
@@ -52,24 +54,14 @@ class Metabase:
 
         _logger.info("Metabase session established")
 
-    def api(
+    def _api(
         self,
         method: str,
         path: str,
         params: Optional[Dict[str, Any]] = None,
-        critical: bool = True,
         **kwargs,
-    ) -> Mapping:
-        """Unified way of calling Metabase API.
-
-        Args:
-            method (str): HTTP verb, e.g. get, post, put.
-            path (str): Relative path of endpoint, e.g. /api/database.
-            critical (bool, optional): Raise on any HTTP errors. Defaults to True.
-
-        Returns:
-            Mapping: JSON payload of the endpoint.
-        """
+    ) -> Union[Mapping, Sequence]:
+        """Raw API call."""
 
         if params:
             for key, value in params.items():
@@ -87,17 +79,87 @@ class Metabase:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
-            if critical:
-                _logger.error("HTTP request failed: %s", response.text)
-                raise
-            return {}
+            _logger.error("HTTP request failed: %s", response.text)
+            raise
 
         response_json = response.json()
         if "data" in response_json:
-            # Since X.40.0 responses are encapsulated in "data" with pagination parameters
+            # Since X.40.0 list responses are encapsulated in "data" with pagination parameters
             return response_json["data"]
 
         return response_json
 
-    def format_url(self, path: str) -> str:
-        return self.url + path
+    def find_database(self, name: str) -> Optional[str]:
+        for api_database in list(self._api("get", "/api/database")):
+            if api_database["name"].upper() == name.upper():
+                return api_database["id"]
+        return None
+
+    def sync_database_schema(self, uid: str):
+        self._api("post", f"/api/database/{uid}/sync_schema")
+
+    def get_database_metadata(self, uid: str) -> Mapping:
+        return dict(
+            self._api(
+                method="get",
+                path=f"/api/database/{uid}/metadata",
+                params={"include_hidden": True},
+            )
+        )
+
+    def get_tables(self) -> Sequence[Mapping]:
+        return list(self._api("get", "/api/table"))
+
+    def get_collections(self, exclude_personal: bool) -> Sequence[Mapping]:
+        results = list(
+            self._api(
+                method="get",
+                path="/api/collection",
+                params={"exclude-other-user-collections": exclude_personal},
+            )
+        )
+        if exclude_personal:
+            results = list(filter(lambda x: not x.get("personal_owner_id"), results))
+        return results
+
+    def get_collection_items(
+        self,
+        uid: str,
+        models: Sequence[str],
+    ) -> Sequence[Mapping]:
+        results = list(
+            self._api(
+                method="get",
+                path=f"/api/collection/{uid}/items",
+                params={"models": models},
+            )
+        )
+        results = list(filter(lambda x: x["model"] in models, results))
+        return results
+
+    def get_card(self, uid: str) -> Mapping:
+        return dict(self._api("get", f"/api/card/{uid}"))
+
+    def format_card_url(self, uid: str) -> str:
+        return f"{self.url}/card/{uid}"
+
+    def get_dashboard(self, uid: str) -> Mapping:
+        return dict(self._api("get", f"/api/dashboard/{uid}"))
+
+    def format_dashboard_url(self, uid: str) -> str:
+        return f"{self.url}/dashboard/{uid}"
+
+    def find_user(self, uid: str) -> Optional[Mapping]:
+        try:
+            return dict(self._api("get", f"/api/user/{uid}"))
+        except requests.exceptions.HTTPError as error:
+            if error.response and error.response.status_code == 404:
+                _logger.warning("User not found: %s", uid)
+                return None
+            raise
+
+    def update_table(self, uid: str, body: Mapping):
+        self._api("put", f"/api/table/{uid}", json=body)
+
+    def update_field(self, uid: str, body: Mapping):
+        self._api("put", f"/api/field/{uid}", json=body)

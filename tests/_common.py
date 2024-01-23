@@ -1,7 +1,7 @@
 import json
 import unittest
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from dbtmetabase.core import DbtMetabase
 from dbtmetabase.format import NullValue
@@ -13,12 +13,11 @@ TMP_PATH = Path("tests") / "tmp"
 
 
 class MockMetabase(Metabase):
-    def api(
+    def _api(
         self,
         method: str,
         path: str,
         params: Optional[Dict[str, Any]] = None,
-        critical: bool = True,
         **kwargs,
     ) -> Mapping:
         path_toks = f"{path.lstrip('/')}.json".split("/")

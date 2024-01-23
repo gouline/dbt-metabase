@@ -58,11 +58,7 @@ class ModelsMixin(metaclass=ABCMeta):
         ctx = self.__Context()
         success = True
 
-        database_id = None
-        for api_database in self.metabase.api("get", "/api/database"):
-            if api_database["name"].upper() == metabase_database.upper():
-                database_id = api_database["id"]
-                break
+        database_id = self.metabase.find_database(name=metabase_database)
         if not database_id:
             raise MetabaseStateError(f"Database not found: {metabase_database}")
 
@@ -74,7 +70,7 @@ class ModelsMixin(metaclass=ABCMeta):
             skip_sources=skip_sources,
         )
 
-        self.metabase.api("post", f"/api/database/{database_id}/sync_schema")
+        self.metabase.sync_database_schema(database_id)
 
         deadline = int(time.time()) + sync_timeout
         synced = False
@@ -120,13 +116,19 @@ class ModelsMixin(metaclass=ABCMeta):
             success &= self.__export_model(ctx, model, append_tags, docs_url)
 
         for update in ctx.updates.values():
-            self.metabase.api(
-                method="put",
-                path=f"/api/{update['kind']}/{update['id']}",
-                json=update["body"],
-            )
+            if update["kind"] == "table":
+                self.metabase.update_table(
+                    uid=update["id"],
+                    body=update["body"],
+                )
+            elif update["kind"] == "field":
+                self.metabase.update_field(
+                    uid=update["id"],
+                    body=update["body"],
+                )
+
             logger.info(
-                "API %s/%s updated successfully: %s",
+                "Updated %s/%s successfully: %s",
                 update["kind"],
                 update["id"],
                 ", ".join(update.get("body", {}).keys()),
@@ -265,19 +267,13 @@ class ModelsMixin(metaclass=ABCMeta):
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         logger.info(
-                            "API field/%s will become PK (for %s column FK)",
+                            "Setting field/%s as PK (for %s column)",
                             fk_target_field_id,
                             column_name,
                         )
-                        body_fk_target_field = {
-                            semantic_type_key: "type/PK",
-                        }
-                        ctx.update(entity=fk_target_field, change=body_fk_target_field)
-                    else:
-                        logger.info(
-                            "API field/%s is already PK (for %s column FK)",
-                            fk_target_field_id,
-                            column_name,
+                        ctx.update(
+                            entity=fk_target_field,
+                            change={semantic_type_key: "type/PK"},
                         )
                 else:
                     logger.error(
@@ -348,11 +344,7 @@ class ModelsMixin(metaclass=ABCMeta):
     def __get_tables(self, database_id: str) -> Mapping[str, MutableMapping]:
         tables = {}
 
-        metadata = self.metabase.api(
-            method="get",
-            path=f"/api/database/{database_id}/metadata",
-            params={"include_hidden": True},
-        )
+        metadata = self.metabase.get_database_metadata(database_id)
 
         bigquery_schema = metadata.get("details", {}).get("dataset-id")
 
