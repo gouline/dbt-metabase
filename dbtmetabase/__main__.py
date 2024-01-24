@@ -1,11 +1,10 @@
 import functools
 import logging
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Union, cast
 
 import click
 import yaml
-from typing_extensions import cast
 
 from .core import DbtMetabase
 from .format import Filter, setup_logging
