@@ -1,6 +1,6 @@
 # pylint: disable=protected-access,no-member
 
-from ._common import TestCore
+from ._core import TestCore
 
 
 class TestModels(TestCore):

@@ -8,12 +8,10 @@ from operator import itemgetter
 from pathlib import Path
 from typing import Iterable, Mapping, MutableMapping, MutableSequence, Optional, Tuple
 
-import yaml
-
 from dbtmetabase.metabase import Metabase
 
 from .errors import ArgumentError
-from .format import Filter, YAMLDumper, safe_description, safe_name
+from .format import Filter, dump_yaml, safe_description, safe_name
 from .manifest import Manifest
 
 _RESOURCE_VERSION = 2
@@ -379,16 +377,12 @@ class ExposuresMixin(metaclass=ABCMeta):
             exps_sorted = sorted(exps_unwrapped, key=itemgetter("name"))
 
             with open(path, "w", encoding="utf-8") as f:
-                yaml.dump(
-                    {
+                dump_yaml(
+                    data={
                         "version": _RESOURCE_VERSION,
                         "exposures": exps_sorted,
                     },
-                    f,
-                    Dumper=YAMLDumper,
-                    default_flow_style=False,
-                    allow_unicode=True,
-                    sort_keys=False,
+                    stream=f,
                 )
 
     @dc.dataclass

@@ -4,7 +4,7 @@ import logging
 import re
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import MutableSequence, Optional, Sequence
+from typing import Any, MutableSequence, Optional, Sequence, TextIO
 
 import yaml
 from rich.logging import RichHandler
@@ -37,7 +37,7 @@ class Filter:
         return x.upper()
 
 
-class YAMLDumper(yaml.Dumper):
+class _YAMLDumper(yaml.Dumper):
     """Custom YAML dumper for uniform formatting."""
 
     def increase_indent(self, flow=False, indentless=False):
@@ -52,6 +52,23 @@ class _NullValue(str):
 
 
 NullValue = _NullValue()
+
+
+def dump_yaml(data: Any, stream: TextIO):
+    """Uniform way to dump object to YAML file.
+
+    Args:
+        data (Any): Payload.
+        stream (TextIO): Text file handle.
+    """
+    yaml.dump(
+        data,
+        stream,
+        Dumper=_YAMLDumper,
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    )
 
 
 def setup_logging(level: int, path: Optional[Path] = None):
@@ -118,4 +135,4 @@ def safe_description(text: Optional[str]) -> str:
     Returns:
         str: Sanitized string with escaped Jinja syntax.
     """
-    return re.sub(r"{{(.*)}}", r"\1", text or "")
+    return re.sub(r"{{(.*)}}", r"(\1)", text or "")

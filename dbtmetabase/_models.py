@@ -58,8 +58,8 @@ class ModelsMixin(metaclass=ABCMeta):
         ctx = self.__Context()
         success = True
 
-        database_id = self.metabase.find_database(name=metabase_database)
-        if not database_id:
+        database = self.metabase.find_database(name=metabase_database)
+        if not database:
             raise MetabaseStateError(f"Database not found: {metabase_database}")
 
         models = self.__filtered_models(
@@ -70,14 +70,14 @@ class ModelsMixin(metaclass=ABCMeta):
             skip_sources=skip_sources,
         )
 
-        self.metabase.sync_database_schema(database_id)
+        self.metabase.sync_database_schema(database["id"])
 
         deadline = int(time.time()) + sync_timeout
         synced = False
         while not synced:
             time.sleep(self.__SYNC_PERIOD)
 
-            tables = self.__get_tables(database_id)
+            tables = self.__get_tables(database["id"])
 
             synced = True
             for model in models:

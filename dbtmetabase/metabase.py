@@ -89,16 +89,19 @@ class Metabase:
 
         return response_json
 
-    def find_database(self, name: str) -> Optional[str]:
+    def find_database(self, name: str) -> Optional[Mapping]:
+        """Finds database by name attribute or returns none."""
         for api_database in list(self._api("get", "/api/database")):
             if api_database["name"].upper() == name.upper():
-                return api_database["id"]
+                return api_database
         return None
 
     def sync_database_schema(self, uid: str):
+        """Triggers schema sync on a database."""
         self._api("post", f"/api/database/{uid}/sync_schema")
 
     def get_database_metadata(self, uid: str) -> Mapping:
+        """Retrieves metadata for all tables and fields in a database, including hidden ones."""
         return dict(
             self._api(
                 method="get",
@@ -108,9 +111,11 @@ class Metabase:
         )
 
     def get_tables(self) -> Sequence[Mapping]:
+        """Retrieves all tables for all databases."""
         return list(self._api("get", "/api/table"))
 
     def get_collections(self, exclude_personal: bool) -> Sequence[Mapping]:
+        """Retrieves all collections and optionally filters out personal collections."""
         results = list(
             self._api(
                 method="get",
@@ -127,6 +132,7 @@ class Metabase:
         uid: str,
         models: Sequence[str],
     ) -> Sequence[Mapping]:
+        """Retrieves collection items of specific types (e.g. card, dashboard, collection)."""
         results = list(
             self._api(
                 method="get",
@@ -138,18 +144,23 @@ class Metabase:
         return results
 
     def get_card(self, uid: str) -> Mapping:
+        """Retrieves card (known as question in Metabase UI)."""
         return dict(self._api("get", f"/api/card/{uid}"))
 
     def format_card_url(self, uid: str) -> str:
+        """Formats URL link to a card (known as question in Metabase UI)."""
         return f"{self.url}/card/{uid}"
 
     def get_dashboard(self, uid: str) -> Mapping:
+        """Retrieves dashboard."""
         return dict(self._api("get", f"/api/dashboard/{uid}"))
 
     def format_dashboard_url(self, uid: str) -> str:
+        """Formats URL link to a dashboard."""
         return f"{self.url}/dashboard/{uid}"
 
     def find_user(self, uid: str) -> Optional[Mapping]:
+        """Finds user by ID or returns none."""
         try:
             return dict(self._api("get", f"/api/user/{uid}"))
         except requests.exceptions.HTTPError as error:
@@ -159,7 +170,9 @@ class Metabase:
             raise
 
     def update_table(self, uid: str, body: Mapping):
+        """Posts update to an existing table."""
         self._api("put", f"/api/table/{uid}", json=body)
 
     def update_field(self, uid: str, body: Mapping):
+        """Posts an update to an existing table field."""
         self._api("put", f"/api/field/{uid}", json=body)

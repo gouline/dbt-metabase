@@ -1,7 +1,7 @@
 import json
 import unittest
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, Optional
 
 from dbtmetabase.core import DbtMetabase
 from dbtmetabase.format import NullValue
@@ -48,6 +48,38 @@ class MockDbtMetabase(DbtMetabase):
 class TestCore(unittest.TestCase):
     def setUp(self):
         self.c = MockDbtMetabase()
+
+    def test_metabase_find_database(self):
+        db = self.c.metabase.find_database(name="unit_testing")
+        assert db
+        self.assertEqual(2, db["id"])
+        self.assertIsNone(self.c.metabase.find_database(name="foo"))
+
+    def test_metabase_get_collections(self):
+        excluded = self.c.metabase.get_collections(exclude_personal=True)
+        self.assertEqual(3, len(excluded))
+
+        included = self.c.metabase.get_collections(exclude_personal=False)
+        self.assertEqual(4, len(included))
+
+    def test_metabase_get_collection_items(self):
+        cards = self.c.metabase.get_collection_items(
+            uid="3",
+            models=("card",),
+        )
+        self.assertEqual({"card"}, {item["model"] for item in cards})
+
+        dashboards = self.c.metabase.get_collection_items(
+            uid="3",
+            models=("dashboard",),
+        )
+        self.assertEqual({"dashboard"}, {item["model"] for item in dashboards})
+
+        both = self.c.metabase.get_collection_items(
+            uid="3",
+            models=("card", "dashboard"),
+        )
+        self.assertEqual({"card", "dashboard"}, {item["model"] for item in both})
 
     def test_manifest_reader(self):
         self.assertEqual(

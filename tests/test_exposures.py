@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from ._common import FIXTURES_PATH, TMP_PATH, TestCore
+from ._core import FIXTURES_PATH, TMP_PATH, TestCore
 
 
 class TestExposures(TestCore):
