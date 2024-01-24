@@ -1,30 +1,34 @@
 from __future__ import annotations
 
+import dataclasses as dc
 import logging
 import time
 from abc import ABCMeta, abstractmethod
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
-from ._format import NullValue, safe_name
-from .interface import Filter, MetabaseRuntimeError
-from .manifest import DEFAULT_SCHEMA, Column, Group, Model
+from .errors import MetabaseStateError
+from .format import Filter, NullValue, safe_name
+from .manifest import DEFAULT_SCHEMA, Column, Group, Manifest, Model
+from .metabase import Metabase
 
 logger = logging.getLogger(__name__)
 
 
-class ModelsExporterMixin(metaclass=ABCMeta):
+class ModelsMixin(metaclass=ABCMeta):
     """Abstraction for exporting models."""
 
     __SYNC_PERIOD = 5
 
-    DEFAULT_SYNC_TIMEOUT = 30
+    DEFAULT_MODELS_SYNC_TIMEOUT = 30
 
+    @property
     @abstractmethod
-    def read_models(self) -> Iterable[Model]:
+    def manifest(self) -> Manifest:
         pass
 
+    @property
     @abstractmethod
-    def metabase_api(self, method: str, path: str, **kwargs) -> Mapping:
+    def metabase(self) -> Metabase:
         pass
 
     def export_models(
@@ -34,7 +38,7 @@ class ModelsExporterMixin(metaclass=ABCMeta):
         schema_filter: Optional[Filter] = None,
         model_filter: Optional[Filter] = None,
         skip_sources: bool = False,
-        sync_timeout: int = DEFAULT_SYNC_TIMEOUT,
+        sync_timeout: int = DEFAULT_MODELS_SYNC_TIMEOUT,
         append_tags: bool = False,
         docs_url: Optional[str] = None,
     ):
@@ -51,33 +55,29 @@ class ModelsExporterMixin(metaclass=ABCMeta):
             docs_url (Optional[str], optional): URL for dbt docs hosting, to append model links to table descriptions. Defaults to None.
         """
 
-        ctx = _Context()
+        ctx = self.__Context()
         success = True
 
-        database_id = None
-        for api_database in self.metabase_api("get", "/api/database"):
-            if api_database["name"].upper() == metabase_database.upper():
-                database_id = api_database["id"]
-                break
-        if not database_id:
-            raise MetabaseRuntimeError(f"Database {metabase_database} not found")
+        database = self.metabase.find_database(name=metabase_database)
+        if not database:
+            raise MetabaseStateError(f"Database not found: {metabase_database}")
 
         models = self.__filtered_models(
-            models=self.read_models(),
+            models=self.manifest.read_models(),
             database_filter=database_filter,
             schema_filter=schema_filter,
             model_filter=model_filter,
             skip_sources=skip_sources,
         )
 
-        self.metabase_api("post", f"/api/database/{database_id}/sync_schema")
+        self.metabase.sync_database_schema(database["id"])
 
         deadline = int(time.time()) + sync_timeout
         synced = False
         while not synced:
             time.sleep(self.__SYNC_PERIOD)
 
-            tables = self.__get_tables(database_id)
+            tables = self.__get_tables(database["id"])
 
             synced = True
             for model in models:
@@ -110,32 +110,36 @@ class ModelsExporterMixin(metaclass=ABCMeta):
                 break
 
         if not synced and sync_timeout:
-            raise MetabaseRuntimeError("Unable to sync models between dbt and Metabase")
+            raise MetabaseStateError("Unable to sync models with Metabase")
 
         for model in models:
             success &= self.__export_model(ctx, model, append_tags, docs_url)
 
         for update in ctx.updates.values():
-            self.metabase_api(
-                method="put",
-                path=f"/api/{update['kind']}/{update['id']}",
-                json=update["body"],
-            )
+            if update["kind"] == "table":
+                self.metabase.update_table(
+                    uid=update["id"],
+                    body=update["body"],
+                )
+            elif update["kind"] == "field":
+                self.metabase.update_field(
+                    uid=update["id"],
+                    body=update["body"],
+                )
+
             logger.info(
-                "API %s/%s updated successfully: %s",
+                "Updated %s/%s successfully: %s",
                 update["kind"],
                 update["id"],
                 ", ".join(update.get("body", {}).keys()),
             )
 
         if not success:
-            raise MetabaseRuntimeError(
-                "Model export encountered non-critical errors, check output"
-            )
+            raise MetabaseStateError("Non-critical errors encountered, see above")
 
     def __export_model(
         self,
-        ctx: _Context,
+        ctx: __Context,
         model: Model,
         append_tags: bool,
         docs_url: Optional[str],
@@ -180,7 +184,7 @@ class ModelsExporterMixin(metaclass=ABCMeta):
             body_table["visibility_type"] = model_visibility
 
         if body_table:
-            ctx.queue_update(entity=api_table, delta=body_table)
+            ctx.update(entity=api_table, change=body_table)
             logger.info("Table %s will be updated", table_key)
         else:
             logger.info("Table %s is up-to-date", table_key)
@@ -192,7 +196,7 @@ class ModelsExporterMixin(metaclass=ABCMeta):
 
     def __export_column(
         self,
-        ctx: _Context,
+        ctx: __Context,
         schema_name: str,
         model_name: str,
         column: Column,
@@ -263,21 +267,13 @@ class ModelsExporterMixin(metaclass=ABCMeta):
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         logger.info(
-                            "API field/%s will become PK (for %s column FK)",
+                            "Setting field/%s as PK (for %s column)",
                             fk_target_field_id,
                             column_name,
                         )
-                        body_fk_target_field = {
-                            semantic_type_key: "type/PK",
-                        }
-                        ctx.queue_update(
-                            entity=fk_target_field, delta=body_fk_target_field
-                        )
-                    else:
-                        logger.info(
-                            "API field/%s is already PK (for %s column FK)",
-                            fk_target_field_id,
-                            column_name,
+                        ctx.update(
+                            entity=fk_target_field,
+                            change={semantic_type_key: "type/PK"},
                         )
                 else:
                     logger.error(
@@ -338,7 +334,7 @@ class ModelsExporterMixin(metaclass=ABCMeta):
             body_field[semantic_type_key] = column.semantic_type or None
 
         if body_field:
-            ctx.queue_update(entity=api_field, delta=body_field)
+            ctx.update(entity=api_field, change=body_field)
             logger.info("Field %s.%s will be updated", model_name, column_name)
         else:
             logger.info("Field %s.%s is up-to-date", model_name, column_name)
@@ -348,11 +344,7 @@ class ModelsExporterMixin(metaclass=ABCMeta):
     def __get_tables(self, database_id: str) -> Mapping[str, MutableMapping]:
         tables = {}
 
-        metadata = self.metabase_api(
-            method="get",
-            path=f"/api/database/{database_id}/metadata",
-            params={"include_hidden": True},
-        )
+        metadata = self.metabase.get_database_metadata(database_id)
 
         bigquery_schema = metadata.get("details", {}).get("dataset-id")
 
@@ -380,8 +372,8 @@ class ModelsExporterMixin(metaclass=ABCMeta):
 
         return tables
 
+    @staticmethod
     def __filtered_models(
-        self,
         models: Iterable[Model],
         database_filter: Optional[Filter],
         schema_filter: Optional[Filter],
@@ -391,29 +383,28 @@ class ModelsExporterMixin(metaclass=ABCMeta):
         def selected(m: Model) -> bool:
             return (
                 (not skip_sources or m.group != Group.sources)
-                and (not database_filter or database_filter.selected(m.database))
-                and (not schema_filter or schema_filter.selected(m.schema))
-                and (not model_filter or model_filter.selected(m.name))
+                and (not database_filter or database_filter.match(m.database))
+                and (not schema_filter or schema_filter.match(m.schema))
+                and (not model_filter or model_filter.match(m.name))
             )
 
         return list(filter(selected, models))
 
+    @dc.dataclass
+    class __Context:
+        tables: Mapping[str, MutableMapping] = dc.field(default_factory=dict)
+        updates: MutableMapping[str, MutableMapping] = dc.field(default_factory=dict)
 
-class _Context:
-    def __init__(self):
-        self.tables: Mapping[str, MutableMapping] = {}
-        self.updates: MutableMapping[str, MutableMapping[str, Any]] = {}
+        def update(self, entity: MutableMapping, change: Mapping):
+            entity.update(change)
 
-    def queue_update(self, entity: MutableMapping, delta: Mapping):
-        entity.update(delta)
+            key = f"{entity['kind']}.{entity['id']}"
+            update = self.updates.get(key, {})
+            update["kind"] = entity["kind"]
+            update["id"] = entity["id"]
 
-        key = f"{entity['kind']}.{entity['id']}"
-        update = self.updates.get(key, {})
-        update["kind"] = entity["kind"]
-        update["id"] = entity["id"]
+            body = update.get("body", {})
+            body.update(change)
+            update["body"] = body
 
-        body = update.get("body", {})
-        body.update(delta)
-        update["body"] = body
-
-        self.updates[key] = update
+            self.updates[key] = update

@@ -1,7 +1,7 @@
 import logging
 
 from .core import DbtMetabase
-from .interface import Filter, MetabaseArgumentError, MetabaseRuntimeError
+from .format import Filter
 
 __all__ = [
     "DbtMetabase",

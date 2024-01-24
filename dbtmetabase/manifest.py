@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import dataclasses
+import dataclasses as dc
 import json
 import logging
 from enum import Enum
@@ -15,7 +15,7 @@ from typing import (
     Union,
 )
 
-from ._format import scan_fields
+from .format import NullValue
 
 _logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ _COMMON_META_FIELDS = [
 _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "semantic_type",
     "has_field_values",
-    "coercion_strategy",
+    "coercion_strate`gy",
     "number_style",
 ]
 # Must be covered by Model attributes
@@ -116,7 +116,7 @@ class Manifest:
             unique_id=unique_id,
             source=source,
             tags=model.get("tags", []),
-            **scan_fields(
+            **self._scan_fields(
                 model.get("meta", {}),
                 fields=_MODEL_META_FIELDS,
                 ns=_META_NS,
@@ -132,7 +132,7 @@ class Manifest:
         metabase_column = Column(
             name=column.get("name", "").upper().strip('"'),
             description=column.get("description"),
-            **scan_fields(
+            **self._scan_fields(
                 column.get("meta", {}),
                 fields=_COLUMN_META_FIELDS,
                 ns=_META_NS,
@@ -273,13 +273,33 @@ class Manifest:
             metabase_column.fk_target_field,
         )
 
+    @staticmethod
+    def _scan_fields(t: Mapping, fields: Iterable[str], ns: str) -> Mapping:
+        """Reads meta fields from a schem object.
+
+        Args:
+            t (Mapping): Target to scan for fields.
+            fields (List): List of fields to accept.
+            ns (str): Field namespace (separated by .).
+
+        Returns:
+            Mapping: Field values.
+        """
+
+        vals = {}
+        for field in fields:
+            if f"{ns}.{field}" in t:
+                value = t[f"{ns}.{field}"]
+                vals[field] = value if value is not None else NullValue
+        return vals
+
 
 class Group(str, Enum):
     nodes = "nodes"
     sources = "sources"
 
 
-@dataclasses.dataclass
+@dc.dataclass
 class Column:
     name: str
     description: Optional[str] = None
@@ -293,10 +313,10 @@ class Column:
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None
 
-    meta_fields: MutableMapping = dataclasses.field(default_factory=dict)
+    meta_fields: MutableMapping = dc.field(default_factory=dict)
 
 
-@dataclasses.dataclass
+@dc.dataclass
 class Model:
     database: str
     schema: str
@@ -313,7 +333,7 @@ class Model:
     source: Optional[str] = None
     tags: Optional[Sequence[str]] = None
 
-    columns: Sequence[Column] = dataclasses.field(default_factory=list)
+    columns: Sequence[Column] = dc.field(default_factory=list)
 
     @property
     def ref(self) -> Optional[str]:

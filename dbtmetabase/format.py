@@ -4,10 +4,44 @@ import logging
 import re
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, MutableSequence, Optional, Union
+from typing import Any, MutableSequence, Optional, Sequence, TextIO
 
-import click
+import yaml
 from rich.logging import RichHandler
+
+
+class Filter:
+    """Inclusion/exclusion filtering."""
+
+    def __init__(
+        self,
+        include: Optional[Sequence[str]] = None,
+        exclude: Optional[Sequence[str]] = None,
+    ):
+        """
+        Args:
+            include (Optional[Sequence[str]], optional): Optional inclusions (i.e. include only these). Defaults to None.
+            exclude (Optional[Sequence[str]], optional): Optional exclusion list (i.e. exclude these, even if in inclusion list). Defaults to None.
+        """
+        self.include = [self._norm(x) for x in include or []]
+        self.exclude = [self._norm(x) for x in exclude or []]
+
+    def match(self, item: str) -> bool:
+        item = self._norm(item)
+        included = not self.include or item in self.include
+        excluded = self.exclude and item in self.exclude
+        return included and not excluded
+
+    @staticmethod
+    def _norm(x: str) -> str:
+        return x.upper()
+
+
+class _YAMLDumper(yaml.Dumper):
+    """Custom YAML dumper for uniform formatting."""
+
+    def increase_indent(self, flow=False, indentless=False):
+        return super().increase_indent(flow, indentless=False)
 
 
 class _NullValue(str):
@@ -18,6 +52,23 @@ class _NullValue(str):
 
 
 NullValue = _NullValue()
+
+
+def dump_yaml(data: Any, stream: TextIO):
+    """Uniform way to dump object to YAML file.
+
+    Args:
+        data (Any): Payload.
+        stream (TextIO): Text file handle.
+    """
+    yaml.dump(
+        data,
+        stream,
+        Dumper=_YAMLDumper,
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    )
 
 
 def setup_logging(level: int, path: Optional[Path] = None):
@@ -61,46 +112,6 @@ def setup_logging(level: int, path: Optional[Path] = None):
     )
 
 
-def click_list_option_kwargs() -> Mapping[str, Any]:
-    """Click option that accepts comma-separated values.
-
-    Built-in list only allows repeated flags, which is ugly for larger lists.
-
-    Returns:
-        Mapping[str, Any]: Mapping of kwargs (to be unpacked with **).
-    """
-
-    def callback(
-        ctx: click.Context,
-        param: click.Option,
-        value: Union[str, List[str]],
-    ) -> Optional[List[str]]:
-        if value is None:
-            return None
-
-        if ctx.get_parameter_source(str(param.name)) in (
-            click.core.ParameterSource.DEFAULT,
-            click.core.ParameterSource.DEFAULT_MAP,
-        ) and isinstance(value, list):
-            # Lists in defaults (config or option) should be lists
-            return value
-
-        elif isinstance(value, str):
-            str_value = value
-        if isinstance(value, list):
-            # When type=list, string value will be a list of chars
-            str_value = "".join(value)
-        else:
-            raise click.BadParameter("must be comma-separated list")
-
-        return str_value.split(",")
-
-    return {
-        "type": click.UNPROCESSED,
-        "callback": callback,
-    }
-
-
 def safe_name(text: Optional[str]) -> str:
     """Sanitizes a human-readable "friendly" name to a safe string.
 
@@ -124,24 +135,4 @@ def safe_description(text: Optional[str]) -> str:
     Returns:
         str: Sanitized string with escaped Jinja syntax.
     """
-    return re.sub(r"{{(.*)}}", r"\1", text or "")
-
-
-def scan_fields(t: Mapping, fields: Iterable[str], ns: str) -> Mapping:
-    """Reads meta fields from a schem object.
-
-    Args:
-        t (Mapping): Target to scan for fields.
-        fields (List): List of fields to accept.
-        ns (str): Field namespace (separated by .).
-
-    Returns:
-        Mapping: Field values.
-    """
-
-    vals = {}
-    for field in fields:
-        if f"{ns}.{field}" in t:
-            value = t[f"{ns}.{field}"]
-            vals[field] = value if value is not None else NullValue
-    return vals
+    return re.sub(r"{{(.*)}}", r"(\1)", text or "")

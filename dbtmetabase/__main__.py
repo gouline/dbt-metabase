@@ -1,17 +1,54 @@
 import functools
 import logging
 from pathlib import Path
-from typing import Callable, Optional, Sequence
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Union
 
 import click
 import yaml
 from typing_extensions import cast
 
-from ._format import click_list_option_kwargs, setup_logging
 from .core import DbtMetabase
-from .core_exposures import ExposuresExtractorMixin
-from .core_models import ModelsExporterMixin
-from .interface import Filter
+from .format import Filter, setup_logging
+
+
+def _click_list_option_kwargs() -> Mapping[str, Any]:
+    """Click option that accepts comma-separated values.
+
+    Built-in list only allows repeated flags, which is ugly for larger lists.
+
+    Returns:
+        Mapping[str, Any]: Mapping of kwargs (to be unpacked with **).
+    """
+
+    def callback(
+        ctx: click.Context,
+        param: click.Option,
+        value: Union[str, List[str]],
+    ) -> Optional[List[str]]:
+        if value is None:
+            return None
+
+        if ctx.get_parameter_source(str(param.name)) in (
+            click.core.ParameterSource.DEFAULT,
+            click.core.ParameterSource.DEFAULT_MAP,
+        ) and isinstance(value, list):
+            # Lists in defaults (config or option) should be lists
+            return value
+
+        elif isinstance(value, str):
+            str_value = value
+        if isinstance(value, list):
+            # When type=list, string value will be a list of chars
+            str_value = "".join(value)
+        else:
+            raise click.BadParameter("must be comma-separated list")
+
+        return str_value.split(",")
+
+    return {
+        "type": click.UNPROCESSED,
+        "callback": callback,
+    }
 
 
 @click.group()
@@ -160,7 +197,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="DATABASES",
     envvar="INCLUDE_DATABASES",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Only include certain dbt databases.",
 )
 @click.option(
@@ -168,7 +205,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="DATABASES",
     envvar="EXCLUDE_DATABASES",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Exclude certain dbt databases.",
 )
 @click.option(
@@ -176,7 +213,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="SCHEMAS",
     envvar="INCLUDE_SCHEMAS",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Only include certain dbt schemas.",
 )
 @click.option(
@@ -184,7 +221,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="SCHEMAS",
     envvar="EXCLUDE_SCHEMAS",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Exclude certain dbt schemas.",
 )
 @click.option(
@@ -192,7 +229,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="MODELS",
     envvar="INCLUDE_MODELS",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Only include certain dbt models.",
 )
 @click.option(
@@ -200,7 +237,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="MODELS",
     envvar="EXCLUDE_MODELS",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Exclude certain dbt models.",
 )
 @click.option(
@@ -208,7 +245,7 @@ def _add_setup(func: Callable) -> Callable:
     metavar="SECS",
     envvar="SYNC_TIMEOUT",
     show_envvar=True,
-    default=ModelsExporterMixin.DEFAULT_SYNC_TIMEOUT,
+    default=DbtMetabase.DEFAULT_MODELS_SYNC_TIMEOUT,
     type=click.INT,
     help="Number of seconds to wait until Metabase schema matches the dbt project. To skip synchronization, set timeout to 0.",
 )
@@ -267,7 +304,7 @@ def models(
     envvar="OUTPUT_PATH",
     show_envvar=True,
     type=click.Path(exists=True, file_okay=False),
-    default=ExposuresExtractorMixin.DEFAULT_OUTPUT_PATH,
+    default=DbtMetabase.DEFAULT_EXPOSURES_OUTPUT_PATH,
     show_default=True,
     help="Output path for exposure YAML files.",
 )
@@ -283,7 +320,7 @@ def models(
     metavar="COLLECTIONS",
     envvar="INCLUDE_COLLECTIONS",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Only include certain Metabase collections.",
 )
 @click.option(
@@ -291,7 +328,7 @@ def models(
     metavar="COLLECTIONS",
     envvar="EXCLUDE_COLLECTIONS",
     show_envvar=True,
-    **click_list_option_kwargs(),
+    **_click_list_option_kwargs(),
     help="Exclude certain Metabase collections.",
 )
 @click.option(
