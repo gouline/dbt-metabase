@@ -32,7 +32,8 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
         http_headers: Optional[dict] = None,
         http_adapter: Optional[HTTPAdapter] = None,
     ):
-        """
+        """dbt + Metabase integration.
+
         Args:
             manifest_path (Union[str,Path]): Path to dbt manifest.json, usually in target/ directory after compilation.
             metabase_url (str): Metabase URL, e.g. "https://metabase.example.com".

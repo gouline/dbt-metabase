@@ -179,14 +179,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         ctx: __Context,
         card: Mapping,
     ) -> Mapping:
-        """Extracts exposures from Metabase questions.
-
-        Args:
-            card (Mapping): Metabase card payload.
-
-        Returns:
-            Mapping: Map of depends and native_query.
-        """
+        """Extracts exposures from Metabase questions."""
 
         depends = []
         native_query = ""
@@ -273,24 +266,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         native_query: Optional[str],
         depends_on: Iterable[str],
     ) -> Mapping:
-        """Builds an exposure representation (see https://docs.getdbt.com/reference/exposure-properties).
-
-        Args:
-            model (str): Metabase item model (card or dashboard).
-            uid (str): Metabase item unique ID.
-            name (str): Exposure name.
-            label (str): Exposure label.
-            header (str): Exposure header.
-            depends_on (Iterable[str]): List of model dependencies.
-            created_at (str): Timestamp of exposure creation derived from Metabase.
-            creator_name (str): Creator name derived from Metabase.
-            creator_email (str): Creator email derived from Metabase.
-            description (str): documented in Metabase.
-            native_query (Optional[str]): SQL query to be included in the exposure documentation (only for native questions).
-
-        Returns:
-            Mapping: Compiled exposure in dbt format.
-        """
+        """Builds dbt exposure representation (see https://docs.getdbt.com/reference/exposure-properties)."""
 
         dbt_type: str
         url: str

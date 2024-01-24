@@ -203,16 +203,7 @@ class ModelsMixin(metaclass=ABCMeta):
         model_name: str,
         column: Column,
     ) -> bool:
-        """Exports one dbt column to Metabase database schema.
-
-        Arguments:
-            schema_name {str} -- Target schema name.s
-            model_name {str} -- One dbt model name read from project.
-            column {dict} -- One dbt column read from project.
-
-        Returns:
-            bool -- True if exported successfully, false if there were errors.
-        """
+        """Exports one dbt column to Metabase database schema."""
 
         success = True
 

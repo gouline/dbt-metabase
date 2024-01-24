@@ -18,7 +18,8 @@ class Filter:
         include: Optional[Sequence[str]] = None,
         exclude: Optional[Sequence[str]] = None,
     ):
-        """
+        """Inclusion/exclusion filtering.
+
         Args:
             include (Optional[Sequence[str]], optional): Optional inclusions (i.e. include only these). Defaults to None.
             exclude (Optional[Sequence[str]], optional): Optional exclusion list (i.e. exclude these, even if in inclusion list). Defaults to None.
