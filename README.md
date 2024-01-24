@@ -83,7 +83,8 @@ dbt-metabase models \
     --metabase-url https://metabase.example.com \
     --metabase-username user@example.com \
     --metabase-password Password123 \
-    --metabase-database business
+    --metabase-database business \
+    --include-schemas public
 ```
 
 Open Metabase and go to Settings > Admin Settings > Table Metadata, you will notice that `id` column in `stg_users` is now marked as "Entity Key" and `group_id` is a "Foreign Key" pointing to `id` in `stg_groups`.
@@ -209,7 +210,8 @@ dbt-metabase exposures \
     --metabase-url https://metabase.example.com \
     --metabase-username user@example.com \
     --metabase-password Password123 \
-    --output-path models/
+    --output-path models/ \
+    --exclude-collections temporary
 ```
 
 Once the execution completes, check your output path for exposures files containing descriptions, creator details and links for Metabase questions and dashboards:
@@ -274,7 +276,7 @@ Note that common configurations are in the outer block and command-specific ones
 Alternatively, you can invoke dbt-metabase programmatically. Below is the equivalent of CLI examples:
 
 ```python
-from dbtmetabase import DbtMetabase
+from dbtmetabase import DbtMetabase, Filter
 
 # Initializing instance
 c = DbtMetabase(
@@ -285,10 +287,16 @@ c = DbtMetabase(
 )
 
 # Exporting models
-c.export_models(metabase_database="business")
+c.export_models(
+    metabase_database="business",
+    schema_filter=Filter(include=["public"]),
+)
 
 # Extracting exposures
-c.extract_exposures(output_path=".")
+c.extract_exposures(
+    output_path=".",
+    collection_filter=Filter(exclude=["temporary"]),
+)
 ```
 
 See function header comments for information about other parameters.

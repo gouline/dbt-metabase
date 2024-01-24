@@ -81,10 +81,10 @@ class ExposuresMixin(metaclass=ABCMeta):
             collection_slug = collection.get("slug", safe_name(collection["name"]))
 
             if not collection_filter.match(collection_name):
-                _logger.debug("Skipping collection %s", collection["name"])
+                _logger.debug("Skipping collection '%s'", collection["name"])
                 continue
 
-            _logger.info("Exploring collection: %s", collection["name"])
+            _logger.info("Exploring collection '%s'", collection["name"])
             for item in self.metabase.get_collection_items(
                 uid=collection["id"],
                 models=("card", "dashboard"),
@@ -123,11 +123,11 @@ class ExposuresMixin(metaclass=ABCMeta):
                             card=self.metabase.get_card(uid=card["id"]),
                         )["depends"]
                 else:
-                    _logger.warning("Unexpected exposure type: %s", item["model"])
+                    _logger.warning("Unexpected collection item '%s'", item["model"])
                     continue
 
                 name = entity.get("name", "Exposure [Unresolved Name]")
-                _logger.info("Inspecting exposure: %s", name)
+                _logger.info("Processing %s '%s'", item["model"], name)
 
                 creator_name = None
                 creator_email = None
@@ -179,14 +179,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         ctx: __Context,
         card: Mapping,
     ) -> Mapping:
-        """Extracts exposures from Metabase questions.
-
-        Args:
-            card (Mapping): Metabase card payload.
-
-        Returns:
-            Mapping: Map of depends and native_query.
-        """
+        """Extracts exposures from Metabase questions."""
 
         depends = []
         native_query = ""
@@ -207,10 +200,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             elif query_source in ctx.table_names:
                 # Normal question
                 source_table = ctx.table_names.get(query_source)
-                _logger.info(
-                    "Model extracted from Metabase question: %s",
-                    source_table,
-                )
+                _logger.info("Extracted model '%s' from card", source_table)
                 depends.append(source_table)
 
             # Find models exposed through joins
@@ -228,10 +218,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 # Joined model parsed
                 joined_table = ctx.table_names.get(join_source)
                 if joined_table:
-                    _logger.info(
-                        "Model extracted from Metabase question join: %s",
-                        joined_table,
-                    )
+                    _logger.info("Extracted model '%s' from join", joined_table)
                     depends.append(joined_table)
 
         elif query.get("type") == "native":
@@ -257,10 +244,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     continue
 
                 if parsed_model:
-                    _logger.info(
-                        "Model extracted from native query: %s",
-                        parsed_model,
-                    )
+                    _logger.info("Extracted model '%s' from native query", parsed_model)
                     depends.append(parsed_model)
 
         return {
@@ -282,24 +266,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         native_query: Optional[str],
         depends_on: Iterable[str],
     ) -> Mapping:
-        """Builds an exposure representation (see https://docs.getdbt.com/reference/exposure-properties).
-
-        Args:
-            model (str): Metabase item model (card or dashboard).
-            uid (str): Metabase item unique ID.
-            name (str): Exposure name.
-            label (str): Exposure label.
-            header (str): Exposure header.
-            depends_on (Iterable[str]): List of model dependencies.
-            created_at (str): Timestamp of exposure creation derived from Metabase.
-            creator_name (str): Creator name derived from Metabase.
-            creator_email (str): Creator email derived from Metabase.
-            description (str): documented in Metabase.
-            native_query (Optional[str]): SQL query to be included in the exposure documentation (only for native questions).
-
-        Returns:
-            Mapping: Compiled exposure in dbt format.
-        """
+        """Builds dbt exposure representation (see https://docs.getdbt.com/reference/exposure-properties)."""
 
         dbt_type: str
         url: str

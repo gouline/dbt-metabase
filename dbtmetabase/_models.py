@@ -11,7 +11,7 @@ from .format import Filter, NullValue, safe_name
 from .manifest import DEFAULT_SCHEMA, Column, Group, Manifest, Model
 from .metabase import Metabase
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ModelsMixin(metaclass=ABCMeta):
@@ -87,8 +87,8 @@ class ModelsMixin(metaclass=ABCMeta):
 
                 table = tables.get(table_key)
                 if not table:
-                    logger.warning(
-                        "Model %s not found in %s schema", table_key, schema_name
+                    _logger.warning(
+                        "Table '%s' not in schema '%s'", table_key, schema_name
                     )
                     synced = False
                     continue
@@ -98,8 +98,8 @@ class ModelsMixin(metaclass=ABCMeta):
 
                     field = table.get("fields", {}).get(column_name)
                     if not field:
-                        logger.warning(
-                            "Column %s not found in %s model", column_name, table_key
+                        _logger.warning(
+                            "Field '%s' not in table '%s'", column_name, table_key
                         )
                         synced = False
                         continue
@@ -127,11 +127,11 @@ class ModelsMixin(metaclass=ABCMeta):
                     body=update["body"],
                 )
 
-            logger.info(
-                "Updated %s/%s successfully: %s",
-                update["kind"],
-                update["id"],
-                ", ".join(update.get("body", {}).keys()),
+            _logger.info(
+                "%s '%s' updated successfully: %s",
+                update["kind"].capitalize(),
+                update["name"],
+                ", ".join(update.get("body", {})),
             )
 
         if not success:
@@ -154,7 +154,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
         api_table = ctx.tables.get(table_key)
         if not api_table:
-            logger.error("Table %s does not exist in Metabase", table_key)
+            _logger.error("Table '%s' does not exist", table_key)
             return False
 
         # Empty strings not accepted by Metabase
@@ -184,10 +184,12 @@ class ModelsMixin(metaclass=ABCMeta):
             body_table["visibility_type"] = model_visibility
 
         if body_table:
-            ctx.update(entity=api_table, change=body_table)
-            logger.info("Table %s will be updated", table_key)
+            ctx.update(entity=api_table, change=body_table, name=table_key)
+            _logger.info(
+                "Table '%s' will be updated: %s", table_key, ", ".join(body_table)
+            )
         else:
-            logger.info("Table %s is up-to-date", table_key)
+            _logger.info("Table '%s' is up to date", table_key)
 
         for column in model.columns:
             success &= self.__export_column(ctx, schema_name, model_name, column)
@@ -201,16 +203,7 @@ class ModelsMixin(metaclass=ABCMeta):
         model_name: str,
         column: Column,
     ) -> bool:
-        """Exports one dbt column to Metabase database schema.
-
-        Arguments:
-            schema_name {str} -- Target schema name.s
-            model_name {str} -- One dbt model name read from project.
-            column {dict} -- One dbt column read from project.
-
-        Returns:
-            bool -- True if exported successfully, false if there were errors.
-        """
+        """Exports one dbt column to Metabase database schema."""
 
         success = True
 
@@ -219,11 +212,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
         api_field = ctx.tables.get(table_key, {}).get("fields", {}).get(column_name)
         if not api_field:
-            logger.error(
-                "Field %s.%s does not exist in Metabase",
-                table_key,
-                column_name,
-            )
+            _logger.error("Field '%s.%s' does not exist", table_key, column_name)
             return False
 
         if "special_type" in api_field:
@@ -247,27 +236,24 @@ class ModelsMixin(metaclass=ABCMeta):
             )
 
             if not target_table or not target_field:
-                logger.info(
-                    "Skipping FK resolution for %s table, %s field not resolved during dbt parsing",
-                    table_key,
+                _logger.info(
+                    "Field '%s' not resolved in manifest, skipping foreign key for table '%s'",
                     target_field,
+                    table_key,
                 )
 
             else:
-                logger.debug(
-                    "Looking for field %s in table %s",
-                    target_field,
-                    target_table,
+                _logger.debug(
+                    "Looking for field '%s' in table '%s'", target_field, target_table
                 )
-
                 fk_target_field = (
                     ctx.tables.get(target_table, {}).get("fields", {}).get(target_field)
                 )
                 if fk_target_field:
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
-                        logger.info(
-                            "Setting field/%s as PK (for %s column)",
+                        _logger.info(
+                            "Setting field '%s' as primary key for field '%s'",
                             fk_target_field_id,
                             column_name,
                         )
@@ -276,8 +262,8 @@ class ModelsMixin(metaclass=ABCMeta):
                             change={semantic_type_key: "type/PK"},
                         )
                 else:
-                    logger.error(
-                        "Unable to find PK for %s.%s column FK",
+                    _logger.error(
+                        "No primary key for field '%s.%s' foreign key",
                         target_table,
                         target_field,
                     )
@@ -333,11 +319,14 @@ class ModelsMixin(metaclass=ABCMeta):
         ):
             body_field[semantic_type_key] = column.semantic_type or None
 
+        update_name = f"{model_name}.{column_name}"
         if body_field:
-            ctx.update(entity=api_field, change=body_field)
-            logger.info("Field %s.%s will be updated", model_name, column_name)
+            ctx.update(entity=api_field, change=body_field, name=update_name)
+            _logger.info(
+                "Field '%s' will be updated: %s", update_name, ", ".join(body_field)
+            )
         else:
-            logger.info("Field %s.%s is up-to-date", model_name, column_name)
+            _logger.info("Field '%s' is up to date", update_name)
 
         return success
 
@@ -395,13 +384,19 @@ class ModelsMixin(metaclass=ABCMeta):
         tables: Mapping[str, MutableMapping] = dc.field(default_factory=dict)
         updates: MutableMapping[str, MutableMapping] = dc.field(default_factory=dict)
 
-        def update(self, entity: MutableMapping, change: Mapping):
+        def update(
+            self,
+            entity: MutableMapping,
+            change: Mapping,
+            name: Optional[str] = None,
+        ):
             entity.update(change)
 
             key = f"{entity['kind']}.{entity['id']}"
             update = self.updates.get(key, {})
             update["kind"] = entity["kind"]
             update["id"] = entity["id"]
+            update["name"] = name or entity["id"]
 
             body = update.get("body", {})
             body.update(change)

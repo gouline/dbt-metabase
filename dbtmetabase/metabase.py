@@ -165,14 +165,14 @@ class Metabase:
             return dict(self._api("get", f"/api/user/{uid}"))
         except requests.exceptions.HTTPError as error:
             if error.response and error.response.status_code == 404:
-                _logger.warning("User not found: %s", uid)
+                _logger.warning("User '%s' not found", uid)
                 return None
             raise
 
-    def update_table(self, uid: str, body: Mapping):
+    def update_table(self, uid: str, body: Mapping) -> Mapping:
         """Posts update to an existing table."""
-        self._api("put", f"/api/table/{uid}", json=body)
+        return dict(self._api("put", f"/api/table/{uid}", json=body))
 
-    def update_field(self, uid: str, body: Mapping):
+    def update_field(self, uid: str, body: Mapping) -> Mapping:
         """Posts an update to an existing table field."""
-        self._api("put", f"/api/field/{uid}", json=body)
+        return dict(self._api("put", f"/api/field/{uid}", json=body))

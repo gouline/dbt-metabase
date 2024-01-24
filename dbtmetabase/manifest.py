@@ -73,7 +73,7 @@ class Manifest:
 
             name = node["name"].upper()
             if node["config"]["materialized"] == "ephemeral":
-                _logger.debug("Skipping ephemeral model %s", name)
+                _logger.debug("Skipping ephemeral model '%s'", name)
                 continue
 
             models.append(self._read_model(manifest, node, Group.nodes))
@@ -174,7 +174,7 @@ class Manifest:
                 depends_on_nodes = list(child["depends_on"][group])
                 if len(depends_on_nodes) > 2:
                     _logger.warning(
-                        "Expected at most two nodes, got %d {} nodes, skipping %s {}",
+                        "Got %d dependencies for '%s' instead of <=2, skipping relationship",
                         len(depends_on_nodes),
                         unique_id,
                     )
@@ -184,7 +184,7 @@ class Manifest:
                 # Otherwise, the primary key of the current model would be (incorrectly) determined to be FK.
                 if len(depends_on_nodes) == 2 and depends_on_nodes[1] != unique_id:
                     _logger.debug(
-                        "Skip this incoming relationship test, concerning nodes %s",
+                        "Circular dependency in '%s', skipping relationship",
                         depends_on_nodes,
                     )
                     continue
@@ -195,7 +195,7 @@ class Manifest:
 
                 if len(depends_on_nodes) != 1:
                     _logger.warning(
-                        "Expected single node after filtering, got %d instead, skipping %s",
+                        "Got %d dependencies for '%s' instead of 1, skipping",
                         len(depends_on_nodes),
                         unique_id,
                     )
@@ -209,10 +209,7 @@ class Manifest:
                 )
 
                 if not fk_target_table_alias:
-                    _logger.debug(
-                        "Cannot resolve depends on model %s to a model in manifest",
-                        depends_on_id,
-                    )
+                    _logger.debug("Cannot resolve dependency for '%s'", depends_on_id)
                     continue
 
                 fk_target_schema = manifest[group][depends_on_id].get(
@@ -252,7 +249,7 @@ class Manifest:
         if not table or not field:
             if table or field:
                 _logger.warning(
-                    "FK requires table and field for column %s",
+                    "Foreign key requires table and field for column '%s'",
                     metabase_column.name,
                 )
             return
@@ -267,7 +264,7 @@ class Manifest:
         )
         metabase_column.fk_target_field = field.strip('"').upper()
         _logger.debug(
-            "Relation from %s to %s.%s",
+            "Relation from '%s' to '%s.%s'",
             metabase_column.name,
             metabase_column.fk_target_table,
             metabase_column.fk_target_field,
