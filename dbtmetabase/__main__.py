@@ -67,8 +67,12 @@ def cli(ctx: click.Context, config_path: str):
     if config_path_expanded.exists():
         with open(config_path_expanded, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f).get("config", {})
-            # Propagate root configs to all commands
-            ctx.default_map = {command: config for command in group.commands}
+            # Propagate common configs to all commands
+            common = {k: v for k, v in config.items() if k not in group.commands}
+            ctx.default_map = {
+                command: {**common, **config.get(command, {})}
+                for command in group.commands
+            }
 
 
 def _add_setup(func: Callable) -> Callable:
