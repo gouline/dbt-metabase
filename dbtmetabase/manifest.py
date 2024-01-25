@@ -184,8 +184,9 @@ class Manifest:
                 # Otherwise, the primary key of the current model would be (incorrectly) determined to be FK.
                 if len(depends_on_nodes) == 2 and depends_on_nodes[1] != unique_id:
                     _logger.debug(
-                        "Circular dependency in '%s', skipping relationship",
-                        depends_on_nodes,
+                        "Circular dependency '%s' for '%s', skipping relationship",
+                        depends_on_nodes[1],
+                        unique_id,
                     )
                     continue
 

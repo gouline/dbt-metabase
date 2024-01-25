@@ -224,37 +224,26 @@ class ModelsMixin(metaclass=ABCMeta):
         if column.semantic_type == "type/FK":
             # Target table could be aliased if we parse_ref() on a source, so we caught aliases during model parsing
             # This way we can unpack any alias mapped to fk_target_table when using yml project reader
-            target_table = (
-                column.fk_target_table.upper()
-                if column.fk_target_table is not None
-                else None
+            fk_target_table_name = (
+                column.fk_target_table.upper() if column.fk_target_table else None
             )
-            target_field = (
-                column.fk_target_field.upper()
-                if column.fk_target_field is not None
-                else None
+            fk_target_field_name = (
+                column.fk_target_field.upper() if column.fk_target_field else None
             )
 
-            if not target_table or not target_field:
-                _logger.info(
-                    "Field '%s' not resolved in manifest, skipping foreign key for table '%s'",
-                    target_field,
-                    table_key,
-                )
-
-            else:
-                _logger.debug(
-                    "Looking for field '%s' in table '%s'", target_field, target_table
-                )
+            if fk_target_table_name and fk_target_field_name:
                 fk_target_field = (
-                    ctx.tables.get(target_table, {}).get("fields", {}).get(target_field)
+                    ctx.tables.get(fk_target_table_name, {})
+                    .get("fields", {})
+                    .get(fk_target_field_name)
                 )
                 if fk_target_field:
-                    fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         _logger.info(
-                            "Setting field '%s' as primary key for field '%s'",
-                            fk_target_field_id,
+                            "Field '%s.%s' will be updated as primary key for foreign key '%s.%s'",
+                            fk_target_table_name,
+                            fk_target_field_name,
+                            table_key,
                             column_name,
                         )
                         ctx.update(
@@ -263,11 +252,21 @@ class ModelsMixin(metaclass=ABCMeta):
                         )
                 else:
                     _logger.error(
-                        "No primary key for field '%s.%s' foreign key",
-                        target_table,
-                        target_field,
+                        "Field '%s.%s' referenced as foreign key '%s.%s' not found",
+                        fk_target_table_name,
+                        fk_target_field_name,
+                        table_key,
+                        column_name,
                     )
                     success = False
+            else:
+                _logger.info(
+                    "Field '%s.%s' referenced as foreign key '%s.%s' is invalid",
+                    fk_target_table_name,
+                    fk_target_field_name,
+                    table_key,
+                    column_name,
+                )
 
         # Empty strings not accepted by Metabase
         column_description = column.description or None
