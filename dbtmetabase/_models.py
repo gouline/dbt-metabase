@@ -209,6 +209,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
         table_key = f"{schema_name}.{model_name}"
         column_name = column.name.upper()
+        column_label = f"{schema_name}.{model_name}.{column_name}"
 
         api_field = ctx.tables.get(table_key, {}).get("fields", {}).get(column_name)
         if not api_field:
@@ -231,7 +232,6 @@ class ModelsMixin(metaclass=ABCMeta):
                 column.fk_target_field.upper() if column.fk_target_field else None
             )
             fk_target_field_label = f"{fk_target_table_name}.{fk_target_field_name}"
-            column_label = f"{table_key}.{column_name}"
 
             if fk_target_table_name and fk_target_field_name:
                 fk_target_field = (
@@ -240,6 +240,7 @@ class ModelsMixin(metaclass=ABCMeta):
                     .get(fk_target_field_name)
                 )
                 if fk_target_field:
+                    fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         _logger.info(
                             "Field '%s' will be updated as primary key for foreign key '%s'",
@@ -315,7 +316,6 @@ class ModelsMixin(metaclass=ABCMeta):
         ):
             body_field[semantic_type_key] = column.semantic_type or None
 
-        column_label = f"{schema_name}.{model_name}.{column_name}"
         if body_field:
             ctx.update(entity=api_field, change=body_field, label=column_label)
             _logger.info(
