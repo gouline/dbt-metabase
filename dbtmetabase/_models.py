@@ -130,7 +130,7 @@ class ModelsMixin(metaclass=ABCMeta):
             _logger.info(
                 "%s '%s' updated successfully: %s",
                 update["kind"].capitalize(),
-                update["name"],
+                update["label"],
                 ", ".join(update.get("body", {})),
             )
 
@@ -184,7 +184,7 @@ class ModelsMixin(metaclass=ABCMeta):
             body_table["visibility_type"] = model_visibility
 
         if body_table:
-            ctx.update(entity=api_table, change=body_table, name=table_key)
+            ctx.update(entity=api_table, change=body_table, label=table_key)
             _logger.info(
                 "Table '%s' will be updated: %s", table_key, ", ".join(body_table)
             )
@@ -230,6 +230,8 @@ class ModelsMixin(metaclass=ABCMeta):
             fk_target_field_name = (
                 column.fk_target_field.upper() if column.fk_target_field else None
             )
+            fk_target_field_label = f"{fk_target_table_name}.{fk_target_field_name}"
+            column_label = f"{table_key}.{column_name}"
 
             if fk_target_table_name and fk_target_field_name:
                 fk_target_field = (
@@ -240,32 +242,27 @@ class ModelsMixin(metaclass=ABCMeta):
                 if fk_target_field:
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         _logger.info(
-                            "Field '%s.%s' will be updated as primary key for foreign key '%s.%s'",
-                            fk_target_table_name,
-                            fk_target_field_name,
-                            table_key,
-                            column_name,
+                            "Field '%s' will be updated as primary key for foreign key '%s'",
+                            fk_target_field_label,
+                            column_label,
                         )
                         ctx.update(
                             entity=fk_target_field,
                             change={semantic_type_key: "type/PK"},
+                            label=fk_target_field_label,
                         )
                 else:
                     _logger.error(
-                        "Field '%s.%s' referenced as foreign key '%s.%s' not found",
-                        fk_target_table_name,
-                        fk_target_field_name,
-                        table_key,
-                        column_name,
+                        "Field '%s' referenced as foreign key '%s' not found",
+                        fk_target_field_label,
+                        column_label,
                     )
                     success = False
             else:
                 _logger.info(
-                    "Field '%s.%s' referenced as foreign key '%s.%s' is invalid",
-                    fk_target_table_name,
-                    fk_target_field_name,
-                    table_key,
-                    column_name,
+                    "Field '%s' referenced as foreign key '%s' is invalid",
+                    fk_target_field_label,
+                    column_label,
                 )
 
         # Empty strings not accepted by Metabase
@@ -318,14 +315,14 @@ class ModelsMixin(metaclass=ABCMeta):
         ):
             body_field[semantic_type_key] = column.semantic_type or None
 
-        update_name = f"{schema_name}.{model_name}.{column_name}"
+        column_label = f"{schema_name}.{model_name}.{column_name}"
         if body_field:
-            ctx.update(entity=api_field, change=body_field, name=update_name)
+            ctx.update(entity=api_field, change=body_field, label=column_label)
             _logger.info(
-                "Field '%s' will be updated: %s", update_name, ", ".join(body_field)
+                "Field '%s' will be updated: %s", column_label, ", ".join(body_field)
             )
         else:
-            _logger.info("Field '%s' is up to date", update_name)
+            _logger.info("Field '%s' is up to date", column_label)
 
         return success
 
@@ -383,19 +380,14 @@ class ModelsMixin(metaclass=ABCMeta):
         tables: Mapping[str, MutableMapping] = dc.field(default_factory=dict)
         updates: MutableMapping[str, MutableMapping] = dc.field(default_factory=dict)
 
-        def update(
-            self,
-            entity: MutableMapping,
-            change: Mapping,
-            name: Optional[str] = None,
-        ):
+        def update(self, entity: MutableMapping, change: Mapping, label: str):
             entity.update(change)
 
             key = f"{entity['kind']}.{entity['id']}"
             update = self.updates.get(key, {})
             update["kind"] = entity["kind"]
             update["id"] = entity["id"]
-            update["name"] = name or entity["id"]
+            update["label"] = label
 
             body = update.get("body", {})
             body.update(change)
