@@ -30,6 +30,7 @@ class TestFormat(unittest.TestCase):
     def test_null_value(self):
         self.assertIsNotNone(NullValue)
         self.assertFalse(NullValue)
+        self.assertIs(NullValue, NullValue)
 
     def test_safe_name(self):
         self.assertEqual(
