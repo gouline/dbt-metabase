@@ -24,6 +24,8 @@ class TestFormat(unittest.TestCase):
                 exclude=("alpha",),
             ).match("Alpha")
         )
+        self.assertTrue(Filter(include="alpha").match("Alpha"))
+        self.assertFalse(Filter(exclude="alpha").match("Alpha"))
 
     def test_null_value(self):
         self.assertIsNotNone(NullValue)

@@ -319,7 +319,7 @@ class ModelsMixin(metaclass=ABCMeta):
         ):
             body_field[semantic_type_key] = column.semantic_type or None
 
-        update_name = f"{model_name}.{column_name}"
+        update_name = f"{schema_name}.{model_name}.{column_name}"
         if body_field:
             ctx.update(entity=api_field, change=body_field, name=update_name)
             _logger.info(

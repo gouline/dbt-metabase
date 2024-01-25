@@ -24,17 +24,23 @@ class Filter:
             include (Optional[Sequence[str]], optional): Optional inclusions (i.e. include only these). Defaults to None.
             exclude (Optional[Sequence[str]], optional): Optional exclusion list (i.e. exclude these, even if in inclusion list). Defaults to None.
         """
-        self.include = [self._norm(x) for x in include or []]
-        self.exclude = [self._norm(x) for x in exclude or []]
+        self.include = self._norm_arg(include)
+        self.exclude = self._norm_arg(exclude)
 
     def match(self, item: str) -> bool:
-        item = self._norm(item)
+        item = self._norm_item(item)
         included = not self.include or item in self.include
         excluded = self.exclude and item in self.exclude
         return included and not excluded
 
     @staticmethod
-    def _norm(x: str) -> str:
+    def _norm_arg(arg: Optional[Sequence[str]]) -> Sequence[str]:
+        if isinstance(arg, str):
+            arg = [arg]
+        return [Filter._norm_item(x) for x in arg or []]
+
+    @staticmethod
+    def _norm_item(x: str) -> str:
         return x.upper()
 
 
