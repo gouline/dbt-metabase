@@ -158,9 +158,8 @@ class Manifest:
         relationships = {}
 
         for child_id in manifest["child_map"][unique_id]:
-            child = {}
-            if manifest[group]:
-                child = manifest[group].get(child_id, {})
+            child = manifest.get(group, {}).get(child_id, {})
+            child_name = child.get("alias", child.get("name"))
 
             if (
                 child.get("resource_type") == "test"
@@ -172,11 +171,33 @@ class Manifest:
 
                 # Nodes contain at most two tables: referenced model and current model (optional).
                 depends_on_nodes = list(child["depends_on"][group])
+
+                # Relationships on disabled models mention them in refs but not depends_on,
+                # which confuses the filtering logic that follows.
+                depends_on_names = {n.split(".")[-1].lower() for n in depends_on_nodes}
+                mismatched_refs = []
+                for ref in child["refs"]:
+                    ref_name = ""
+                    if isinstance(ref, dict):  # current manifest
+                        ref_name = ref["name"]
+                    elif isinstance(ref, list):  # old manifest
+                        ref_name = ref[0]
+                    if ref_name.lower() not in depends_on_names:
+                        mismatched_refs.append(ref_name)
+
+                if mismatched_refs:
+                    _logger.debug(
+                        "Mismatched refs %s with depends_on for relationship '%s', skipping",
+                        mismatched_refs,
+                        child_name,
+                    )
+                    continue
+
                 if len(depends_on_nodes) > 2:
                     _logger.warning(
-                        "Got %d dependencies for '%s' instead of <=2, skipping relationship",
+                        "Unexpected %d depends_on for relationship '%s' instead of <=2, skipping",
                         len(depends_on_nodes),
-                        unique_id,
+                        child_name,
                     )
                     continue
 
@@ -184,9 +205,9 @@ class Manifest:
                 # Otherwise, the primary key of the current model would be (incorrectly) determined to be FK.
                 if len(depends_on_nodes) == 2 and depends_on_nodes[1] != unique_id:
                     _logger.debug(
-                        "Circular dependency '%s' for '%s', skipping relationship",
+                        "Circular dependency '%s' for relationship '%s', skipping",
                         depends_on_nodes[1],
-                        unique_id,
+                        child_name,
                     )
                     continue
 
@@ -204,22 +225,23 @@ class Manifest:
 
                 depends_on_id = depends_on_nodes[0]
 
-                fk_model = manifest[group].get(depends_on_id, {})
-                fk_target_table_alias = fk_model.get(
-                    "alias", fk_model.get("identifier", fk_model.get("name"))
+                fk_target_model = manifest[group].get(depends_on_id, {})
+                fk_target_table = fk_target_model.get(
+                    "alias",
+                    fk_target_model.get("identifier", fk_target_model.get("name")),
                 )
-
-                if not fk_target_table_alias:
+                if not fk_target_table:
                     _logger.debug("Cannot resolve dependency for '%s'", depends_on_id)
                     continue
 
                 fk_target_schema = manifest[group][depends_on_id].get(
                     "schema", DEFAULT_SCHEMA
                 )
+                fk_target_table = f"{fk_target_schema}.{fk_target_table}"
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
 
                 relationships[child["column_name"]] = {
-                    "fk_target_table": f"{fk_target_schema}.{fk_target_table_alias}",
+                    "fk_target_table": fk_target_table,
                     "fk_target_field": fk_target_field,
                 }
 
