@@ -77,6 +77,8 @@ sandbox-models:
 		--metabase-username $$MB_USER \
 		--metabase-password $$MB_PASSWORD \
 		--metabase-database $$POSTGRES_DB \
+		--include-schemas "public",other \
+		--http-header x-dummy-key dummy-value \
 		--verbose )
 .PHONY: sandbox-models
 

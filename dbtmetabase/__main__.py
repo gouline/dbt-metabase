@@ -1,7 +1,7 @@
 import functools
 import logging
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import click
 import yaml
@@ -34,9 +34,9 @@ def _click_list_option_kwargs() -> Mapping[str, Any]:
             # Lists in defaults (config or option) should be lists
             return value
 
-        elif isinstance(value, str):
+        if isinstance(value, str):
             str_value = value
-        if isinstance(value, list):
+        elif isinstance(value, list):
             # When type=list, string value will be a list of chars
             str_value = "".join(value)
         else:
@@ -144,6 +144,13 @@ def _add_setup(func: Callable) -> Callable:
         help="HTTP timeout in seconds.",
     )
     @click.option(
+        "--http-header",
+        "http_headers",
+        type=(str, str),
+        multiple=True,
+        help="Additional HTTP request headers.",
+    )
+    @click.option(
         "-v",
         "--verbose",
         is_flag=True,
@@ -159,6 +166,7 @@ def _add_setup(func: Callable) -> Callable:
         skip_verify: bool,
         cert: Optional[str],
         http_timeout: int,
+        http_headers: Sequence[Tuple[str, str]],
         verbose: bool,
         **kwargs,
     ):
@@ -177,6 +185,7 @@ def _add_setup(func: Callable) -> Callable:
                 skip_verify=skip_verify,
                 cert=cert,
                 http_timeout=http_timeout,
+                http_headers={k: v for k, v in http_headers},
             ),
             **kwargs,
         )
