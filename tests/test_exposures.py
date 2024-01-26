@@ -1,16 +1,15 @@
-# pylint: disable=protected-access,no-member
-
+import unittest
 from operator import itemgetter
 from pathlib import Path
 
 import yaml
 
-from ._core import FIXTURES_PATH, TMP_PATH, TestCore
+from ._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
 
 
-class TestExposures(TestCore):
+class TestExposures(unittest.TestCase):
     def setUp(self):
-        super().setUp()
+        self.c = MockDbtMetabase()
         TMP_PATH.mkdir(exist_ok=True)
 
     def _assert_exposures(self, expected_path: Path, actual_path: Path):
