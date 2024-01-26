@@ -55,11 +55,11 @@ class Manifest:
 
         self.path = Path(path).expanduser()
 
-    def read_models(self) -> Iterable[Model]:
+    def read_models(self) -> Sequence[Model]:
         """Reads dbt models in Metabase-friendly format.
 
         Returns:
-            Iterable[Model]: List of dbt models in Metabase-friendly format.
+            Sequence[Model]: List of dbt models in Metabase-friendly format.
         """
 
         with open(self.path, "r", encoding="utf-8") as f:
@@ -71,7 +71,7 @@ class Manifest:
             if node["resource_type"] != "model":
                 continue
 
-            name = node["name"].upper()
+            name = node["name"]
             if node["config"]["materialized"] == "ephemeral":
                 _logger.debug("Skipping ephemeral model '%s'", name)
                 continue
@@ -91,33 +91,35 @@ class Manifest:
     def _read_model(
         self,
         manifest: Mapping,
-        model: Mapping,
+        manifest_model: Mapping,
         group: Group,
         source: Optional[str] = None,
     ) -> Model:
-        database = model["database"].upper()
-        schema = model["schema"].upper()
-        unique_id = model["unique_id"]
+        database = manifest_model["database"]
+        schema = manifest_model["schema"]
+        unique_id = manifest_model["unique_id"]
 
         relationships = self._read_relationships(manifest, group, unique_id)
 
-        metabase_columns = [
+        columns = [
             self._read_column(column, schema, relationships.get(column["name"]))
-            for column in model.get("columns", {}).values()
+            for column in manifest_model.get("columns", {}).values()
         ]
 
         return Model(
             database=database,
             schema=schema,
             group=group,
-            name=model.get("alias", model.get("identifier", model["name"])),
-            description=model.get("description"),
-            columns=metabase_columns,
+            name=manifest_model.get(
+                "alias", manifest_model.get("identifier", manifest_model["name"])
+            ),
+            description=manifest_model.get("description"),
+            columns=columns,
             unique_id=unique_id,
             source=source,
-            tags=model.get("tags", []),
+            tags=manifest_model.get("tags", []),
             **self._scan_fields(
-                model.get("meta", {}),
+                manifest_model.get("meta", {}),
                 fields=_MODEL_META_FIELDS,
                 ns=_META_NS,
             ),
@@ -125,29 +127,29 @@ class Manifest:
 
     def _read_column(
         self,
-        column: Mapping,
+        manifest_column: Mapping,
         schema: str,
         relationship: Optional[Mapping],
     ) -> Column:
-        metabase_column = Column(
-            name=column.get("name", "").upper().strip('"'),
-            description=column.get("description"),
+        column = Column(
+            name=manifest_column.get("name", ""),
+            description=manifest_column.get("description"),
             **self._scan_fields(
-                column.get("meta", {}),
+                manifest_column.get("meta", {}),
                 fields=_COLUMN_META_FIELDS,
                 ns=_META_NS,
             ),
         )
 
         self._set_column_fk(
+            manifest_column=manifest_column,
             column=column,
-            metabase_column=metabase_column,
             table=relationship["fk_target_table"] if relationship else None,
             field=relationship["fk_target_field"] if relationship else None,
             schema=schema,
         )
 
-        return metabase_column
+        return column
 
     def _read_relationships(
         self,
@@ -174,7 +176,7 @@ class Manifest:
 
                 # Relationships on disabled models mention them in refs but not depends_on,
                 # which confuses the filtering logic that follows.
-                depends_on_names = {n.split(".")[-1].lower() for n in depends_on_nodes}
+                depends_on_names = {n.split(".")[-1] for n in depends_on_nodes}
                 mismatched_refs = []
                 for ref in child["refs"]:
                     ref_name = ""
@@ -182,7 +184,7 @@ class Manifest:
                         ref_name = ref["name"]
                     elif isinstance(ref, list):  # old manifest
                         ref_name = ref[0]
-                    if ref_name.lower() not in depends_on_names:
+                    if ref_name not in depends_on_names:
                         mismatched_refs.append(ref_name)
 
                 if mismatched_refs:
@@ -249,8 +251,8 @@ class Manifest:
 
     def _set_column_fk(
         self,
-        column: Mapping,
-        metabase_column: Column,
+        manifest_column: Mapping,
+        column: Column,
         table: Optional[str],
         field: Optional[str],
         schema: Optional[str],
@@ -258,14 +260,14 @@ class Manifest:
         """Sets foreign key target on a column.
 
         Args:
-            column (Mapping): Schema column definition.
-            metabase_column (Column): Metabase column definition.
+            manifest_column (Mapping): Schema column definition.
+            column (Column): Metabase column definition.
             table (str): Foreign key target table.
             field (str): Foreign key target field.
             schema (str): Current schema name.
         """
         # Meta fields take precedence
-        meta = column.get("meta", {})
+        meta = manifest_column.get("meta", {})
         table = meta.get(f"{_META_NS}.fk_target_table", table)
         field = meta.get(f"{_META_NS}.fk_target_field", field)
 
@@ -273,7 +275,7 @@ class Manifest:
             if table or field:
                 _logger.warning(
                     "Foreign key requires table and field for column '%s'",
-                    metabase_column.name,
+                    column.name,
                 )
             return
 
@@ -281,16 +283,14 @@ class Manifest:
         if len(table_path) == 1 and schema:
             table_path.insert(0, schema)
 
-        metabase_column.semantic_type = "type/FK"
-        metabase_column.fk_target_table = ".".join(
-            [x.strip('"').upper() for x in table_path]
-        )
-        metabase_column.fk_target_field = field.strip('"').upper()
+        column.semantic_type = "type/FK"
+        column.fk_target_table = ".".join([x.strip('"') for x in table_path])
+        column.fk_target_field = field.strip('"')
         _logger.debug(
             "Relation from '%s' to '%s.%s'",
-            metabase_column.name,
-            metabase_column.fk_target_table,
-            metabase_column.fk_target_field,
+            column.name,
+            column.fk_target_table,
+            column.fk_target_field,
         )
 
     @staticmethod
@@ -351,7 +351,7 @@ class Model:
 
     unique_id: Optional[str] = None
     source: Optional[str] = None
-    tags: Optional[Sequence[str]] = None
+    tags: Optional[Sequence[str]] = dc.field(default_factory=list)
 
     columns: Sequence[Column] = dc.field(default_factory=list)
 

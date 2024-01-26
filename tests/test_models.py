@@ -1,11 +1,13 @@
 # pylint: disable=protected-access,no-member
 
-from ._core import TestCore
+import unittest
+
+from ._mocks import MockDbtMetabase
 
 
-class TestModels(TestCore):
+class TestModels(unittest.TestCase):
     def setUp(self):
-        super().setUp()
+        self.c = MockDbtMetabase()
         self.c._ModelsMixin__SYNC_PERIOD = 1  # type: ignore
 
     def test_export(self):
