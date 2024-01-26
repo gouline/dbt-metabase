@@ -34,9 +34,9 @@ def _click_list_option_kwargs() -> Mapping[str, Any]:
             # Lists in defaults (config or option) should be lists
             return value
 
-        elif isinstance(value, str):
+        if isinstance(value, str):
             str_value = value
-        if isinstance(value, list):
+        elif isinstance(value, list):
             # When type=list, string value will be a list of chars
             str_value = "".join(value)
         else:
