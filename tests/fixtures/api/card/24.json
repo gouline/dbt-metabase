@@ -1,0 +1,485 @@
+{
+    "description": null,
+    "archived": false,
+    "collection_position": null,
+    "table_id": 10,
+    "result_metadata": [
+        {
+            "description": "This is a unique identifier for an order",
+            "semantic_type": null,
+            "coercion_strategy": null,
+            "name": "order_id",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                47,
+                null
+            ],
+            "effective_type": "type/Integer",
+            "id": 47,
+            "visibility_type": "normal",
+            "display_name": "Order ID",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 99,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1,
+                        "q1": 25.25,
+                        "q3": 74.75,
+                        "max": 99,
+                        "sd": 28.719704534890823,
+                        "avg": 50
+                    }
+                }
+            },
+            "base_type": "type/Integer"
+        },
+        {
+            "description": "Foreign key to the customers table",
+            "semantic_type": "type/FK",
+            "coercion_strategy": null,
+            "name": "customer_id",
+            "settings": null,
+            "fk_target_field_id": 87,
+            "field_ref": [
+                "field",
+                84,
+                null
+            ],
+            "effective_type": "type/Integer",
+            "id": 84,
+            "visibility_type": "normal",
+            "display_name": "Customer ID",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 62,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1,
+                        "q1": 25.875,
+                        "q3": 69.625,
+                        "max": 99,
+                        "sd": 27.781341350472964,
+                        "avg": 48.25252525252525
+                    }
+                }
+            },
+            "base_type": "type/Integer"
+        },
+        {
+            "description": "Date (UTC) that the order was placed",
+            "semantic_type": null,
+            "coercion_strategy": null,
+            "unit": "default",
+            "name": "order_date",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                82,
+                {
+                    "temporal-unit": "default"
+                }
+            ],
+            "effective_type": "type/Date",
+            "id": 82,
+            "visibility_type": "normal",
+            "display_name": "Order Date",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 69,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/DateTime": {
+                        "earliest": "2018-01-01",
+                        "latest": "2018-04-09"
+                    }
+                }
+            },
+            "base_type": "type/Date"
+        },
+        {
+            "description": null,
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "status",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                78,
+                null
+            ],
+            "effective_type": "type/Text",
+            "id": 78,
+            "visibility_type": "normal",
+            "display_name": "Status",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 5,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Text": {
+                        "percent-json": 0,
+                        "percent-url": 0,
+                        "percent-email": 0,
+                        "percent-state": 0,
+                        "average-length": 8.404040404040405
+                    }
+                }
+            },
+            "base_type": "type/Text"
+        },
+        {
+            "description": "Amount of the order (AUD) paid for by credit card",
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "credit_card_amount",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                76,
+                null
+            ],
+            "effective_type": "type/BigInteger",
+            "id": 76,
+            "visibility_type": "normal",
+            "display_name": "Credit Card Amount",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 25,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 18.797054997187544,
+                        "max": 30,
+                        "sd": 10.959088854927673,
+                        "avg": 8.797979797979798
+                    }
+                }
+            },
+            "base_type": "type/BigInteger"
+        },
+        {
+            "description": "Amount of the order (AUD) paid for by coupon",
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "coupon_amount",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                83,
+                null
+            ],
+            "effective_type": "type/BigInteger",
+            "id": 83,
+            "visibility_type": "normal",
+            "display_name": "Coupon Amount",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 12,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 0.4747603274810728,
+                        "max": 26,
+                        "sd": 5.955012405351229,
+                        "avg": 1.8686868686868687
+                    }
+                }
+            },
+            "base_type": "type/BigInteger"
+        },
+        {
+            "description": "Amount of the order (AUD) paid for by bank transfer",
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "bank_transfer_amount",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                81,
+                null
+            ],
+            "effective_type": "type/BigInteger",
+            "id": 81,
+            "visibility_type": "normal",
+            "display_name": "Bank Transfer Amount",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 19,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 4.75,
+                        "max": 26,
+                        "sd": 7.420825132023675,
+                        "avg": 4.151515151515151
+                    }
+                }
+            },
+            "base_type": "type/BigInteger"
+        },
+        {
+            "description": "Amount of the order (AUD) paid for by gift card",
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "gift_card_amount",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                77,
+                null
+            ],
+            "effective_type": "type/BigInteger",
+            "id": 77,
+            "visibility_type": "normal",
+            "display_name": "Gift Card Amount",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 11,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 1.3692088763283736,
+                        "max": 30,
+                        "sd": 6.392362351566517,
+                        "avg": 2.0707070707070705
+                    }
+                }
+            },
+            "base_type": "type/BigInteger"
+        },
+        {
+            "description": "Total amount (AUD) of the order",
+            "semantic_type": null,
+            "coercion_strategy": null,
+            "name": "amount",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                80,
+                null
+            ],
+            "effective_type": "type/BigInteger",
+            "id": 80,
+            "visibility_type": "normal",
+            "display_name": "Amount",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 32,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 8.202945002812456,
+                        "q3": 24.26138721247417,
+                        "max": 58,
+                        "sd": 10.736062525374601,
+                        "avg": 16.88888888888889
+                    }
+                }
+            },
+            "base_type": "type/BigInteger"
+        },
+        {
+            "description": null,
+            "semantic_type": null,
+            "coercion_strategy": null,
+            "name": "customer_id_2",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                93,
+                null
+            ],
+            "effective_type": "type/Integer",
+            "id": 93,
+            "visibility_type": "normal",
+            "display_name": "Stg Customers - Customer → Customer ID",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 100,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1,
+                        "q1": 25.5,
+                        "q3": 75.5,
+                        "max": 100,
+                        "sd": 29.008358252146028,
+                        "avg": 50.5
+                    }
+                }
+            },
+            "base_type": "type/Integer"
+        },
+        {
+            "description": null,
+            "semantic_type": "type/Name",
+            "coercion_strategy": null,
+            "name": "first_name",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                94,
+                null
+            ],
+            "effective_type": "type/Text",
+            "id": 94,
+            "visibility_type": "normal",
+            "display_name": "Stg Customers - Customer → First Name",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 47,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Text": {
+                        "percent-json": 0,
+                        "percent-url": 0,
+                        "percent-email": 0,
+                        "percent-state": 0.02,
+                        "average-length": 5.86
+                    }
+                }
+            },
+            "base_type": "type/Text"
+        },
+        {
+            "description": null,
+            "semantic_type": "type/Name",
+            "coercion_strategy": null,
+            "name": "last_name",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                92,
+                null
+            ],
+            "effective_type": "type/Text",
+            "id": 92,
+            "visibility_type": "normal",
+            "display_name": "Stg Customers - Customer → Last Name",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 19,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Text": {
+                        "percent-json": 0,
+                        "percent-url": 0,
+                        "percent-email": 0,
+                        "percent-state": 0,
+                        "average-length": 2
+                    }
+                }
+            },
+            "base_type": "type/Text"
+        }
+    ],
+    "creator": {
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_login": "2024-01-26T23:35:13.524402",
+        "is_qbnewb": true,
+        "is_superuser": true,
+        "id": 1,
+        "last_name": null,
+        "date_joined": "2024-01-26T23:29:30.885378",
+        "common_name": "dbtmetabase"
+    },
+    "can_write": true,
+    "database_id": 2,
+    "enable_embedding": false,
+    "collection_id": null,
+    "query_type": "query",
+    "name": "Orders Customers Filtered",
+    "last_query_start": null,
+    "dashboard_count": 0,
+    "average_query_time": null,
+    "creator_id": 1,
+    "moderation_reviews": [],
+    "updated_at": "2024-01-26T23:35:08.864176Z",
+    "made_public_by_id": null,
+    "embedding_params": null,
+    "cache_ttl": null,
+    "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+            "source-table": "card__3",
+            "filter": [
+                "not-null",
+                [
+                    "field",
+                    47,
+                    {
+                        "base-type": "type/Integer"
+                    }
+                ]
+            ]
+        }
+    },
+    "id": 24,
+    "parameter_mappings": [],
+    "display": "table",
+    "entity_id": "OLbf7Q2yHWOn6CGvptTpi",
+    "collection_preview": true,
+    "last-edit-info": {
+        "id": 1,
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_name": null,
+        "timestamp": "2024-01-26T23:35:08.900746Z"
+    },
+    "visualization_settings": {
+        "table.pivot_column": "status",
+        "table.cell_column": "order_id"
+    },
+    "collection": {
+        "metabase.models.collection.root/is-root?": true,
+        "authority_level": null,
+        "name": "Our analytics",
+        "is_personal": false,
+        "id": "root",
+        "can_write": true
+    },
+    "metabase_version": "v0.48.0 (f985e19)",
+    "parameters": [],
+    "dataset": false,
+    "created_at": "2024-01-26T23:35:08.864176",
+    "parameter_usage_count": 0,
+    "public_uuid": null
+}
