@@ -196,7 +196,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 depends += self.__extract_card_exposures(
                     ctx,
                     card=self.metabase.get_card(uid=query_source.split("__")[-1]),
-                )["models"]
+                )["depends"]
             elif query_source in ctx.table_names:
                 # Normal question
                 source_table = ctx.table_names.get(query_source)
@@ -212,7 +212,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     depends += self.__extract_card_exposures(
                         ctx,
                         card=self.metabase.get_card(uid=join_source.split("__")[-1]),
-                    )["models"]
+                    )["depends"]
                     continue
 
                 # Joined model parsed

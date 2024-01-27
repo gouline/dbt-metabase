@@ -44,5 +44,21 @@
         },
         "favorite": false,
         "model": "card"
+    },
+    {
+        "description": null,
+        "collection_position": null,
+        "name": "Orders Customers Filtered",
+        "id": 24,
+        "display": "table",
+        "last-edit-info": {
+            "id": 1,
+            "last_name": "",
+            "first_name": "dbtmetabase",
+            "email": "user@example.com",
+            "timestamp": "2024-01-21T08:01:37.449936Z"
+        },
+        "favorite": false,
+        "model": "card"
     }
 ]
