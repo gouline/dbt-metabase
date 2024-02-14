@@ -18,13 +18,13 @@ Requires Python 3.8 or above.
 
 You can install dbt-metabase from [PyPI](https://pypi.org/project/dbt-metabase/):
 
-```shell
+```
 pip install dbt-metabase
 ```
 
 Sections below demonstrate basic usage examples, for all CLI options:
 
-```shell
+```
 dbt-metabase --help
 ```
 
@@ -77,7 +77,7 @@ models:
 
 This is already enough to propagate the primary keys, foreign keys and descriptions to Metabase:
 
-```shell
+```
 dbt-metabase models \
     --manifest-path target/manifest.json \
     --metabase-url https://metabase.example.com \
@@ -204,7 +204,7 @@ If you have known discrepancies between dbt and Metabase and wish to proceed wit
 
 dbt-metabase allows you to extract questions and dashboards from Metabase as [dbt exposures](https://docs.getdbt.com/docs/building-a-dbt-project/exposures) in your project:
 
-```shell
+```
 dbt-metabase exposures \
     --manifest-path ./target/manifest.json \
     --metabase-url https://metabase.example.com \
@@ -300,7 +300,3 @@ c.extract_exposures(
 ```
 
 See function header comments for information about other parameters.
-
-## Code of Conduct
-
-All contributors are expected to follow the [PSF Code of Conduct](https://www.python.org/psf/conduct/).
