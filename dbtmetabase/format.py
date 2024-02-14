@@ -142,4 +142,4 @@ def safe_description(text: Optional[str]) -> str:
     Returns:
         str: Sanitized string with escaped Jinja syntax.
     """
-    return re.sub(r"{{(.*)}}", r"(\1)", text or "")
+    return re.sub(r"{{(.*?)}}", r"(\1)", text or "")
