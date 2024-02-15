@@ -56,6 +56,10 @@ class TestFormat(unittest.TestCase):
             "Depends on\n\nQuestion { #2 }!",
             safe_description("Depends on\n\nQuestion { #2 }!"),
         )
+        self.assertEqual(
+            "(start_date) - cast((rolling_days))",
+            safe_description("{{start_date}} - cast({{rolling_days}})"),
+        )
 
     def test_dump_yaml(self):
         path = Path("tests") / "tmp" / "test_dump_yaml.yml"
