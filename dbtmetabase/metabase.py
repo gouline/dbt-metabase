@@ -173,6 +173,10 @@ class Metabase:
         """Posts update to an existing table."""
         return dict(self._api("put", f"/api/table/{uid}", json=body))
 
+    def update_table_field_order(self, uid: str, body: Sequence) -> Sequence:
+        """Posts update to field order of an existing table."""
+        return list(self._api("put", f"/api/table/{uid}/fields/order", json=body))
+
     def update_field(self, uid: str, body: Mapping) -> Mapping:
         """Posts an update to an existing table field."""
         return dict(self._api("put", f"/api/field/{uid}", json=body))
