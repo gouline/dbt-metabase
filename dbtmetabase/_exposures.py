@@ -67,7 +67,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         models = self.manifest.read_models()
 
         ctx = self.__Context(
-            model_refs={m.name.upper(): m.ref for m in models if m.ref},
+            model_refs={m.name: m.ref for m in models if m.ref},
             table_names={t["id"]: t["name"] for t in self.metabase.get_tables()},
         )
 
@@ -89,7 +89,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 uid=collection["id"],
                 models=("card", "dashboard"),
             ):
-                depends = []
+                depends = set()
                 native_query = ""
                 header = ""
 
@@ -102,7 +102,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     )
 
                     result = self.__extract_card_exposures(ctx, card=entity)
-                    depends += result["depends"]
+                    depends.update(result["depends"])
                     native_query = result["native_query"]
 
                 elif item["model"] == "dashboard":
@@ -118,10 +118,12 @@ class ExposuresMixin(metaclass=ABCMeta):
                         if "id" not in card:
                             continue
 
-                        depends += self.__extract_card_exposures(
-                            ctx,
-                            card=self.metabase.get_card(uid=card["id"]),
-                        )["depends"]
+                        depends.update(
+                            self.__extract_card_exposures(
+                                ctx,
+                                card=self.metabase.get_card(uid=card["id"]),
+                            )["depends"]
+                        )
                 else:
                     _logger.warning("Unexpected collection item '%s'", item["model"])
                     continue
@@ -162,9 +164,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                             creator_email=creator_email or "",
                             native_query=native_query,
                             depends_on={
-                                ctx.model_refs[depend.upper()]
+                                ctx.model_refs[depend]
                                 for depend in depends
-                                if depend.upper() in ctx.model_refs
+                                if depend in ctx.model_refs
                             },
                         ),
                     }
@@ -181,7 +183,7 @@ class ExposuresMixin(metaclass=ABCMeta):
     ) -> Mapping:
         """Extracts exposures from Metabase questions."""
 
-        depends = []
+        depends = set()
         native_query = ""
 
         query = card.get("dataset_query", {})
@@ -193,15 +195,17 @@ class ExposuresMixin(metaclass=ABCMeta):
 
             if str(query_source).startswith("card__"):
                 # Handle questions based on other questions
-                depends += self.__extract_card_exposures(
-                    ctx,
-                    card=self.metabase.get_card(uid=query_source.split("__")[-1]),
-                )["depends"]
+                depends.update(
+                    self.__extract_card_exposures(
+                        ctx,
+                        card=self.metabase.get_card(uid=query_source.split("__")[-1]),
+                    )["depends"]
+                )
             elif query_source in ctx.table_names:
                 # Normal question
                 source_table = ctx.table_names.get(query_source)
                 _logger.info("Extracted model '%s' from card", source_table)
-                depends.append(source_table)
+                depends.add(source_table)
 
             # Find models exposed through joins
             for join in query.get("query", {}).get("joins", []):
@@ -209,17 +213,21 @@ class ExposuresMixin(metaclass=ABCMeta):
 
                 if str(join_source).startswith("card__"):
                     # Handle questions based on other questions
-                    depends += self.__extract_card_exposures(
-                        ctx,
-                        card=self.metabase.get_card(uid=join_source.split("__")[-1]),
-                    )["depends"]
+                    depends.update(
+                        self.__extract_card_exposures(
+                            ctx,
+                            card=self.metabase.get_card(
+                                uid=join_source.split("__")[-1]
+                            ),
+                        )["depends"]
+                    )
                     continue
 
                 # Joined model parsed
                 joined_table = ctx.table_names.get(join_source)
                 if joined_table:
                     _logger.info("Extracted model '%s' from join", joined_table)
-                    depends.append(joined_table)
+                    depends.add(joined_table)
 
         elif query.get("type") == "native":
             # Metabase native query
@@ -228,12 +236,12 @@ class ExposuresMixin(metaclass=ABCMeta):
 
             # Parse common table expressions for exclusion
             for matched_cte in re.findall(_CTE_PARSER, native_query):
-                ctes.extend(group.upper() for group in matched_cte if group)
+                ctes.extend(group.lower() for group in matched_cte if group)
 
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
                 # Grab just the table / model name
-                parsed_model = sql_ref.split(".")[-1].strip('"').upper()
+                parsed_model = sql_ref.split(".")[-1].strip('"').lower()
 
                 # Scrub CTEs (qualified sql_refs can not reference CTEs)
                 if parsed_model in ctes and "." not in sql_ref:
@@ -245,7 +253,7 @@ class ExposuresMixin(metaclass=ABCMeta):
 
                 if parsed_model:
                     _logger.info("Extracted model '%s' from native query", parsed_model)
-                    depends.append(parsed_model)
+                    depends.add(parsed_model)
 
         return {
             "depends": depends,

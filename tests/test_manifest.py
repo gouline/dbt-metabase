@@ -28,6 +28,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="customers",
+                    alias="customers",
                     description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
                     display_name="clients",
                     unique_id="model.sandbox.customers",
@@ -68,6 +69,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="orders",
+                    alias="orders",
                     description="This table has basic information about orders, as well as some derived facts based on payments",
                     points_of_interest="Basic information only",
                     caveats="Some facts are derived from payments",
@@ -119,6 +121,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="stg_customers",
+                    alias="stg_customers",
                     description="",
                     unique_id="model.sandbox.stg_customers",
                     columns=[
@@ -133,6 +136,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="stg_payments",
+                    alias="stg_payments",
                     description="",
                     unique_id="model.sandbox.stg_payments",
                     columns=[
@@ -151,6 +155,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="stg_orders",
+                    alias="stg_orders",
                     description="",
                     unique_id="model.sandbox.stg_orders",
                     columns=[
@@ -177,6 +182,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="orders",
+                    alias="orders",
                     description="This table has basic information about orders, as well as some derived facts based on payments",
                     unique_id="model.jaffle_shop.orders",
                     columns=[
@@ -226,6 +232,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="customers",
+                    alias="customers",
                     description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
                     unique_id="model.jaffle_shop.customers",
                     columns=[
@@ -265,6 +272,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="stg_orders",
+                    alias="stg_orders",
                     description="",
                     unique_id="model.jaffle_shop.stg_orders",
                     columns=[
@@ -283,6 +291,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="stg_payments",
+                    alias="stg_payments",
                     description="",
                     unique_id="model.jaffle_shop.stg_payments",
                     columns=[
@@ -301,6 +310,7 @@ class TestManifest(unittest.TestCase):
                     schema="public",
                     group=Group.nodes,
                     name="stg_customers",
+                    alias="stg_customers",
                     description="",
                     unique_id="model.jaffle_shop.stg_customers",
                     tags=[],

@@ -1,5 +1,3 @@
-# pylint: disable=protected-access,no-member
-
 import unittest
 
 from ._mocks import MockDbtMetabase
@@ -7,6 +5,7 @@ from ._mocks import MockDbtMetabase
 
 class TestModels(unittest.TestCase):
     def setUp(self):
+        # pylint: disable=protected-access
         self.c = MockDbtMetabase()
         self.c._ModelsMixin__SYNC_PERIOD = 1  # type: ignore
 
@@ -18,6 +17,7 @@ class TestModels(unittest.TestCase):
         )
 
     def test_build_lookups(self):
+        # pylint: disable=protected-access,no-member
         expected_tables = [
             "PUBLIC.CUSTOMERS",
             "PUBLIC.ORDERS",

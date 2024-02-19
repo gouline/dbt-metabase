@@ -1,7 +1,5 @@
 import unittest
 
-from dbtmetabase.metabase import Metabase
-
 from ._mocks import MockMetabase
 
 

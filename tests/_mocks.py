@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from dbtmetabase.core import DbtMetabase
-from dbtmetabase.manifest import Manifest
+from dbtmetabase.manifest import Manifest, Model
 from dbtmetabase.metabase import Metabase
 
 FIXTURES_PATH = Path("tests") / "fixtures"
@@ -40,11 +40,20 @@ class MockMetabase(Metabase):
         return {}
 
 
+class MockManifest(Manifest):
+    _models: Sequence[Model] = []
+
+    def read_models(self) -> Sequence[Model]:
+        if not self._models:
+            self._models = super().read_models()
+        return self._models
+
+
 class MockDbtMetabase(DbtMetabase):
     def __init__(
         self,
         manifest_path: Path = FIXTURES_PATH / "manifest-v2.json",
         metabase_url: str = "http://localhost:3000",
     ):  # pylint: disable=super-init-not-called
-        self._manifest = Manifest(path=manifest_path)
+        self._manifest = MockManifest(path=manifest_path)
         self._metabase = MockMetabase(url=metabase_url)

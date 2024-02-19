@@ -110,7 +110,8 @@ class Manifest:
             database=database,
             schema=schema,
             group=group,
-            name=manifest_model.get(
+            name=manifest_model["name"],
+            alias=manifest_model.get(
                 "alias", manifest_model.get("identifier", manifest_model["name"])
             ),
             description=manifest_model.get("description"),
@@ -343,6 +344,7 @@ class Model:
     group: Group
 
     name: str
+    alias: str
     description: Optional[str] = None
     display_name: Optional[str] = None
     visibility_type: Optional[str] = None
