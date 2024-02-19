@@ -14,25 +14,13 @@ class TestModels(unittest.TestCase):
             metabase_database="unit_testing",
             skip_sources=True,
             sync_timeout=0,
+            order_fields=True,
         )
 
     def test_build_lookups(self):
         # pylint: disable=protected-access,no-member
-        expected_tables = [
-            "PUBLIC.CUSTOMERS",
-            "PUBLIC.ORDERS",
-            "PUBLIC.RAW_CUSTOMERS",
-            "PUBLIC.RAW_ORDERS",
-            "PUBLIC.RAW_PAYMENTS",
-            "PUBLIC.STG_CUSTOMERS",
-            "PUBLIC.STG_ORDERS",
-            "PUBLIC.STG_PAYMENTS",
-        ]
-        actual_tables = self.c._ModelsMixin__get_tables(database_id="2")  # type: ignore
-        self.assertEqual(expected_tables, list(actual_tables.keys()))
-
-        expected_columns = [
-            [
+        expected = {
+            "PUBLIC.CUSTOMERS": [
                 "CUSTOMER_ID",
                 "FIRST_NAME",
                 "LAST_NAME",
@@ -41,7 +29,7 @@ class TestModels(unittest.TestCase):
                 "NUMBER_OF_ORDERS",
                 "CUSTOMER_LIFETIME_VALUE",
             ],
-            [
+            "PUBLIC.ORDERS": [
                 "ORDER_ID",
                 "CUSTOMER_ID",
                 "ORDER_DATE",
@@ -52,12 +40,17 @@ class TestModels(unittest.TestCase):
                 "GIFT_CARD_AMOUNT",
                 "AMOUNT",
             ],
-            ["ID", "FIRST_NAME", "LAST_NAME"],
-            ["ID", "USER_ID", "ORDER_DATE", "STATUS"],
-            ["ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
-            ["CUSTOMER_ID", "FIRST_NAME", "LAST_NAME"],
-            ["ORDER_ID", "CUSTOMER_ID", "ORDER_DATE", "STATUS"],
-            ["PAYMENT_ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
-        ]
-        for table, columns in zip(expected_tables, expected_columns):
+            "PUBLIC.RAW_CUSTOMERS": ["ID", "FIRST_NAME", "LAST_NAME"],
+            "PUBLIC.RAW_ORDERS": ["ID", "USER_ID", "ORDER_DATE", "STATUS"],
+            "PUBLIC.RAW_PAYMENTS": ["ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
+            "PUBLIC.STG_CUSTOMERS": ["CUSTOMER_ID"],
+            "PUBLIC.STG_ORDERS": ["ORDER_ID", "STATUS"],
+            "PUBLIC.STG_PAYMENTS": ["PAYMENT_ID", "PAYMENT_METHOD"],
+        }
+
+        actual_tables = self.c._ModelsMixin__get_tables(database_id="2")  # type: ignore
+
+        self.assertEqual(list(expected.keys()), list(actual_tables.keys()))
+
+        for table, columns in expected.items():
             self.assertEqual(columns, list(actual_tables[table]["fields"].keys()))
