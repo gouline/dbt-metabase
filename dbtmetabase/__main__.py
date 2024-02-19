@@ -283,6 +283,13 @@ def _add_setup(func: Callable) -> Callable:
     type=click.STRING,
     help="URL for dbt docs hosting, to append model links to table descriptions.",
 )
+@click.option(
+    "--order-fields",
+    envvar="ORDER_FIELDS",
+    show_envvar=True,
+    is_flag=True,
+    help="Preserve column order in dbt project.",
+)
 def models(
     metabase_database: str,
     include_databases: Optional[Sequence[str]],
@@ -295,6 +302,7 @@ def models(
     sync_timeout: int,
     append_tags: bool,
     docs_url: Optional[str],
+    order_fields: bool,
     core: DbtMetabase,
 ):
     core.export_models(
@@ -306,6 +314,7 @@ def models(
         sync_timeout=sync_timeout,
         append_tags=append_tags,
         docs_url=docs_url,
+        order_fields=order_fields,
     )
 
 

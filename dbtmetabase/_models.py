@@ -41,6 +41,7 @@ class ModelsMixin(metaclass=ABCMeta):
         sync_timeout: int = DEFAULT_MODELS_SYNC_TIMEOUT,
         append_tags: bool = False,
         docs_url: Optional[str] = None,
+        order_fields: bool = False,
     ):
         """Exports dbt models to Metabase database schema.
 
@@ -53,6 +54,7 @@ class ModelsMixin(metaclass=ABCMeta):
             sync_timeout (int, optional): Number of seconds to wait until Metabase schema matches the dbt project. To skip synchronization, set timeout to 0. Defaults to 30.
             append_tags (bool, optional): Append dbt tags to table descriptions. Defaults to False.
             docs_url (Optional[str], optional): URL for dbt docs hosting, to append model links to table descriptions. Defaults to None.
+            order_fields (bool, optional): Preserve column order in dbt project.
         """
 
         ctx = self.__Context()
@@ -113,13 +115,24 @@ class ModelsMixin(metaclass=ABCMeta):
             raise MetabaseStateError("Unable to sync models with Metabase")
 
         for model in models:
-            success &= self.__export_model(ctx, model, append_tags, docs_url)
+            success &= self.__export_model(
+                ctx=ctx,
+                model=model,
+                append_tags=append_tags,
+                docs_url=docs_url,
+                order_fields=order_fields,
+            )
 
         for update in ctx.updates.values():
             if update["kind"] == "table":
                 self.metabase.update_table(
                     uid=update["id"],
                     body=update["body"],
+                )
+            elif update["kind"] == "table_field_order":
+                self.metabase.update_table_field_order(
+                    uid=update["id"],
+                    body=list(update["body"]["values"]),
                 )
             elif update["kind"] == "field":
                 self.metabase.update_field(
@@ -129,7 +142,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
             _logger.info(
                 "%s '%s' updated successfully: %s",
-                update["kind"].capitalize(),
+                " ".join(update["kind"].split("_")).capitalize(),
                 update["label"],
                 ", ".join(update.get("body", {})),
             )
@@ -143,6 +156,7 @@ class ModelsMixin(metaclass=ABCMeta):
         model: Model,
         append_tags: bool,
         docs_url: Optional[str],
+        order_fields: bool,
     ) -> bool:
         """Exports one dbt model to Metabase database schema."""
 
@@ -192,9 +206,78 @@ class ModelsMixin(metaclass=ABCMeta):
             _logger.info("Table '%s' is up to date", table_key)
 
         for column in model.columns:
-            success &= self.__export_column(ctx, schema_name, model_name, column)
+            success &= self.__export_column(
+                ctx,
+                schema_name=schema_name,
+                model_name=model_name,
+                column=column,
+            )
+
+        if order_fields:
+            success &= self.__export_model_column_order(
+                ctx=ctx,
+                model=model,
+                api_table=api_table,
+                table_key=table_key,
+            )
 
         return success
+
+    def __export_model_column_order(
+        self,
+        ctx: __Context,
+        model: Model,
+        api_table: Mapping,
+        table_key: str,
+    ) -> bool:
+        """Exports model column order to Metabase field order."""
+
+        api_ord = {}
+        for field in api_table.get("fields", {}).values():
+            api_ord[field["id"]] = field["name"]
+
+        dbt_ord = {}
+        for column in model.columns:
+            field_id = ctx.get_field(table_key, column.name.upper()).get("id")
+            if field_id:
+                dbt_ord[field_id] = column.name
+
+        if (
+            list(api_ord.keys()) != list(dbt_ord.keys())
+            or api_table.get("field_order") != "custom"
+        ):
+            api_keys = set(api_ord.keys())
+            dbt_keys = set(dbt_ord.keys())
+
+            if api_keys == dbt_keys:
+                ctx.update(
+                    entity={
+                        "kind": "table_field_order",
+                        "id": api_table["id"],
+                    },
+                    change={"values": dbt_ord.keys()},
+                    label=table_key,
+                )
+                _logger.info("Table field order '%s' will be updated", table_key)
+            else:
+                details = []
+
+                api_only = [api_ord[x] for x in api_keys - dbt_keys]
+                if api_only:
+                    details.append(f"missing in dbt {api_only}")
+
+                dbt_only = [dbt_ord[x] for x in dbt_keys - api_keys]
+                if dbt_only:
+                    details.append(f"missing in Metabase {dbt_only}")
+
+                _logger.error(
+                    "Table field order '%s' mismatch: %s",
+                    table_key,
+                    ", ".join(details),
+                )
+                return False
+
+        return True
 
     def __export_column(
         self,
@@ -211,7 +294,7 @@ class ModelsMixin(metaclass=ABCMeta):
         column_name = column.name.upper()
         column_label = f"{schema_name}.{model_name}.{column_name}"
 
-        api_field = ctx.tables.get(table_key, {}).get("fields", {}).get(column_name)
+        api_field = ctx.get_field(table_key, column_name)
         if not api_field:
             _logger.error("Field '%s.%s' does not exist", table_key, column_name)
             return False
@@ -234,10 +317,9 @@ class ModelsMixin(metaclass=ABCMeta):
             fk_target_field_label = f"{fk_target_table_name}.{fk_target_field_name}"
 
             if fk_target_table_name and fk_target_field_name:
-                fk_target_field = (
-                    ctx.tables.get(fk_target_table_name, {})
-                    .get("fields", {})
-                    .get(fk_target_field_name)
+                fk_target_field = ctx.get_field(
+                    table_key=fk_target_table_name,
+                    field_key=fk_target_field_name,
                 )
                 if fk_target_field:
                     fk_target_field_id = fk_target_field.get("id")
@@ -379,6 +461,9 @@ class ModelsMixin(metaclass=ABCMeta):
     class __Context:
         tables: Mapping[str, MutableMapping] = dc.field(default_factory=dict)
         updates: MutableMapping[str, MutableMapping] = dc.field(default_factory=dict)
+
+        def get_field(self, table_key: str, field_key: str) -> MutableMapping:
+            return self.tables.get(table_key, {}).get("fields", {}).get(field_key, {})
 
         def update(self, entity: MutableMapping, change: Mapping, label: str):
             entity.update(change)

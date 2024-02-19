@@ -79,6 +79,7 @@ sandbox-models:
 		--metabase-database $$POSTGRES_DB \
 		--include-schemas "public",other \
 		--http-header x-dummy-key dummy-value \
+		--order-fields \
 		--verbose )
 .PHONY: sandbox-models
 
