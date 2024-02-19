@@ -72,3 +72,24 @@ class TestExposures(unittest.TestCase):
                 fixtures_path / "dashboard" / f"{i}.yml",
                 output_path / "dashboard" / f"{i}.yml",
             )
+
+    def test_exposures_aliased_ref(self):
+        for model in self.c._manifest.read_models():  # pylint: disable=protected-access
+            if not model.name.startswith("stg_"):
+                model.alias = f"{model.name}_alias"
+
+        aliases = [m.alias for m in self.c.manifest.read_models()]
+        self.assertIn("orders_alias", aliases)
+        self.assertIn("customers_alias", aliases)
+
+        fixtures_path = FIXTURES_PATH / "exposure" / "default"
+        output_path = TMP_PATH / "exposure" / "aliased"
+        self.c.extract_exposures(
+            output_path=str(output_path),
+            output_grouping=None,
+        )
+
+        self._assert_exposures(
+            fixtures_path / "exposures.yml",
+            output_path / "exposures.yml",
+        )

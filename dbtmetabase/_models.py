@@ -82,7 +82,7 @@ class ModelsMixin(metaclass=ABCMeta):
             synced = True
             for model in models:
                 schema_name = model.schema.upper()
-                model_name = model.name.upper()
+                model_name = model.alias.upper()
                 table_key = f"{schema_name}.{model_name}"
 
                 table = tables.get(table_key)
@@ -149,7 +149,7 @@ class ModelsMixin(metaclass=ABCMeta):
         success = True
 
         schema_name = model.schema.upper()
-        model_name = model.name.upper()
+        model_name = model.alias.upper()
         table_key = f"{schema_name}.{model_name}"
 
         api_table = ctx.tables.get(table_key)
