@@ -74,7 +74,7 @@ class TestExposures(unittest.TestCase):
             )
 
     def test_exposures_aliased_ref(self):
-        for model in self.c._manifest.read_models():  # pylint: disable=protected-access
+        for model in self.c.manifest.read_models():
             if not model.name.startswith("stg_"):
                 model.alias = f"{model.name}_alias"
 
