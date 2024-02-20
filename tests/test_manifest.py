@@ -1,4 +1,5 @@
 import unittest
+from operator import attrgetter
 from typing import Optional, Sequence
 
 from dbtmetabase.manifest import Column, Group, Manifest, Model
@@ -20,7 +21,7 @@ class TestManifest(unittest.TestCase):
 
     def test_v11(self):
         models = Manifest(FIXTURES_PATH / "manifest-v11.json").read_models()
-        self.assertEqual(
+        self._assertModelsEqual(
             models,
             [
                 Model(
@@ -78,6 +79,7 @@ class TestManifest(unittest.TestCase):
                         Column(
                             name="order_id",
                             description="This is a unique identifier for an order",
+                            semantic_type="type/PK",
                         ),
                         Column(
                             name="customer_id",
@@ -128,7 +130,15 @@ class TestManifest(unittest.TestCase):
                         Column(
                             name="customer_id",
                             description="",
-                        )
+                        ),
+                        Column(
+                            name="first_name",
+                            description="",
+                        ),
+                        Column(
+                            name="last_name",
+                            description="",
+                        ),
                     ],
                 ),
                 Model(
@@ -146,6 +156,14 @@ class TestManifest(unittest.TestCase):
                         ),
                         Column(
                             name="payment_method",
+                            description="",
+                        ),
+                        Column(
+                            name="order_id",
+                            description="",
+                        ),
+                        Column(
+                            name="amount",
                             description="",
                         ),
                     ],
@@ -167,6 +185,14 @@ class TestManifest(unittest.TestCase):
                             name="status",
                             description="",
                         ),
+                        Column(
+                            name="order_date",
+                            description="",
+                        ),
+                        Column(
+                            name="customer_id",
+                            description="",
+                        ),
                     ],
                 ),
             ],
@@ -174,7 +200,7 @@ class TestManifest(unittest.TestCase):
 
     def test_v2(self):
         models = Manifest(FIXTURES_PATH / "manifest-v2.json").read_models()
-        self.assertEqual(
+        self._assertModelsEqual(
             models,
             [
                 Model(
@@ -323,6 +349,44 @@ class TestManifest(unittest.TestCase):
                 ),
             ],
         )
+
+    def _assertModelsEqual(
+        self,
+        first: Sequence[Model],
+        second: Sequence[Model],
+    ):
+        self.assertEqual(len(first), len(second), "mismatched model count")
+
+        first = sorted(first, key=attrgetter("name"))
+        second = sorted(second, key=attrgetter("name"))
+
+        for i, first_model in enumerate(first):
+            second_model = second[i]
+            self.assertEqual(first_model.name, second_model.name, "wrong model")
+            self.assertEqual(
+                len(first_model.columns),
+                len(second_model.columns),
+                f"mismatched column count in {first_model.name}",
+            )
+            for j, first_column in enumerate(first_model.columns):
+                second_column = second_model.columns[j]
+                self.assertEqual(
+                    first_column.name,
+                    second_column.name,
+                    f"wrong column in model {first_model.name}",
+                )
+                self.assertEqual(
+                    first_column,
+                    second_column,
+                    f"mismatched column {first_model.name}.{first_column.name}",
+                )
+            self.assertEqual(
+                first_model,
+                second_model,
+                f"mismatched model {first_model.name}",
+            )
+
+        self.assertEqual(first, second)
 
     @staticmethod
     def _find_model(models: Sequence[Model], model_name: str) -> Optional[Model]:

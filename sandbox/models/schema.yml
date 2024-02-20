@@ -42,6 +42,8 @@ models:
 
     columns:
       - name: order_id
+        constraints:
+          - type: primary_key
         tests:
           - unique
           - not_null
@@ -49,11 +51,11 @@ models:
 
       - name: customer_id
         description: Foreign key to the customers table
+        constraints:
+          - type: foreign_key
+            expression: customers (customer_id)
         tests:
           - not_null
-          - relationships:
-              to: ref('customers')
-              field: customer_id
 
       - name: order_date
         description: Date (UTC) that the order was placed
