@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses as dc
 import json
 import logging
+import re
 from enum import Enum
 from pathlib import Path
 from typing import (
@@ -41,6 +42,9 @@ _MODEL_META_FIELDS = _COMMON_META_FIELDS + [
 
 # Default model schema (only schema in BigQuery)
 DEFAULT_SCHEMA = "PUBLIC"
+
+# Foreign key constraint: "schema.model (column)" / "model (column)"
+_CONSTRAINT_FK_PARSER = re.compile(r"(?P<model>.+)\s+\((?P<column>.+)\)")
 
 
 class Manifest:
@@ -142,12 +146,11 @@ class Manifest:
             ),
         )
 
-        self._set_column_fk(
+        self._set_column_relationship(
             manifest_column=manifest_column,
             column=column,
-            table=relationship["fk_target_table"] if relationship else None,
-            field=relationship["fk_target_field"] if relationship else None,
             schema=schema,
+            relationship=relationship,
         )
 
         return column
@@ -250,43 +253,62 @@ class Manifest:
 
         return relationships
 
-    def _set_column_fk(
+    def _set_column_relationship(
         self,
         manifest_column: Mapping,
         column: Column,
-        table: Optional[str],
-        field: Optional[str],
-        schema: Optional[str],
+        schema: str,
+        relationship: Optional[Mapping],
     ):
-        """Sets foreign key target on a column.
+        """Sets primary key and foreign key target on a column from constraints, meta fields or provided test relationship."""
 
-        Args:
-            manifest_column (Mapping): Schema column definition.
-            column (Column): Metabase column definition.
-            table (str): Foreign key target table.
-            field (str): Foreign key target field.
-            schema (str): Current schema name.
-        """
-        # Meta fields take precedence
+        fk_target_table = ""
+        fk_target_field = ""
+
+        # Precedence 1: Relationship test
+        if relationship:
+            fk_target_table = relationship["fk_target_table"]
+            fk_target_field = relationship["fk_target_field"]
+
+        # Precedence 2: Constraints
+        for constraint in manifest_column.get("constraints", []):
+            if constraint["type"] == "primary_key":
+                if not column.semantic_type:
+                    column.semantic_type = "type/PK"
+
+            elif constraint["type"] == "foreign_key":
+                constraint_expr = constraint.get("expression", "")
+                constraint_fk = _CONSTRAINT_FK_PARSER.search(constraint_expr)
+                if constraint_fk:
+                    fk_target_table = constraint_fk.group("model")
+                    fk_target_field = constraint_fk.group("column")
+                else:
+                    _logger.warning(
+                        "Unparsable '%s' foreign key constraint: %s",
+                        column.name,
+                        constraint_expr,
+                    )
+
+        # Precedence 3: Meta fields
         meta = manifest_column.get("meta", {})
-        table = meta.get(f"{_META_NS}.fk_target_table", table)
-        field = meta.get(f"{_META_NS}.fk_target_field", field)
+        fk_target_table = meta.get(f"{_META_NS}.fk_target_table", fk_target_table)
+        fk_target_field = meta.get(f"{_META_NS}.fk_target_field", fk_target_field)
 
-        if not table or not field:
-            if table or field:
+        if not fk_target_table or not fk_target_field:
+            if fk_target_table or fk_target_table:
                 _logger.warning(
                     "Foreign key requires table and field for column '%s'",
                     column.name,
                 )
             return
 
-        table_path = table.split(".")
-        if len(table_path) == 1 and schema:
-            table_path.insert(0, schema)
+        fk_target_table_path = fk_target_table.split(".")
+        if len(fk_target_table_path) == 1 and schema:
+            fk_target_table_path.insert(0, schema)
 
         column.semantic_type = "type/FK"
-        column.fk_target_table = ".".join([x.strip('"') for x in table_path])
-        column.fk_target_field = field.strip('"')
+        column.fk_target_table = ".".join([x.strip('"') for x in fk_target_table_path])
+        column.fk_target_field = fk_target_field.strip('"')
         _logger.debug(
             "Relation from '%s' to '%s.%s'",
             column.name,
