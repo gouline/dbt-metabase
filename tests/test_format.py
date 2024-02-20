@@ -27,6 +27,15 @@ class TestFormat(unittest.TestCase):
         self.assertTrue(Filter(include="alpha").match("Alpha"))
         self.assertFalse(Filter(exclude="alpha").match("Alpha"))
 
+    def test_filter_wildcard(self):
+        self.assertTrue(Filter(include="stg_*").match("stg_orders"))
+        self.assertTrue(Filter(include="STG_*").match("stg_ORDERS"))
+        self.assertFalse(Filter(include="stg_*").match("orders"))
+        self.assertTrue(Filter(include="order?").match("orders"))
+        self.assertFalse(Filter(include="order?").match("ordersz"))
+        self.assertTrue(Filter(include="*orders", exclude="stg_*").match("_orders"))
+        self.assertFalse(Filter(include="*orders", exclude="stg_*").match("stg_orders"))
+
     def test_null_value(self):
         self.assertIsNotNone(NullValue)
         self.assertFalse(NullValue)

@@ -211,7 +211,7 @@ dbt-metabase exposures \
     --metabase-username user@example.com \
     --metabase-password Password123 \
     --output-path models/ \
-    --exclude-collections temporary
+    --exclude-collections "temp*"
 ```
 
 Once the execution completes, check your output path for exposures files containing descriptions, creator details and links for Metabase questions and dashboards:
@@ -295,7 +295,7 @@ c.export_models(
 # Extracting exposures
 c.extract_exposures(
     output_path=".",
-    collection_filter=Filter(exclude=["temporary"]),
+    collection_filter=Filter(exclude=["temp*"]),
 )
 ```
 
