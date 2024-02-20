@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import logging
 import re
 from logging.handlers import RotatingFileHandler
@@ -29,9 +30,18 @@ class Filter:
 
     def match(self, item: str) -> bool:
         item = self._norm_item(item)
-        included = not self.include or item in self.include
-        excluded = self.exclude and item in self.exclude
-        return included and not excluded
+
+        for exclude in self.exclude:
+            if fnmatch.fnmatch(item, exclude):
+                return False
+
+        if self.include:
+            for include in self.include:
+                if fnmatch.fnmatch(item, include):
+                    return True
+            return False
+
+        return True
 
     @staticmethod
     def _norm_arg(arg: Optional[Sequence[str]]) -> Sequence[str]:
