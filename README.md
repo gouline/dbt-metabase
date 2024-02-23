@@ -93,7 +93,7 @@ Try running `dbt-metabase models --help` to see all the options available for fi
 
 ### Foreign Keys
 
-Built-in relationship tests are the recommended way of defining foreign keys, however you can alternatively use `fk_target_table` and `fk_target_field` meta fields. If both are set for a column, meta fields take precedence.
+Native [relationship tests](https://docs.getdbt.com/reference/resource-properties/data-tests#relationships) and [column-level constraints](https://docs.getdbt.com/reference/resource-properties/constraints#defining-constraints) are the recommended ways of defining foreign keys, however you can override them with `fk_target_table` and `fk_target_field` meta fields. If both are set for a column, meta fields take precedence.
 
 ```yaml
 - name: country_id
