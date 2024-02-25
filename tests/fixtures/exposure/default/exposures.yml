@@ -1,440 +1,440 @@
 version: 2
 exposures:
-- name: customers__sum_of_number_of_orders_and_average_of_number_of_orders__grouped_by_most_recent_order__day_
-  label: Customers, Sum of Number Of Orders and Average of Number Of Orders, Grouped
-    by Most Recent Order (day)
-  description: '### Visualization: Line
+  - name: a_look_at_your_customers_table
+    label: A look at your customers table
+    description: '### Dashboard Cards: 18
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __1__
+      Metabase ID: __1__
 
 
-    Created On: __2021-07-21T08:00:47.453351Z__'
-  type: analysis
-  url: http://localhost:3000/card/1
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: orders__count
-  label: Orders, Count
-  description: '### Visualization: Scalar
+      Created On: __2021-07-21T08:01:37.328519Z__'
+    type: dashboard
+    url: http://localhost:3000/dashboard/1
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customer_lifetime_value_over_time
+    label: Customer_lifetime_value over time
+    description: '### Visualization: Line
 
 
-    Nice KPI
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __2__
+      Metabase ID: __11__
 
 
-    Created On: __2021-07-21T08:01:14.290572Z__'
-  type: analysis
-  url: http://localhost:3000/card/2
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('orders')
-- name: a_look_at_your_customers_table
-  label: A look at your customers table
-  description: '### Dashboard Cards: 18
+      Created On: __2021-07-21T08:01:38.52841Z__'
+    type: analysis
+    url: http://localhost:3000/card/11
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customer_lifetime_value_over_time_1
+    label: Customer_lifetime_value over time
+    description: '### Visualization: Line
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __1__
+      Metabase ID: __9__
 
 
-    Created On: __2021-07-21T08:01:37.328519Z__'
-  type: dashboard
-  url: http://localhost:3000/dashboard/1
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: customer_lifetime_value_over_time
-  label: Customer_lifetime_value over time
-  description: '### Visualization: Line
+      Created On: __2021-07-21T08:01:38.189846Z__'
+    type: analysis
+    url: http://localhost:3000/card/9
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customers__sum_of_number_of_orders_and_average_of_number_of_orders__grouped_by_most_recent_order__day_
+    label: Customers, Sum of Number Of Orders and Average of Number Of Orders, Grouped
+      by Most Recent Order (day)
+    description: '### Visualization: Line
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __11__
+      Metabase ID: __1__
 
 
-    Created On: __2021-07-21T08:01:38.52841Z__'
-  type: analysis
-  url: http://localhost:3000/card/11
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: customer_lifetime_value_over_time_1
-  label: Customer_lifetime_value over time
-  description: '### Visualization: Line
+      Created On: __2021-07-21T08:00:47.453351Z__'
+    type: analysis
+    url: http://localhost:3000/card/1
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customers_added_in_the_last_30_days
+    label: Customers added in the last 30 days
+    description: '### Visualization: Scalar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __9__
+      Metabase ID: __4__
 
 
-    Created On: __2021-07-21T08:01:38.189846Z__'
-  type: analysis
-  url: http://localhost:3000/card/9
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: customers_added_in_the_last_30_days
-  label: Customers added in the last 30 days
-  description: '### Visualization: Scalar
+      Created On: __2021-07-21T08:01:37.535187Z__'
+    type: analysis
+    url: http://localhost:3000/card/4
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customers_added_in_the_last_30_days_1
+    label: Customers added in the last 30 days
+    description: '### Visualization: Scalar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __4__
+      Metabase ID: __5__
 
 
-    Created On: __2021-07-21T08:01:37.535187Z__'
-  type: analysis
-  url: http://localhost:3000/card/4
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: customers_added_in_the_last_30_days_1
-  label: Customers added in the last 30 days
-  description: '### Visualization: Scalar
+      Created On: __2021-07-21T08:01:37.630969Z__'
+    type: analysis
+    url: http://localhost:3000/card/5
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customers_by_customer_lifetime_value
+    label: Customers by customer_lifetime_value
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __5__
+      Metabase ID: __7__
 
 
-    Created On: __2021-07-21T08:01:37.630969Z__'
-  type: analysis
-  url: http://localhost:3000/card/5
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: customers_by_customer_lifetime_value
-  label: Customers by customer_lifetime_value
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:37.858387Z__'
+    type: analysis
+    url: http://localhost:3000/card/7
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: customers_by_number_of_orders
+    label: Customers by number_of_orders
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __7__
+      Metabase ID: __6__
 
 
-    Created On: __2021-07-21T08:01:37.858387Z__'
-  type: analysis
-  url: http://localhost:3000/card/7
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: customers_by_number_of_orders
-  label: Customers by number_of_orders
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:37.754606Z__'
+    type: analysis
+    url: http://localhost:3000/card/6
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: number_of_orders_over_time
+    label: Number_of_orders over time
+    description: '### Visualization: Line
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __6__
+      Metabase ID: __8__
 
 
-    Created On: __2021-07-21T08:01:37.754606Z__'
-  type: analysis
-  url: http://localhost:3000/card/6
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: number_of_orders_over_time
-  label: Number_of_orders over time
-  description: '### Visualization: Line
+      Created On: __2021-07-21T08:01:38.016244Z__'
+    type: analysis
+    url: http://localhost:3000/card/8
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: number_of_orders_over_time_1
+    label: Number_of_orders over time
+    description: '### Visualization: Line
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __8__
+      Metabase ID: __10__
 
 
-    Created On: __2021-07-21T08:01:38.016244Z__'
-  type: analysis
-  url: http://localhost:3000/card/8
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: number_of_orders_over_time_1
-  label: Number_of_orders over time
-  description: '### Visualization: Line
+      Created On: __2021-07-21T08:01:38.347535Z__'
+    type: analysis
+    url: http://localhost:3000/card/10
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: orders__count
+    label: Orders, Count
+    description: '### Visualization: Scalar
 
 
-    No description provided in Metabase
+      Nice KPI
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __10__
+      Metabase ID: __2__
 
 
-    Created On: __2021-07-21T08:01:38.347535Z__'
-  type: analysis
-  url: http://localhost:3000/card/10
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: orders_customers_filtered
-  label: Orders Customers Filtered
-  description: '### Visualization: Table
+      Created On: __2021-07-21T08:01:14.290572Z__'
+    type: analysis
+    url: http://localhost:3000/card/2
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('orders')
+  - name: orders_customers_filtered
+    label: Orders Customers Filtered
+    description: '### Visualization: Table
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __24__
+      Metabase ID: __24__
 
 
-    Created On: __2024-01-26T23:35:08.864176__'
-  type: analysis
-  url: http://localhost:3000/card/24
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: dbtmetabase@example.com
-  depends_on:
-    - ref('customers')
-- name: timestamp_by_day_of_the_week
-  label: Timestamp by day of the week
-  description: '### Visualization: Bar
+      Created On: __2024-01-26T23:35:08.864176__'
+    type: analysis
+    url: http://localhost:3000/card/24
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+  - name: timestamp_by_day_of_the_week
+    label: Timestamp by day of the week
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __12__
+      Metabase ID: __12__
 
 
-    Created On: __2021-07-21T08:01:38.662485Z__'
-  type: analysis
-  url: http://localhost:3000/card/12
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: timestamp_by_day_of_the_week_1
-  label: Timestamp by day of the week
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:38.662485Z__'
+    type: analysis
+    url: http://localhost:3000/card/12
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: timestamp_by_day_of_the_week_1
+    label: Timestamp by day of the week
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __13__
+      Metabase ID: __13__
 
 
-    Created On: __2021-07-21T08:01:38.808186Z__'
-  type: analysis
-  url: http://localhost:3000/card/13
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: timestamp_by_month_of_the_year
-  label: Timestamp by month of the year
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:38.808186Z__'
+    type: analysis
+    url: http://localhost:3000/card/13
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: timestamp_by_month_of_the_year
+    label: Timestamp by month of the year
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __15__
+      Metabase ID: __15__
 
 
-    Created On: __2021-07-21T08:01:39.084258Z__'
-  type: analysis
-  url: http://localhost:3000/card/15
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: timestamp_by_month_of_the_year_1
-  label: Timestamp by month of the year
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:39.084258Z__'
+    type: analysis
+    url: http://localhost:3000/card/15
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: timestamp_by_month_of_the_year_1
+    label: Timestamp by month of the year
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __14__
+      Metabase ID: __14__
 
 
-    Created On: __2021-07-21T08:01:38.938688Z__'
-  type: analysis
-  url: http://localhost:3000/card/14
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: timestamp_by_quarter_of_the_year
-  label: Timestamp by quarter of the year
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:38.938688Z__'
+    type: analysis
+    url: http://localhost:3000/card/14
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: timestamp_by_quarter_of_the_year
+    label: Timestamp by quarter of the year
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __17__
+      Metabase ID: __17__
 
 
-    Created On: __2021-07-21T08:01:39.371067Z__'
-  type: analysis
-  url: http://localhost:3000/card/17
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: timestamp_by_quarter_of_the_year_1
-  label: Timestamp by quarter of the year
-  description: '### Visualization: Bar
+      Created On: __2021-07-21T08:01:39.371067Z__'
+    type: analysis
+    url: http://localhost:3000/card/17
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: timestamp_by_quarter_of_the_year_1
+    label: Timestamp by quarter of the year
+    description: '### Visualization: Bar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __16__
+      Metabase ID: __16__
 
 
-    Created On: __2021-07-21T08:01:39.228965Z__'
-  type: analysis
-  url: http://localhost:3000/card/16
-  maturity: medium
-  owner:
-    name: dbtmetabase
-    email: user@example.com
-  depends_on:
-  - ref('customers')
-- name: total_customers
-  label: Total customers
-  description: '### Visualization: Scalar
+      Created On: __2021-07-21T08:01:39.228965Z__'
+    type: analysis
+    url: http://localhost:3000/card/16
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: user@example.com
+    depends_on:
+      - ref('customers')
+  - name: total_customers
+    label: Total customers
+    description: '### Visualization: Scalar
 
 
-    No description provided in Metabase
+      No description provided in Metabase
 
 
-    #### Metadata
+      #### Metadata
 
 
-    Metabase ID: __3__
+      Metabase ID: __3__
 
 
-    Created On: __2021-07-21T08:01:37.434243Z__'
-  type: analysis
-  url: http://localhost:3000/card/3
-  maturity: medium
-  owner:
-    name: ''
-    email: ''
-  depends_on:
-  - ref('customers')
+      Created On: __2021-07-21T08:01:37.434243Z__'
+    type: analysis
+    url: http://localhost:3000/card/3
+    maturity: medium
+    owner:
+      name: ''
+      email: ''
+    depends_on:
+      - ref('customers')

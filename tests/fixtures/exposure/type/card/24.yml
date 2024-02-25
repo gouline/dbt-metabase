@@ -1,0 +1,25 @@
+version: 2
+exposures:
+  - name: orders_customers_filtered
+    label: Orders Customers Filtered
+    description: '### Visualization: Table
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase ID: __24__
+
+
+      Created On: __2024-01-26T23:35:08.864176__'
+    type: analysis
+    url: http://localhost:3000/card/24
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')

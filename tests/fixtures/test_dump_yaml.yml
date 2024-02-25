@@ -1,0 +1,7 @@
+root:
+  attr1: 'val1
+
+    end'
+  attr2:
+    - val2
+    - val3

@@ -61,7 +61,7 @@ class TestExposures(unittest.TestCase):
             output_grouping="type",
         )
 
-        for i in range(1, 18):
+        for i in [*range(1, 18), 24]:
             self._assert_exposures(
                 fixtures_path / "card" / f"{i}.yml",
                 output_path / "card" / f"{i}.yml",
