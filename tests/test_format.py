@@ -1,7 +1,8 @@
 import unittest
-from pathlib import Path
 
 from dbtmetabase.format import Filter, NullValue, dump_yaml, safe_description, safe_name
+
+from ._mocks import FIXTURES_PATH, TMP_PATH
 
 
 class TestFormat(unittest.TestCase):
@@ -71,8 +72,9 @@ class TestFormat(unittest.TestCase):
         )
 
     def test_dump_yaml(self):
-        path = Path("tests") / "tmp" / "test_dump_yaml.yml"
-        with open(path, "w", encoding="utf-8") as f:
+        fixture_path = FIXTURES_PATH / "test_dump_yaml.yml"
+        output_path = TMP_PATH / "test_dump_yaml.yml"
+        with open(output_path, "w", encoding="utf-8") as f:
             dump_yaml(
                 data={
                     "root": {
@@ -82,15 +84,8 @@ class TestFormat(unittest.TestCase):
                 },
                 stream=f,
             )
-        with open(path, "r", encoding="utf-8") as f:
-            self.assertEqual(
-                """root:
-  attr1: 'val1
-
-    end'
-  attr2:
-    - val2
-    - val3
-""",
-                f.read(),
-            )
+        with open(output_path, "r", encoding="utf-8") as f:
+            actual = f.read()
+        with open(fixture_path, "r", encoding="utf-8") as f:
+            expected = f.read()
+        self.assertEqual(expected, actual)
