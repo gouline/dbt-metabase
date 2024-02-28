@@ -96,6 +96,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                 entity: Mapping
                 if item["model"] == "card":
                     entity = self.metabase.get_card(uid=item["id"])
+                    if entity is None:
+                        _logger.info("Skipping card '%s'", item["id"])
+                        continue
 
                     header = (
                         f"Visualization: {entity.get('display', 'Unknown').title()}"
@@ -107,6 +110,9 @@ class ExposuresMixin(metaclass=ABCMeta):
 
                 elif item["model"] == "dashboard":
                     entity = self.metabase.get_dashboard(uid=item["id"])
+                    if entity is None:
+                        _logger.info("Skipping dashboard '%s'", item["id"])
+                        continue
 
                     cards = entity.get("ordered_cards", [])
                     if not cards:
@@ -185,6 +191,12 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         depends = set()
         native_query = ""
+
+        if card is None:
+            return {
+                "depends": depends,
+                "native_query": native_query,
+            }
 
         query = card.get("dataset_query", {})
         if query.get("type") == "query":

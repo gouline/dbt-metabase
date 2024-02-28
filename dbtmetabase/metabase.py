@@ -145,7 +145,13 @@ class Metabase:
 
     def get_card(self, uid: str) -> Mapping:
         """Retrieves card (known as question in Metabase UI)."""
-        return dict(self._api("get", f"/api/card/{uid}"))
+        try:
+            return dict(self._api("get", f"/api/card/{uid}"))
+        except requests.exceptions.HTTPError as error:
+            if error.response.status_code == 404:
+                _logger.warning("Card '%s' not found", uid)
+                return None
+            raise
 
     def format_card_url(self, uid: str) -> str:
         """Formats URL link to a card (known as question in Metabase UI)."""
@@ -153,7 +159,13 @@ class Metabase:
 
     def get_dashboard(self, uid: str) -> Mapping:
         """Retrieves dashboard."""
-        return dict(self._api("get", f"/api/dashboard/{uid}"))
+        try:
+            return dict(self._api("get", f"/api/dashboard/{uid}"))
+        except requests.exceptions.HTTPError as error:
+            if error.response.status_code == 404:
+                _logger.warning("Dashboard '%s' not found", uid)
+                return None
+            raise
 
     def format_dashboard_url(self, uid: str) -> str:
         """Formats URL link to a dashboard."""
@@ -164,7 +176,7 @@ class Metabase:
         try:
             return dict(self._api("get", f"/api/user/{uid}"))
         except requests.exceptions.HTTPError as error:
-            if error.response and error.response.status_code == 404:
+            if error.response.status_code == 404:
                 _logger.warning("User '%s' not found", uid)
                 return None
             raise
