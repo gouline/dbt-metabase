@@ -95,11 +95,12 @@ class ExposuresMixin(metaclass=ABCMeta):
 
                 entity: Mapping
                 if item["model"] == "card":
-                    entity = self.metabase.find_card(uid=item["id"])
-                    if entity is None:
+                    card_entity = self.metabase.find_card(uid=item["id"])
+                    if card_entity is None:
                         _logger.info("Card '%s' not found, skipping", item["id"])
                         continue
 
+                    entity = card_entity
                     header = (
                         f"Visualization: {entity.get('display', 'Unknown').title()}"
                     )
@@ -109,11 +110,12 @@ class ExposuresMixin(metaclass=ABCMeta):
                     native_query = result["native_query"]
 
                 elif item["model"] == "dashboard":
-                    entity = self.metabase.find_dashboard(uid=item["id"])
-                    if entity is None:
+                    dashboard_entity = self.metabase.find_dashboard(uid=item["id"])
+                    if dashboard_entity is None:
                         _logger.info("Dashboard '%s' not found, skipping", item["id"])
                         continue
 
+                    entity = dashboard_entity
                     cards = entity.get("ordered_cards", [])
                     if not cards:
                         continue
@@ -185,7 +187,7 @@ class ExposuresMixin(metaclass=ABCMeta):
     def __extract_card_exposures(
         self,
         ctx: __Context,
-        card: Mapping,
+        card: Optional[Mapping],
     ) -> Mapping:
         """Extracts exposures from Metabase questions."""
 
