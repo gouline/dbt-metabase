@@ -95,7 +95,10 @@ class ExposuresMixin(metaclass=ABCMeta):
 
                 entity: Mapping
                 if item["model"] == "card":
-                    entity = self.metabase.get_card(uid=item["id"])
+                    entity = self.metabase.find_card(uid=item["id"])
+                    if entity is None:
+                        _logger.info("Card '%s' not found, skipping", item["id"])
+                        continue
 
                     header = (
                         f"Visualization: {entity.get('display', 'Unknown').title()}"
@@ -106,7 +109,10 @@ class ExposuresMixin(metaclass=ABCMeta):
                     native_query = result["native_query"]
 
                 elif item["model"] == "dashboard":
-                    entity = self.metabase.get_dashboard(uid=item["id"])
+                    entity = self.metabase.find_dashboard(uid=item["id"])
+                    if entity is None:
+                        _logger.info("Dashboard '%s' not found, skipping", item["id"])
+                        continue
 
                     cards = entity.get("ordered_cards", [])
                     if not cards:
@@ -121,7 +127,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                         depends.update(
                             self.__extract_card_exposures(
                                 ctx,
-                                card=self.metabase.get_card(uid=card["id"]),
+                                card=self.metabase.find_card(uid=card["id"]),
                             )["depends"]
                         )
                 else:
@@ -186,74 +192,79 @@ class ExposuresMixin(metaclass=ABCMeta):
         depends = set()
         native_query = ""
 
-        query = card.get("dataset_query", {})
-        if query.get("type") == "query":
-            # Metabase GUI derived query
-            query_source = query.get("query", {}).get(
-                "source-table", card.get("table_id")
-            )
-
-            if str(query_source).startswith("card__"):
-                # Handle questions based on other questions
-                depends.update(
-                    self.__extract_card_exposures(
-                        ctx,
-                        card=self.metabase.get_card(uid=query_source.split("__")[-1]),
-                    )["depends"]
+        if card:
+            query = card.get("dataset_query", {})
+            if query.get("type") == "query":
+                # Metabase GUI derived query
+                query_source = query.get("query", {}).get(
+                    "source-table", card.get("table_id")
                 )
-            elif query_source in ctx.table_names:
-                # Normal question
-                source_table = ctx.table_names.get(query_source)
-                _logger.info("Extracted model '%s' from card", source_table)
-                depends.add(source_table)
 
-            # Find models exposed through joins
-            for join in query.get("query", {}).get("joins", []):
-                join_source = join.get("source-table")
-
-                if str(join_source).startswith("card__"):
+                if str(query_source).startswith("card__"):
                     # Handle questions based on other questions
                     depends.update(
                         self.__extract_card_exposures(
                             ctx,
-                            card=self.metabase.get_card(
-                                uid=join_source.split("__")[-1]
+                            card=self.metabase.find_card(
+                                uid=query_source.split("__")[-1]
                             ),
                         )["depends"]
                     )
-                    continue
+                elif query_source in ctx.table_names:
+                    # Normal question
+                    source_table = ctx.table_names.get(query_source)
+                    _logger.info("Extracted model '%s' from card", source_table)
+                    depends.add(source_table)
 
-                # Joined model parsed
-                joined_table = ctx.table_names.get(join_source)
-                if joined_table:
-                    _logger.info("Extracted model '%s' from join", joined_table)
-                    depends.add(joined_table)
+                # Find models exposed through joins
+                for join in query.get("query", {}).get("joins", []):
+                    join_source = join.get("source-table")
 
-        elif query.get("type") == "native":
-            # Metabase native query
-            native_query = query["native"].get("query")
-            ctes: MutableSequence[str] = []
+                    if str(join_source).startswith("card__"):
+                        # Handle questions based on other questions
+                        depends.update(
+                            self.__extract_card_exposures(
+                                ctx,
+                                card=self.metabase.find_card(
+                                    uid=join_source.split("__")[-1]
+                                ),
+                            )["depends"]
+                        )
+                        continue
 
-            # Parse common table expressions for exclusion
-            for matched_cte in re.findall(_CTE_PARSER, native_query):
-                ctes.extend(group.lower() for group in matched_cte if group)
+                    # Joined model parsed
+                    joined_table = ctx.table_names.get(join_source)
+                    if joined_table:
+                        _logger.info("Extracted model '%s' from join", joined_table)
+                        depends.add(joined_table)
 
-            # Parse SQL for exposures through FROM or JOIN clauses
-            for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
-                # Grab just the table / model name
-                parsed_model = sql_ref.split(".")[-1].strip('"').lower()
+            elif query.get("type") == "native":
+                # Metabase native query
+                native_query = query["native"].get("query")
+                ctes: MutableSequence[str] = []
 
-                # Scrub CTEs (qualified sql_refs can not reference CTEs)
-                if parsed_model in ctes and "." not in sql_ref:
-                    continue
+                # Parse common table expressions for exclusion
+                for matched_cte in re.findall(_CTE_PARSER, native_query):
+                    ctes.extend(group.lower() for group in matched_cte if group)
 
-                # Verify this is one of our parsed refable models so exposures dont break the DAG
-                if not ctx.model_refs.get(parsed_model):
-                    continue
+                # Parse SQL for exposures through FROM or JOIN clauses
+                for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
+                    # Grab just the table / model name
+                    parsed_model = sql_ref.split(".")[-1].strip('"').lower()
 
-                if parsed_model:
-                    _logger.info("Extracted model '%s' from native query", parsed_model)
-                    depends.add(parsed_model)
+                    # Scrub CTEs (qualified sql_refs can not reference CTEs)
+                    if parsed_model in ctes and "." not in sql_ref:
+                        continue
+
+                    # Verify this is one of our parsed refable models so exposures dont break the DAG
+                    if not ctx.model_refs.get(parsed_model):
+                        continue
+
+                    if parsed_model:
+                        _logger.info(
+                            "Extracted model '%s' from native query", parsed_model
+                        )
+                        depends.add(parsed_model)
 
         return {
             "depends": depends,
