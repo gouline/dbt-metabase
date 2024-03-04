@@ -109,7 +109,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     native_query = result["native_query"]
 
                 elif item["model"] == "dashboard":
-                    entity = self.metabase.get_dashboard(uid=item["id"])
+                    entity = self.metabase.find_dashboard(uid=item["id"])
                     if entity is None:
                         _logger.info("Dashboard '%s' not found, skipping", item["id"])
                         continue
@@ -205,7 +205,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                     depends.update(
                         self.__extract_card_exposures(
                             ctx,
-                            card=self.metabase.find_card(uid=query_source.split("__")[-1]),
+                            card=self.metabase.find_card(
+                                uid=query_source.split("__")[-1]
+                            ),
                         )["depends"]
                     )
                 elif query_source in ctx.table_names:
@@ -259,7 +261,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                         continue
 
                     if parsed_model:
-                        _logger.info("Extracted model '%s' from native query", parsed_model)
+                        _logger.info(
+                            "Extracted model '%s' from native query", parsed_model
+                        )
                         depends.add(parsed_model)
 
         return {
