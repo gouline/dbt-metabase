@@ -143,7 +143,7 @@ class Metabase:
         results = list(filter(lambda x: x["model"] in models, results))
         return results
 
-    def get_card(self, uid: str) -> Mapping:
+    def find_card(self, uid: str) -> Optional[Mapping]:
         """Retrieves card (known as question in Metabase UI)."""
         try:
             return dict(self._api("get", f"/api/card/{uid}"))
@@ -157,7 +157,7 @@ class Metabase:
         """Formats URL link to a card (known as question in Metabase UI)."""
         return f"{self.url}/card/{uid}"
 
-    def get_dashboard(self, uid: str) -> Mapping:
+    def find_dashboard(self, uid: str) -> Optional[Mapping]:
         """Retrieves dashboard."""
         try:
             return dict(self._api("get", f"/api/dashboard/{uid}"))
