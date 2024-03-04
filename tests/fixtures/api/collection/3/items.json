@@ -253,5 +253,21 @@
         },
         "favorite": false,
         "model": "card"
+    },
+    {
+        "description": null,
+        "collection_position": null,
+        "name": "Missing",
+        "id": 404,
+        "display": "scalar",
+        "last-edit-info": {
+            "id": 1,
+            "last_name": "",
+            "first_name": "dbtmetabase",
+            "email": "user@example.com",
+            "timestamp": "2021-07-21T08:01:37.449936Z"
+        },
+        "favorite": false,
+        "model": "card"
     }
 ]
