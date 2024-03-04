@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence
 
+import requests
+
 from dbtmetabase.core import DbtMetabase
 from dbtmetabase.manifest import Manifest, Model
 from dbtmetabase.metabase import Metabase
@@ -37,6 +39,10 @@ class MockMetabase(Metabase):
             if json_path.exists():
                 with open(json_path, encoding="utf-8") as f:
                     return json.load(f)
+            else:
+                response = requests.Response()
+                response.status_code = 404
+                raise requests.exceptions.HTTPError(response=response)
         return {}
 
 
