@@ -6,8 +6,8 @@ from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Unio
 import click
 import yaml
 
-from dbtmetabase.core import DbtMetabase
-from dbtmetabase.format import Filter, setup_logging
+from .core import DbtMetabase
+from .format import Filter, setup_logging
 
 
 def _click_list_option_kwargs() -> Mapping[str, Any]:

@@ -167,6 +167,10 @@ class Metabase:
                 return None
             raise
 
+    def format_dashboard_url(self, uid: str) -> str:
+        """Formats URL link to a dashboard."""
+        return f"{self.url}/dashboard/{uid}"
+
     def find_user(self, uid: str) -> Optional[Mapping]:
         """Finds user by ID or returns none."""
         try:
@@ -176,10 +180,6 @@ class Metabase:
                 _logger.warning("User '%s' not found", uid)
                 return None
             raise
-
-    def format_dashboard_url(self, uid: str) -> str:
-        """Formats URL link to a dashboard."""
-        return f"{self.url}/dashboard/{uid}"
 
     def update_table(self, uid: str, body: Mapping) -> Mapping:
         """Posts update to an existing table."""
