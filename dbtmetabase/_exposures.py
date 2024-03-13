@@ -214,7 +214,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     )
                 elif query_source in ctx.table_names:
                     # Normal question
-                    source_table = ctx.table_names.get(query_source)
+                    source_table = ctx.table_names.get(query_source).lower()
                     _logger.info("Extracted model '%s' from card", source_table)
                     depends.add(source_table)
 
@@ -237,6 +237,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     # Joined model parsed
                     joined_table = ctx.table_names.get(join_source)
                     if joined_table:
+                        joined_table = joined_table.lower()
                         _logger.info("Extracted model '%s' from join", joined_table)
                         depends.add(joined_table)
 
