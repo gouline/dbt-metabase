@@ -359,12 +359,20 @@ def models(
     is_flag=True,
     help="Include personal Metabase collections.",
 )
+@click.option(
+    "--exclude-unverified",
+    envvar="EXCLUDE_UNVERIFIED",
+    show_envvar=True,
+    is_flag=True,
+    help="Exclude collection items that have not been verified.",
+)
 def exposures(
     output_path: str,
     output_grouping: Optional[str],
     include_collections: Optional[Sequence[str]],
     exclude_collections: Optional[Sequence[str]],
     allow_personal_collections: bool,
+    exclude_unverified: bool,
     core: DbtMetabase,
 ):
     core.extract_exposures(
@@ -375,6 +383,7 @@ def exposures(
             exclude=exclude_collections,
         ),
         allow_personal_collections=allow_personal_collections,
+        exclude_unverified=exclude_unverified,
     )
 
 

@@ -131,6 +131,7 @@ class Metabase:
         self,
         uid: str,
         models: Sequence[str],
+        exclude_unverified: bool = False,
     ) -> Sequence[Mapping]:
         """Retrieves collection items of specific types (e.g. card, dashboard, collection)."""
         results = list(
@@ -140,6 +141,16 @@ class Metabase:
                 params={"models": models},
             )
         )
+        if exclude_unverified:
+            verified_results = list(
+                self._api(
+                    method="get",
+                    path=f"/api/search/",
+                    params={"models": models, "verified": True},
+                )
+            )
+            verified_ids = [y['id'] for y in verified_results]
+            results = [x for x in results if x['id'] in verified_ids]
         results = list(filter(lambda x: x["model"] in models, results))
         return results
 
