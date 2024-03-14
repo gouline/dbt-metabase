@@ -90,8 +90,10 @@ class ExposuresMixin(metaclass=ABCMeta):
             for item in self.metabase.get_collection_items(
                 uid=collection["id"],
                 models=("card", "dashboard"),
-                exclude_unverified=exclude_unverified,
             ):
+                if exclude_unverified and item.get("moderated_status") != "verified":
+                    _logger.debug("Skipping unverified item '%s'", item["id"])
+                    continue
                 depends = set()
                 native_query = ""
                 header = ""
