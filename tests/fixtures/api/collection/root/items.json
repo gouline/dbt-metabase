@@ -48,6 +48,22 @@
     {
         "description": null,
         "collection_position": null,
+        "name": "Orders Customers",
+        "id": 23,
+        "display": "table",
+        "last-edit-info": {
+            "id": 1,
+            "email": "dbtmetabase@example.com",
+            "first_name": "dbtmetabase",
+            "last_name": null,
+            "timestamp": "2024-01-26T23:34:25.467752Z"
+        },
+        "favorite": false,
+        "model": "card"
+    },
+    {
+        "description": null,
+        "collection_position": null,
         "name": "Orders Customers Filtered",
         "id": 24,
         "display": "table",
