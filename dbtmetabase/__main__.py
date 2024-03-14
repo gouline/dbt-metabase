@@ -360,11 +360,11 @@ def models(
     help="Include personal Metabase collections.",
 )
 @click.option(
-    "--exclude-unverified",
-    envvar="EXCLUDE_UNVERIFIED",
+    "--exclude-unverified-cards",
+    envvar="EXCLUDE_UNVERIFIED_CARDS",
     show_envvar=True,
     is_flag=True,
-    help="Exclude collection items that have not been verified.",
+    help="Exclude cards that have not been verified.",
 )
 def exposures(
     output_path: str,
@@ -372,7 +372,7 @@ def exposures(
     include_collections: Optional[Sequence[str]],
     exclude_collections: Optional[Sequence[str]],
     allow_personal_collections: bool,
-    exclude_unverified: bool,
+    exclude_unverified_cards: bool,
     core: DbtMetabase,
 ):
     core.extract_exposures(
@@ -383,7 +383,7 @@ def exposures(
             exclude=exclude_collections,
         ),
         allow_personal_collections=allow_personal_collections,
-        exclude_unverified=exclude_unverified,
+        exclude_unverified_cards=exclude_unverified_cards,
     )
 
 
