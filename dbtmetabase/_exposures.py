@@ -217,8 +217,8 @@ class ExposuresMixin(metaclass=ABCMeta):
                     source_table = ctx.table_names.get(query_source)
                     if source_table:
                         source_table = source_table.lower()
-                    _logger.info("Extracted model '%s' from card", source_table)
-                    depends.add(source_table)
+                        _logger.info("Extracted model '%s' from card", source_table)
+                        depends.add(source_table)
 
                 # Find models exposed through joins
                 for join in query.get("query", {}).get("joins", []):
