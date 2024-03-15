@@ -93,8 +93,8 @@ class ExposuresMixin(metaclass=ABCMeta):
             ):
                 if (
                     exclude_unverified_cards
+                    and item["model"] == "card"
                     and item.get("moderated_status") != "verified"
-                    and item.get("model") == "card"
                 ):
                     _logger.debug("Skipping unverified card '%s'", item["name"])
                     continue
