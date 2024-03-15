@@ -46,7 +46,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         output_grouping: Optional[str] = None,
         collection_filter: Optional[Filter] = None,
         allow_personal_collections: bool = False,
-        exclude_unverified_cards: bool = False,
+        exclude_unverified: bool = False,
     ) -> Iterable[Mapping]:
         """Extract dbt exposures from Metabase.
 
@@ -55,7 +55,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             output_grouping (Optional[str], optional): Grouping for output YAML files, supported values: "collection" (by collection slug) or "type" (by entity type). Defaults to None.
             collection_filter (Optional[Filter], optional): Filter Metabase collections. Defaults to None.
             allow_personal_collections (bool, optional): Allow personal Metabase collections. Defaults to False.
-            exclude_unverified_cards (bool, optional): Exclude unverified cards. Defaults to False.
+            exclude_unverified (bool, optional): Exclude items that have not been verified. Only applies to entity types that support verification. Defaults to False.
 
         Returns:
             Iterable[Mapping]: List of parsed exposures.
@@ -92,7 +92,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 models=("card", "dashboard"),
             ):
                 if (
-                    exclude_unverified_cards
+                    exclude_unverified
                     and item["model"] == "card"
                     and item.get("moderated_status") != "verified"
                 ):
