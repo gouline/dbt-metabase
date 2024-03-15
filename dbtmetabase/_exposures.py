@@ -98,6 +98,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 ):
                     _logger.debug("Skipping unverified card '%s'", item["name"])
                     continue
+
                 depends = set()
                 native_query = ""
                 header = ""
