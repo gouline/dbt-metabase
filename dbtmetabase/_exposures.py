@@ -126,7 +126,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                         continue
 
                     entity = dashboard_entity
-                    cards = entity.get("ordered_cards", [])
+                    cards = entity.get("dashcards", [])
                     if not cards:
                         continue
 
