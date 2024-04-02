@@ -23,6 +23,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
         self,
         manifest_path: Union[str, Path],
         metabase_url: str,
+        metabase_api_key: Optional[str] = None,
         metabase_username: Optional[str] = None,
         metabase_password: Optional[str] = None,
         metabase_session_id: Optional[str] = None,
@@ -37,9 +38,10 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
         Args:
             manifest_path (Union[str,Path]): Path to dbt manifest.json, usually in target/ directory after compilation.
             metabase_url (str): Metabase URL, e.g. "https://metabase.example.com".
-            metabase_username (Optional[str], optional): Metabase username (required unless providing session ID). Defaults to None.
-            metabase_password (Optional[str], optional): Metabase password (required unless providing session ID). Defaults to None.
-            metabase_session_id (Optional[str], optional): Metabase session ID. Defaults to None.
+            metabase_api_key (Optional[str], optional): Metabase API key (required unless providing username/password or session ID). Defaults to None.
+            metabase_username (Optional[str], optional): Metabase username (required unless providing API key or session ID). Defaults to None.
+            metabase_password (Optional[str], optional): Metabase password (required unless providing API key or session ID). Defaults to None.
+            metabase_session_id (Optional[str], optional): Metabase session ID (deprecated and will be removed in future). Defaults to None.
             skip_verify (bool, optional): Skip TLS certificate verification (not recommended). Defaults to False.
             cert (Optional[Union[str, Tuple[str, str]]], optional): Path to a custom certificate. Defaults to None.
             http_timeout (int, optional): HTTP request timeout in secs. Defaults to 15.
@@ -52,6 +54,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
         )
         self._metabase = Metabase(
             url=metabase_url,
+            api_key=metabase_api_key,
             username=metabase_username,
             password=metabase_password,
             session_id=metabase_session_id,

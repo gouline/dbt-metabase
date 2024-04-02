@@ -36,6 +36,15 @@ Once `dbt compile` finishes, `manifest.json` can be found in the `target/` direc
 
 See [dbt documentation](https://docs.getdbt.com/docs/running-a-dbt-project/run-your-dbt-projects) for more information.
 
+## Metabase API
+
+All commands require authentication against the [Metabase API](https://www.metabase.com/docs/latest/api-documentation) using one of these methods:
+
+* API key (`--metabase-api-key`) 
+  - Strongly **recommended** for automation, see [documentation](https://www.metabase.com/docs/latest/people-and-groups/api-keys) (Metabase 49 or later).
+* Username and password (`--metabase-username` / `--metabase-password`)
+  - Fallback for older versions of Metabase and smaller instances.
+
 ## Exporting Models
 
 Let's start by defining a short sample `schema.yml` as below.
@@ -81,8 +90,7 @@ This is already enough to propagate the primary keys, foreign keys and descripti
 dbt-metabase models \
     --manifest-path target/manifest.json \
     --metabase-url https://metabase.example.com \
-    --metabase-username user@example.com \
-    --metabase-password Password123 \
+    --metabase-api-key mb_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX= \
     --metabase-database business \
     --include-schemas public
 ```
@@ -208,8 +216,7 @@ dbt-metabase allows you to extract questions and dashboards from Metabase as [db
 dbt-metabase exposures \
     --manifest-path ./target/manifest.json \
     --metabase-url https://metabase.example.com \
-    --metabase-username user@example.com \
-    --metabase-password Password123 \
+    --metabase-api-key mb_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX= \
     --output-path models/ \
     --exclude-collections "temp*"
 ```
@@ -259,8 +266,7 @@ A configuration file can be created in `~/.dbt-metabase/config.yml` for dbt-meta
 config:
     manifest_path: target/manifest.json
     metabase_url: https://metabase.example.com
-    metabase_username: user@example.com
-    metabase_password: Password123
+    metabase_api_key: mb_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
     # Configuration specific to models command
     models:
       metabase_database: business
@@ -282,8 +288,7 @@ from dbtmetabase import DbtMetabase, Filter
 c = DbtMetabase(
     manifest_path="target/manifest.json",
     metabase_url="https://metabase.example.com",
-    metabase_username="user@example.com",
-    metabase_password="Password123",
+    metabase_api_key="mb_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=",
 )
 
 # Exporting models

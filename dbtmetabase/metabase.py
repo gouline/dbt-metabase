@@ -13,6 +13,7 @@ class Metabase:
     def __init__(
         self,
         url: str,
+        api_key: Optional[str],
         username: Optional[str],
         password: Optional[str],
         session_id: Optional[str],
@@ -38,19 +39,24 @@ class Metabase:
             http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1)),
         )
 
-        if not session_id:
-            if username and password:
-                session = dict(
-                    self._api(
-                        method="post",
-                        path="/api/session",
-                        json={"username": username, "password": password},
-                    )
+        if api_key:
+            self.session.headers["X-API-KEY"] = api_key
+        elif username and password:
+            session = dict(
+                self._api(
+                    method="post",
+                    path="/api/session",
+                    json={"username": username, "password": password},
                 )
-                session_id = str(session["id"])
-            else:
-                raise ArgumentError("Metabase credentials or session ID required")
-        self.session.headers["X-Metabase-Session"] = session_id
+            )
+            self.session.headers["X-Metabase-Session"] = str(session["id"])
+        elif session_id:
+            _logger.warning(
+                "Metabase session ID is deprecated and will be removed in future, use API key or username/password instead"
+            )
+            self.session.headers["X-Metabase-Session"] = session_id
+        else:
+            raise ArgumentError("Metabase API key or username/password required")
 
         _logger.info("Metabase session established")
 

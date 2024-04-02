@@ -16,6 +16,7 @@ class MockMetabase(Metabase):
     def __init__(self, url: str):
         super().__init__(
             url=url,
+            api_key=None,
             username=None,
             password=None,
             session_id="dummy",
