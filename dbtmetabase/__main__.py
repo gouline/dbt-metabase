@@ -96,12 +96,20 @@ def _add_setup(func: Callable) -> Callable:
         help="Metabase URL, e.g. 'https://metabase.example.com'.",
     )
     @click.option(
+        "--metabase-api-key",
+        metavar="API_KEY",
+        envvar="METABASE_API_KEY",
+        show_envvar=True,
+        type=click.STRING,
+        help="Metabase API key (required unless providing username/password).",
+    )
+    @click.option(
         "--metabase-username",
         metavar="USERNAME",
         envvar="METABASE_USERNAME",
         show_envvar=True,
         type=click.STRING,
-        help="Metabase username (required unless providing session ID).",
+        help="Metabase username (required unless providing API key).",
     )
     @click.option(
         "--metabase-password",
@@ -109,7 +117,7 @@ def _add_setup(func: Callable) -> Callable:
         envvar="METABASE_PASSWORD",
         show_envvar=True,
         type=click.STRING,
-        help="Metabase password (required unless providing session ID).",
+        help="Metabase password (required unless providing API key).",
     )
     @click.option(
         "--metabase-session-id",
@@ -117,7 +125,8 @@ def _add_setup(func: Callable) -> Callable:
         envvar="METABASE_SESSION_ID",
         show_envvar=True,
         type=click.STRING,
-        help="Metabase session ID (alternative to username/password).",
+        help="Metabase session ID (deprecated and will be removed in future).",
+        hidden=True,
     )
     @click.option(
         "--skip-verify",
@@ -160,6 +169,7 @@ def _add_setup(func: Callable) -> Callable:
     def wrapper(
         manifest_path: str,
         metabase_url: str,
+        metabase_api_key: str,
         metabase_username: str,
         metabase_password: str,
         metabase_session_id: Optional[str],
@@ -179,6 +189,7 @@ def _add_setup(func: Callable) -> Callable:
             core=DbtMetabase(
                 manifest_path=manifest_path,
                 metabase_url=metabase_url,
+                metabase_api_key=metabase_api_key,
                 metabase_username=metabase_username,
                 metabase_password=metabase_password,
                 metabase_session_id=metabase_session_id,
