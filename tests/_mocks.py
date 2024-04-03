@@ -13,12 +13,13 @@ TMP_PATH = Path("tests") / "tmp"
 
 
 class MockMetabase(Metabase):
-    def __init__(self, url: str):
+    def __init__(self, url: str, session_id="dummy", api_key=None, username=None, password=None):
         super().__init__(
             url=url,
-            username=None,
-            password=None,
-            session_id="dummy",
+            username=username,
+            password=password,
+            session_id=session_id,
+            api_key=api_key,
             skip_verify=False,
             cert=None,
             http_timeout=1,
@@ -34,15 +35,21 @@ class MockMetabase(Metabase):
         **kwargs,
     ) -> Mapping:
         path_toks = f"{path.lstrip('/')}.json".split("/")
-        if path_toks[0] == "api" and method == "get":
-            json_path = Path.joinpath(FIXTURES_PATH, *path_toks)
-            if json_path.exists():
-                with open(json_path, encoding="utf-8") as f:
-                    return json.load(f)
-            else:
-                response = requests.Response()
-                response.status_code = 404
-                raise requests.exceptions.HTTPError(response=response)
+        if path_toks[0] == "api":
+            if method == "get":
+                json_path = Path.joinpath(FIXTURES_PATH, *path_toks)
+                if json_path.exists():
+                    with open(json_path, encoding="utf-8") as f:
+                        return json.load(f)
+                else:
+                    response = requests.Response()
+                    response.status_code = 404
+                    raise requests.exceptions.HTTPError(response=response)
+            if method == "post":
+                if path_toks[1] == 'session.json':
+                    data = kwargs["json"]
+                    return {"id": f"session_for_{data['username']}"}
+                    
         return {}
 
 

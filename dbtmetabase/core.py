@@ -26,6 +26,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
         metabase_username: Optional[str] = None,
         metabase_password: Optional[str] = None,
         metabase_session_id: Optional[str] = None,
+        metabase_api_key: Optional[str] = None,
         skip_verify: bool = False,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
         http_timeout: int = DEFAULT_HTTP_TIMEOUT,
@@ -40,6 +41,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
             metabase_username (Optional[str], optional): Metabase username (required unless providing session ID). Defaults to None.
             metabase_password (Optional[str], optional): Metabase password (required unless providing session ID). Defaults to None.
             metabase_session_id (Optional[str], optional): Metabase session ID. Defaults to None.
+            metabase_api_key (Optional[str], optional): Metabase API KEY. Defaults to None.
             skip_verify (bool, optional): Skip TLS certificate verification (not recommended). Defaults to False.
             cert (Optional[Union[str, Tuple[str, str]]], optional): Path to a custom certificate. Defaults to None.
             http_timeout (int, optional): HTTP request timeout in secs. Defaults to 15.
@@ -55,6 +57,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
             username=metabase_username,
             password=metabase_password,
             session_id=metabase_session_id,
+            api_key=metabase_api_key,
             skip_verify=skip_verify,
             cert=cert,
             http_timeout=http_timeout,

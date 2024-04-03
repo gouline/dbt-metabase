@@ -38,3 +38,18 @@ class TestMetabase(unittest.TestCase):
             models=("card", "dashboard"),
         )
         self.assertEqual({"card", "dashboard"}, {item["model"] for item in both})
+
+    def test_metabase_authorize_using_username_and_password(self):
+        self.metabase = MockMetabase(url="http://localhost", session_id=None, api_key=None, username="user_1", password="password_1")
+        headers = self.metabase.session.headers
+        self.assertEquals("session_for_user_1", headers["X-Metabase-Session"])
+
+    def test_metabase_authorize_using_session_id(self):
+        self.metabase = MockMetabase(url="http://localhost", session_id="session_id_1")
+        headers = self.metabase.session.headers
+        self.assertEquals("session_id_1", headers["X-Metabase-Session"])
+    
+    def test_metabase_authorize_using_session_api_key(self):
+        self.metabase = MockMetabase(url="http://localhost", session_id=None, api_key="api_key_1")
+        headers = self.metabase.session.headers
+        self.assertEquals("api_key_1", headers["X-API-KEY"])

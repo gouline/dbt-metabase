@@ -16,6 +16,7 @@ class Metabase:
         username: Optional[str],
         password: Optional[str],
         session_id: Optional[str],
+        api_key: Optional[str],
         skip_verify: bool,
         cert: Optional[Union[str, Tuple[str, str]]],
         http_timeout: int,
@@ -38,7 +39,7 @@ class Metabase:
             http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1)),
         )
 
-        if not session_id:
+        if not session_id and not api_key:
             if username and password:
                 session = dict(
                     self._api(
@@ -49,8 +50,13 @@ class Metabase:
                 )
                 session_id = str(session["id"])
             else:
-                raise ArgumentError("Metabase credentials or session ID required")
-        self.session.headers["X-Metabase-Session"] = session_id
+                raise ArgumentError(
+                    "Metabase credentials or session ID or API KEY required"
+                )
+        if session_id:
+            self.session.headers["X-Metabase-Session"] = session_id
+        elif api_key:
+            self.session.headers["X-API-KEY"] = api_key
 
         _logger.info("Metabase session established")
 

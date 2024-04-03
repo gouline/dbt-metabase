@@ -120,6 +120,14 @@ def _add_setup(func: Callable) -> Callable:
         help="Metabase session ID (alternative to username/password).",
     )
     @click.option(
+        "--metabase-api-key",
+        metavar="API_KEY",
+        envvar="METABASE_API_KEY",
+        show_envvar=True,
+        type=click.STRING,
+        help="Metabase API KEY (alternative to username/password).",
+    )
+    @click.option(
         "--skip-verify",
         envvar="SKIP_VERIFY",
         show_envvar=True,
@@ -163,6 +171,7 @@ def _add_setup(func: Callable) -> Callable:
         metabase_username: str,
         metabase_password: str,
         metabase_session_id: Optional[str],
+        metabase_api_key: Optional[str],
         skip_verify: bool,
         cert: Optional[str],
         http_timeout: int,
@@ -182,6 +191,7 @@ def _add_setup(func: Callable) -> Callable:
                 metabase_username=metabase_username,
                 metabase_password=metabase_password,
                 metabase_session_id=metabase_session_id,
+                metabase_api_key=metabase_api_key,
                 skip_verify=skip_verify,
                 cert=cert,
                 http_timeout=http_timeout,
