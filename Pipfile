@@ -1,0 +1,17 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+dbt-postgres = "*"
+molot = "*"
+
+[packages]
+dbt-core = "*"
+requests = "*"
+click = "*"
+rich= "*"
+
+[requires]
+python_version = "3.11"

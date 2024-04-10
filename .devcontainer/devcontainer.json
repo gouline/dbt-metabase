@@ -1,0 +1,42 @@
+{	
+	"name": "DBT-Metabase-Dev",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/app",
+	"features": {
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"configureZshAsDefaultShell": true,
+			"installOhMyZsh": true,
+			"installOhMyZshConfig": true,
+			"upgradePackages": true,
+			"username": "vscode",
+			"userUid": "automatic",
+			"userGid": "automatic"
+		},
+		"ghcr.io/devcontainers-contrib/features/pipenv:2": {
+			"version": "latest"
+		},
+		"ghcr.io/ChristopherMacGown/devcontainer-features/mcfly:1": {},
+		"ghcr.io/ChristopherMacGown/devcontainer-features/direnv:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"donjayamanne.python-environment-manager",
+				"innoverio.vscode-dbt-power-user",
+				"tamasfe.even-better-toml",
+				"mhutchie.git-graph",
+				"redhat.vscode-yaml",
+				"ms-python.python"
+			]
+		}
+	}
+
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

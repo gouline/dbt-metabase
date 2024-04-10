@@ -19,7 +19,8 @@ MB_NAME = envarg("MB_NAME", "dbtmetabase")
 
 @target(
     description="initial setup",
-    depends=["metabase_setup", "dbt_run", "metabase_content"],
+    depends=["metabase_setup"]
+    # depends=["metabase_setup", "dbt_run", "metabase_content"],
 )
 def init():
     pass

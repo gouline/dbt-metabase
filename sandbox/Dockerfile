@@ -9,4 +9,4 @@ RUN pip install -r requirements.txt -r requirements-test.txt
 
 WORKDIR /app/sandbox
 
-ENTRYPOINT ["python3", "entrypoint.py"]
+# ENTRYPOINT ["python3", "entrypoint.py"]
