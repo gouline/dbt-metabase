@@ -8,31 +8,35 @@ from requests.adapters import HTTPAdapter
 
 from ._exposures import ExposuresMixin
 from ._models import ModelsMixin
+from ._cards import CardsCreator
 from .manifest import Manifest
 from .metabase import Metabase
+from ._lockfile import LockFile
 
 _logger = logging.getLogger(__name__)
 
 
-class DbtMetabase(ModelsMixin, ExposuresMixin):
+class DbtMetabase(ModelsMixin, ExposuresMixin, CardsCreator):
     """dbt + Metabase integration."""
 
     DEFAULT_HTTP_TIMEOUT = 15
+    DEFAULT_LOCK_FILE_NAME = 'metabase.lock'
 
-    def __init__(
-        self,
-        manifest_path: Union[str, Path],
-        metabase_url: str,
-        metabase_api_key: Optional[str] = None,
-        metabase_username: Optional[str] = None,
-        metabase_password: Optional[str] = None,
-        metabase_session_id: Optional[str] = None,
-        skip_verify: bool = False,
-        cert: Optional[Union[str, Tuple[str, str]]] = None,
-        http_timeout: int = DEFAULT_HTTP_TIMEOUT,
-        http_headers: Optional[dict] = None,
-        http_adapter: Optional[HTTPAdapter] = None,
-    ):
+    def __init__(self,
+                 manifest_path: Union[str, Path],
+                 metabase_url: str,
+                 metabase_api_key: Optional[str] = None,
+                 metabase_username: Optional[str] = None,
+                 metabase_password: Optional[str] = None,
+                 metabase_session_id: Optional[str] = None,
+                 skip_verify: bool = False,
+                 cert: Optional[Union[str, Tuple[str, str]]] = None,
+                 http_timeout: int = DEFAULT_HTTP_TIMEOUT,
+                 http_headers: Optional[dict] = None,
+                 http_adapter: Optional[HTTPAdapter] = None,
+                 target_dir: str = '/app/sandbox/target',
+                 lock_file_name: str = DEFAULT_LOCK_FILE_NAME,
+                 cards_subdir: Optional[str] = None):
         """dbt + Metabase integration.
 
         Args:
@@ -49,9 +53,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
             http_adapter (Optional[HTTPAdapter], optional): Custom requests HTTP adapter. Defaults to None.
         """
 
-        self._manifest = Manifest(
-            path=manifest_path,
-        )
+        self._manifest = Manifest(path=manifest_path, )
         self._metabase = Metabase(
             url=metabase_url,
             api_key=metabase_api_key,
@@ -64,6 +66,9 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
             http_headers=http_headers,
             http_adapter=http_adapter,
         )
+        self._lockfile = LockFile(target_dir=target_dir,
+                                  models_subdir=cards_subdir,
+                                  lock_file=lock_file_name)
 
     @property
     def manifest(self) -> Manifest:
@@ -72,3 +77,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
     @property
     def metabase(self) -> Metabase:
         return self._metabase
+
+    @property
+    def lock_file(self) -> LockFile:
+        return self._lockfile

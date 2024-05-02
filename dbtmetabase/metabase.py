@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
+import json
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union, List
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -10,6 +11,7 @@ _logger = logging.getLogger(__name__)
 
 
 class Metabase:
+
     def __init__(
         self,
         url: str,
@@ -36,7 +38,8 @@ class Metabase:
 
         self.session.mount(
             self.url,
-            http_adapter or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1)),
+            http_adapter
+            or HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1)),
         )
 
         if api_key:
@@ -46,9 +49,11 @@ class Metabase:
                 self._api(
                     method="post",
                     path="/api/session",
-                    json={"username": username, "password": password},
-                )
-            )
+                    json={
+                        "username": username,
+                        "password": password
+                    },
+                ))
             self.session.headers["X-Metabase-Session"] = str(session["id"])
         elif session_id:
             _logger.warning(
@@ -56,7 +61,8 @@ class Metabase:
             )
             self.session.headers["X-Metabase-Session"] = session_id
         else:
-            raise ArgumentError("Metabase API key or username/password required")
+            raise ArgumentError(
+                "Metabase API key or username/password required")
 
         _logger.info("Metabase session established")
 
@@ -113,12 +119,15 @@ class Metabase:
                 method="get",
                 path=f"/api/database/{uid}/metadata",
                 params={"include_hidden": True},
-            )
-        )
+            ))
 
     def get_tables(self) -> Sequence[Mapping]:
         """Retrieves all tables for all databases."""
         return list(self._api("get", "/api/table"))
+
+    def get_columns(self, table_id: str) -> Sequence[Mapping]:
+        response = self._api('get', f'/api/table/{table_id}/query_metadata')
+        return list(dict(response)['fields'])
 
     def get_collections(self, exclude_personal: bool) -> Sequence[Mapping]:
         """Retrieves all collections and optionally filters out personal collections."""
@@ -127,10 +136,10 @@ class Metabase:
                 method="get",
                 path="/api/collection",
                 params={"exclude-other-user-collections": exclude_personal},
-            )
-        )
+            ))
         if exclude_personal:
-            results = list(filter(lambda x: not x.get("personal_owner_id"), results))
+            results = list(
+                filter(lambda x: not x.get("personal_owner_id"), results))
         return results
 
     def get_collection_items(
@@ -144,8 +153,7 @@ class Metabase:
                 method="get",
                 path=f"/api/collection/{uid}/items",
                 params={"models": models},
-            )
-        )
+            ))
         results = list(filter(lambda x: x["model"] in models, results))
         return results
 
@@ -158,6 +166,30 @@ class Metabase:
                 _logger.warning("Card '%s' not found", uid)
                 return None
             raise
+
+    def all_cards(self, archived=False):
+        return self._api('get',
+                         '/api/search',
+                         params={
+                             'models': 'card',
+                             'archived': archived
+                         })
+
+    def create_card(self, body: Mapping) -> Mapping:
+        headers = {'Content-Type': 'application/json'}
+        return dict(
+            self._api('post',
+                      '/api/card',
+                      data=json.dumps(body),
+                      headers=headers))
+
+    def update_card(self, id: int, body: Mapping) -> Mapping:
+        headers = {'Content-Type': 'application/json'}
+        return dict(
+            self._api('put',
+                      f'/api/card/{id}',
+                      data=json.dumps(body),
+                      headers=headers))
 
     def format_card_url(self, uid: str) -> str:
         """Formats URL link to a card (known as question in Metabase UI)."""
@@ -193,7 +225,8 @@ class Metabase:
 
     def update_table_field_order(self, uid: str, body: Sequence) -> Sequence:
         """Posts update to field order of an existing table."""
-        return list(self._api("put", f"/api/table/{uid}/fields/order", json=body))
+        return list(
+            self._api("put", f"/api/table/{uid}/fields/order", json=body))
 
     def update_field(self, uid: str, body: Mapping) -> Mapping:
         """Posts an update to an existing table field."""

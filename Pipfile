@@ -6,6 +6,8 @@ verify_ssl = true
 [dev-packages]
 dbt-postgres = "*"
 molot = "*"
+ipykernel = "*"
+pandas = "*"
 
 [packages]
 dbt-core = "*"

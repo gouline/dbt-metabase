@@ -39,9 +39,12 @@ models:
     meta:
       metabase.points_of_interest: Basic information only
       metabase.caveats: Some facts are derived from payments
+    config:
+      tags: tag1
 
     columns:
       - name: order_id
+        tags: [tag2]
         constraints:
           - type: primary_key
         tests:
@@ -59,13 +62,22 @@ models:
 
       - name: order_date
         description: Date (UTC) that the order was placed
+        meta:
+          metabase.filter:
+            widget-type: "date/range"
 
       - name: status
+        meta:
+          metabase.filter:
+            widget-type: "string/="
         tests:
           - accepted_values:
               values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
       - name: amount
+        meta:
+          metabase.filter:
+            widget-type: "number/between"
         description: Total amount (AUD) of the order
         tests:
           - not_null

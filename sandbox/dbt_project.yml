@@ -3,6 +3,8 @@ profile: "default"
 
 config-version: 2
 
+# metadata: 
+#   metabase-collection: 'dbt_queris'
 model-paths: ["models"]
 seed-paths: ["seeds"]
 

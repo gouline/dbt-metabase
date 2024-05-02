@@ -87,6 +87,23 @@ def _add_setup(func: Callable) -> Callable:
         help="Path to dbt manifest.json, usually in target/ directory after compilation.",
     )
     @click.option(
+        "--target-path",
+        envvar="TARGET_PATH",
+        show_envvar=True,
+        required=True,
+        type=click.Path(exists=True, dir_okay=True),
+        help=
+        "Path to dbt target directory.",
+    )
+    @click.option(
+        "--lockfile-name",
+        envvar="LOCKFILE_NAME",
+        show_envvar=True,
+        type=click.STRING,
+        default=DbtMetabase.DEFAULT_LOCK_FILE_NAME,
+        help="name of the lockfile",
+    )
+    @click.option(
         "--metabase-url",
         metavar="URL",
         envvar="METABASE_URL",
@@ -165,9 +182,12 @@ def _add_setup(func: Callable) -> Callable:
         is_flag=True,
         help="Enable verbose logging.",
     )
+
     @functools.wraps(func)
     def wrapper(
         manifest_path: str,
+        target_path: str,
+        lockfile_name: str,
         metabase_url: str,
         metabase_api_key: str,
         metabase_username: str,
@@ -188,6 +208,8 @@ def _add_setup(func: Callable) -> Callable:
         return func(
             core=DbtMetabase(
                 manifest_path=manifest_path,
+                target_dir=target_path,
+                lock_file_name=lockfile_name,
                 metabase_url=metabase_url,
                 metabase_api_key=metabase_api_key,
                 metabase_username=metabase_username,
@@ -397,7 +419,12 @@ def exposures(
         exclude_unverified=exclude_unverified,
     )
 
+@cli.command(help="Export queries with filters to Metabase.")
+@_add_setup
+def cards(core: DbtMetabase):
+    core.update_cards()
 
 if __name__ == "__main__":
     # Executed when running locally via python3 -m dbtmetabase
     cli()  # pylint: disable=no-value-for-parameter
+# export PYTHONPATH="/app/dbtmetabase:$PYTHONPATH"

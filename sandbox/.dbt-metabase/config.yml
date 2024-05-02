@@ -1,0 +1,5 @@
+config:
+    manifest_path: /app/sandbox/target/manifest.json
+    target_path: /app/sandbox/target
+    metabase_url: http://metabase:3000
+    metabase_api_key: mb_U5hrF1DObM0G6FH4C76KLn3BFkGnMA232l+LVSZeH2s=

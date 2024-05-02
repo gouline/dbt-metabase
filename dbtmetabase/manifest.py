@@ -31,8 +31,9 @@ _COMMON_META_FIELDS = [
 _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "semantic_type",
     "has_field_values",
-    "coercion_strate`gy",
+    "coercion_strategy",
     "number_style",
+    "filter",
 ]
 # Must be covered by Model attributes
 _MODEL_META_FIELDS = _COMMON_META_FIELDS + [
@@ -115,6 +116,7 @@ class Manifest:
             schema=schema,
             group=group,
             name=manifest_model["name"],
+            package_name=manifest_model["package_name"],
             alias=manifest_model.get(
                 "alias", manifest_model.get("identifier", manifest_model["name"])
             ),
@@ -356,6 +358,7 @@ class Column:
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None
 
+    filter: MutableMapping = dc.field(default_factory=dict)
     meta_fields: MutableMapping = dc.field(default_factory=dict)
 
 
@@ -367,6 +370,7 @@ class Model:
 
     name: str
     alias: str
+    package_name: str
     description: Optional[str] = None
     display_name: Optional[str] = None
     visibility_type: Optional[str] = None

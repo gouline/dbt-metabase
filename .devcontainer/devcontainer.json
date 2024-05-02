@@ -28,7 +28,9 @@
 				"tamasfe.even-better-toml",
 				"mhutchie.git-graph",
 				"redhat.vscode-yaml",
-				"ms-python.python"
+				"ms-python.python",
+				"ms-toolsai.jupyter",
+				"eeyore.yapf"
 			]
 		}
 	}
