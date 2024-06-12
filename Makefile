@@ -63,15 +63,15 @@ install: build
 .PHONY: install
 
 sandbox-up:
-	( cd sandbox && docker-compose up --build --attach app )
+	( cd sandbox && docker compose up --build --attach app )
 .PHONY: sandbox-up
 
 sandbox-down:
-	( cd sandbox && docker-compose down )
+	( cd sandbox && docker compose down )
 .PHONY: sandbox-up
 
 sandbox-models:
-	( source sandbox/.env && python3 -m dbtmetabase models \
+	( . sandbox/.env && python3 -m dbtmetabase models \
 		--manifest-path sandbox/target/manifest.json \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
@@ -86,7 +86,7 @@ sandbox-models:
 sandbox-exposures:
 	rm -rf sandbox/models/exposures
 	mkdir -p sandbox/models/exposures
-	( source sandbox/.env && python3 -m dbtmetabase exposures \
+	( . sandbox/.env && python3 -m dbtmetabase exposures \
 		--manifest-path sandbox/target/manifest.json \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
@@ -95,7 +95,7 @@ sandbox-exposures:
 		--output-grouping collection \
 		--verbose )
 	
-	( source sandbox/.env && cd sandbox && \
+	( . sandbox/.env && cd sandbox && \
 		POSTGRES_HOST=localhost \
 		POSTGRES_PORT=$$POSTGRES_PORT \
 		POSTGRES_USER=$$POSTGRES_USER \
