@@ -31,6 +31,16 @@ def dbt_run():
     shell("dbt run --profiles-dir .")
 
 
+def _session_headers():
+    session_id = requests.post(
+        url=f"http://{MB_HOST}:{MB_PORT}/api/session",
+        json={"username": MB_USER, "password": MB_PASSWORD},
+        timeout=10,
+    ).json()["id"]
+
+    return {"X-Metabase-Session": session_id}
+
+
 @target(description="set up Metabase user and database")
 def metabase_setup():
     requests.post(
@@ -76,16 +86,38 @@ def metabase_setup():
         timeout=10,
     ).raise_for_status()
 
+    requests.post(
+        url=f"http://{MB_HOST}:{MB_PORT}/api/database",
+        headers=_session_headers(),
+        json={
+            "engine": "postgres",
+            "name": POSTGRES_DB,
+            "details": {
+                "host": POSTGRES_HOST,
+                "port": POSTGRES_PORT,
+                "dbname": POSTGRES_DB,
+                "user": POSTGRES_USER,
+                "password": POSTGRES_PASSWORD,
+                "schema-filters-type": "all",
+                "ssl": False,
+                "tunnel-enabled": False,
+                "advanced-options": False,
+            },
+            "is_on_demand": False,
+            "is_full_sync": True,
+            "is_sample": False,
+            "cache_ttl": None,
+            "refingerprint": False,
+            "auto_run_queries": True,
+            "schedules": {},
+        },
+        timeout=10,
+    ).raise_for_status()
+
 
 @target(description="add mock content to Metabase")
 def metabase_content():
-    session_id = requests.post(
-        url=f"http://{MB_HOST}:{MB_PORT}/api/session",
-        json={"username": MB_USER, "password": MB_PASSWORD},
-        timeout=10,
-    ).json()["id"]
-
-    headers = {"X-Metabase-Session": session_id}
+    headers = _session_headers()
 
     database_id = ""
     databases = requests.get(

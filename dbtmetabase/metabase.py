@@ -185,6 +185,10 @@ class Metabase:
             if error.response.status_code == 404:
                 _logger.warning("User '%s' not found", uid)
                 return None
+            elif error.response.status_code == 400 and "internal user" in error.response.text:
+                # Since X.50.0 fetching internal user raises 400 Not able to modify the internal user
+                _logger.warning("User '%s' is internal", uid)
+                return None
             raise
 
     def update_table(self, uid: str, body: Mapping) -> Mapping:
