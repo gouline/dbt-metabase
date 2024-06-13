@@ -20,7 +20,11 @@ services:
     restart: always
 
   metabase:
-    image: metabase/metabase:v0.50.0
+    # image: metabase/metabase:v0.50.1
+    build:
+      dockerfile: Dockerfile-metabase
+      args:
+        - MB_VERSION=0.50.1
     environment:
       - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
     ports:
