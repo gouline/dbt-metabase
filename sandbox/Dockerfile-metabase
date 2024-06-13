@@ -1,0 +1,9 @@
+FROM eclipse-temurin:11-jre
+
+ARG MB_VERSION
+
+RUN curl -O https://downloads.metabase.com/v${MB_VERSION}/metabase.jar
+
+EXPOSE 3000
+
+ENTRYPOINT ["java", "-jar", "metabase.jar"]
