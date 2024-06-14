@@ -16,10 +16,10 @@ class MockMetabase(Metabase):
     def __init__(self, url: str):
         super().__init__(
             url=url,
-            api_key=None,
-            username=None,
+            api_key="dummy",
+            username="None",
             password=None,
-            session_id="dummy",
+            session_id=None,
             skip_verify=False,
             cert=None,
             http_timeout=1,

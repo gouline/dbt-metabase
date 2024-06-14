@@ -9,7 +9,7 @@ models:
     columns:
       - name: customer_id
         description: This is a unique identifier for a customer
-        tests:
+        data_tests:
           - unique
           - not_null
 
@@ -44,7 +44,7 @@ models:
       - name: order_id
         constraints:
           - type: primary_key
-        tests:
+        data_tests:
           - unique
           - not_null
         description: This is a unique identifier for an order
@@ -54,38 +54,38 @@ models:
         constraints:
           - type: foreign_key
             expression: customers (customer_id)
-        tests:
+        data_tests:
           - not_null
 
       - name: order_date
         description: Date (UTC) that the order was placed
 
       - name: status
-        tests:
+        data_tests:
           - accepted_values:
               values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
       - name: amount
         description: Total amount (AUD) of the order
-        tests:
+        data_tests:
           - not_null
 
       - name: credit_card_amount
         description: Amount of the order (AUD) paid for by credit card
-        tests:
+        data_tests:
           - not_null
 
       - name: coupon_amount
         description: Amount of the order (AUD) paid for by coupon
-        tests:
+        data_tests:
           - not_null
 
       - name: bank_transfer_amount
         description: Amount of the order (AUD) paid for by bank transfer
-        tests:
+        data_tests:
           - not_null
 
       - name: gift_card_amount
         description: Amount of the order (AUD) paid for by gift card
-        tests:
+        data_tests:
           - not_null

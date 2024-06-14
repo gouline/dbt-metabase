@@ -19,8 +19,8 @@ class TestManifest(unittest.TestCase):
         self.assertIsNone(customer_id_col.fk_target_table)
         self.assertIsNone(customer_id_col.fk_target_field)
 
-    def test_v11(self):
-        models = Manifest(FIXTURES_PATH / "manifest-v11.json").read_models()
+    def test_v12(self):
+        models = Manifest(FIXTURES_PATH / "manifest-v12.json").read_models()
         self._assertModelsEqual(
             models,
             [
