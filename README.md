@@ -56,7 +56,7 @@ models:
     columns:
       - name: id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
 
@@ -65,7 +65,7 @@ models:
 
       - name: group_id
         description: Foreign key to user group.
-        tests:
+        data_tests:
           - not_null
           - relationships:
               to: ref('groups')
@@ -76,7 +76,7 @@ models:
     columns:
       - name: id
         description: Primary key.
-        tests:
+        data_tests:
           - not_null
           - unique
 
