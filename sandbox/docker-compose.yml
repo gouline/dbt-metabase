@@ -24,13 +24,16 @@ services:
     build:
       dockerfile: Dockerfile-metabase
       args:
-        - MB_VERSION=0.50.3
+        - MB_VERSION=0.50.5
     environment:
       - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
+      - MB_DB_FILE=/metabase-data/metabase.db
     ports:
       - ${MB_PORT}:3000
     networks:
       - common
+    volumes:
+      - ./metabase:/metabase-data
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:3000/api/health"]
       interval: 10s
