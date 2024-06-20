@@ -11,7 +11,7 @@ class TestModels(unittest.TestCase):
 
     def test_export(self):
         self.c.export_models(
-            metabase_database="unit_testing",
+            metabase_database="dbtmetabase",
             skip_sources=True,
             sync_timeout=0,
             order_fields=True,
@@ -34,18 +34,23 @@ class TestModels(unittest.TestCase):
                 "CUSTOMER_ID",
                 "ORDER_DATE",
                 "STATUS",
+                "AMOUNT",
                 "CREDIT_CARD_AMOUNT",
                 "COUPON_AMOUNT",
                 "BANK_TRANSFER_AMOUNT",
                 "GIFT_CARD_AMOUNT",
-                "AMOUNT",
             ],
             "PUBLIC.RAW_CUSTOMERS": ["ID", "FIRST_NAME", "LAST_NAME"],
             "PUBLIC.RAW_ORDERS": ["ID", "USER_ID", "ORDER_DATE", "STATUS"],
             "PUBLIC.RAW_PAYMENTS": ["ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
-            "PUBLIC.STG_CUSTOMERS": ["CUSTOMER_ID"],
-            "PUBLIC.STG_ORDERS": ["ORDER_ID", "STATUS"],
-            "PUBLIC.STG_PAYMENTS": ["PAYMENT_ID", "PAYMENT_METHOD"],
+            "PUBLIC.STG_CUSTOMERS": ["CUSTOMER_ID", "FIRST_NAME", "LAST_NAME"],
+            "PUBLIC.STG_ORDERS": ["ORDER_ID", "STATUS", "ORDER_DATE", "CUSTOMER_ID"],
+            "PUBLIC.STG_PAYMENTS": [
+                "PAYMENT_ID",
+                "PAYMENT_METHOD",
+                "ORDER_ID",
+                "AMOUNT",
+            ],
         }
 
         actual_tables = self.c._ModelsMixin__get_tables(database_id="2")  # type: ignore

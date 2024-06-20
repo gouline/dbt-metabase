@@ -7,5 +7,6 @@ pylint>=3.0.2
 mypy>=1.7.1
 molot~=1.0.0
 dbt-postgres~=1.8.1
+python-dotenv~=1.0.1
 types-requests
 types-PyYAML

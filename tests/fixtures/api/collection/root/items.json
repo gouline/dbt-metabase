@@ -1,80 +1,159 @@
 [
     {
-        "description": null,
+        "description": "CTE SQL",
+        "collection_position": null,
         "can_write": true,
-        "name": "dbtmetabase's Personal Collection",
-        "id": 1,
-        "model": "collection"
-    },
-    {
-        "description": null,
-        "can_write": true,
-        "name": "Automatically Generated Dashboards",
-        "id": 2,
-        "model": "collection"
-    },
-    {
-        "description": null,
-        "collection_position": null,
-        "name": "Customers, Sum of Number Of Orders and Average of Number Of Orders, Grouped by Most Recent Order (day)",
-        "id": 1,
-        "display": "line",
-        "last-edit-info": {
-            "id": 1,
-            "last_name": "",
-            "first_name": "dbtmetabase",
-            "email": "user@example.com",
-            "timestamp": "2021-07-21T08:00:47.4892Z"
-        },
-        "favorite": false,
-        "model": "card"
-    },
-    {
-        "description": "Nice KPI",
-        "collection_position": null,
-        "name": "Orders, Count",
-        "id": 2,
-        "display": "scalar",
-        "last-edit-info": {
-            "id": 1,
-            "last_name": "",
-            "first_name": "dbtmetabase",
-            "email": "user@example.com",
-            "timestamp": "2021-07-21T08:01:14.3056Z"
-        },
-        "favorite": false,
-        "model": "card"
-    },
-    {
-        "description": null,
-        "collection_position": null,
-        "name": "Orders Customers",
-        "id": 23,
+        "database_id": null,
+        "collection_id": null,
+        "name": "Completed Orders CTE SQL",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 32,
         "display": "table",
+        "entity_id": "6jo5ucWZF4jBmf8OmRajs",
+        "collection_preview": true,
         "last-edit-info": {
             "id": 1,
-            "email": "dbtmetabase@example.com",
-            "first_name": "dbtmetabase",
             "last_name": null,
-            "timestamp": "2024-01-26T23:34:25.467752Z"
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-20T06:01:34.486033Z"
         },
-        "favorite": false,
+        "location": null,
+        "model": "card"
+    },
+    {
+        "description": "Dummy 1",
+        "collection_position": null,
+        "can_write": true,
+        "database_id": null,
+        "collection_id": null,
+        "name": "Dummy",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 30,
+        "display": "table",
+        "entity_id": "32PjfPIi_tmY3317kwVnd",
+        "collection_preview": true,
+        "last-edit-info": {
+            "id": 1,
+            "last_name": null,
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-20T05:57:05.744383Z"
+        },
+        "location": null,
+        "model": "card"
+    },
+    {
+        "description": "Dummy 2",
+        "collection_position": null,
+        "can_write": true,
+        "database_id": null,
+        "collection_id": null,
+        "name": "Dummy",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 31,
+        "display": "table",
+        "entity_id": "y_3jQjY9IbZEBAZ8xLoPN",
+        "collection_preview": true,
+        "last-edit-info": {
+            "id": 1,
+            "last_name": null,
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-20T05:57:18.528579Z"
+        },
+        "location": null,
+        "model": "card"
+    },
+    {
+        "description": "Orders and customers",
+        "collection_position": null,
+        "can_write": true,
+        "database_id": null,
+        "collection_id": null,
+        "name": "Orders + Customers",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 27,
+        "display": "table",
+        "entity_id": "WWI6bOVB-ssXYgCHASj9E",
+        "collection_preview": true,
+        "last-edit-info": {
+            "id": 1,
+            "last_name": null,
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-19T12:04:21.270066Z"
+        },
+        "location": null,
         "model": "card"
     },
     {
         "description": null,
         "collection_position": null,
-        "name": "Orders Customers Filtered",
-        "id": 24,
+        "can_write": true,
+        "database_id": null,
+        "collection_id": null,
+        "name": "Orders + Customers, Filtered by Status is completed",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 28,
         "display": "table",
+        "entity_id": "ewUj6ow4HD_vePKnXihVA",
+        "collection_preview": true,
         "last-edit-info": {
             "id": 1,
-            "last_name": "",
+            "last_name": null,
             "first_name": "dbtmetabase",
-            "email": "user@example.com",
-            "timestamp": "2024-01-21T08:01:37.449936Z"
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-19T11:58:35.066297Z"
         },
-        "favorite": false,
+        "location": null,
         "model": "card"
+    },
+    {
+        "description": null,
+        "collection_position": null,
+        "can_write": true,
+        "database_id": null,
+        "collection_id": null,
+        "name": "Returned Order Count SQL",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 29,
+        "display": "scalar",
+        "entity_id": "iCEt78jHFFT1fqTa28FOB",
+        "collection_preview": true,
+        "last-edit-info": {
+            "id": 1,
+            "last_name": null,
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-19T12:03:01.981604Z"
+        },
+        "location": null,
+        "model": "card"
+    },
+    {
+        "description": "Dashboard is a dashboard is a dashboard",
+        "collection_position": null,
+        "can_write": true,
+        "database_id": null,
+        "collection_id": null,
+        "name": "The Dashboard",
+        "id": 2,
+        "entity_id": "tAP447G_z1qHPtZeJkc2J",
+        "last-edit-info": {
+            "id": 1,
+            "last_name": null,
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-06-19T12:03:22.501237Z"
+        },
+        "location": null,
+        "model": "dashboard"
     }
 ]

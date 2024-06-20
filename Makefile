@@ -43,6 +43,7 @@ check: check-fmt check-imports check-lint-python check-type
 .PHONY: check
 
 test:
+	rm -rf tests/tmp
 	python3 -m unittest tests
 .PHONY: test
 

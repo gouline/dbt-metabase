@@ -1,21 +1,24 @@
 {
-    "email": "user@example.com",
-    "ldap_auth": false,
+    "email": "dbtmetabase@example.com",
     "first_name": "dbtmetabase",
     "locale": null,
-    "last_login": "2021-07-21T19:25:28.6083Z",
+    "last_login": "2024-06-20T06:03:33.519227Z",
     "is_active": true,
-    "is_qbnewb": false,
-    "updated_at": "2021-07-21T19:25:28.6083",
-    "group_ids": [
-        1,
-        2
+    "user_group_memberships": [
+        {
+            "id": 1
+        },
+        {
+            "id": 2
+        }
     ],
+    "is_qbnewb": false,
+    "updated_at": "2024-06-20T06:03:33.519227Z",
     "is_superuser": true,
     "login_attributes": null,
     "id": 1,
-    "last_name": "",
-    "date_joined": "2021-07-21T05:38:53.637091Z",
-    "common_name": "dbtmetabase",
-    "google_auth": false
+    "last_name": null,
+    "date_joined": "2024-06-19T11:49:37.507897Z",
+    "sso_source": null,
+    "common_name": "dbtmetabase"
 }

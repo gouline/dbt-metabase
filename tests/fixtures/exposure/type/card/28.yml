@@ -1,0 +1,26 @@
+version: 2
+exposures:
+  - name: orders___customers__filtered_by_status_is_completed
+    label: Orders + Customers, Filtered by Status is completed
+    description: '### Visualization: Table
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase ID: __28__
+
+
+      Created On: __2024-06-19T11:58:35.060527Z__'
+    type: analysis
+    url: http://localhost:3000/card/28
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
