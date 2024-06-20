@@ -69,7 +69,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         models = self.manifest.read_models()
 
         ctx = self.__Context(
-            model_refs={m.name: m.ref for m in models if m.ref},
+            model_refs={m.name.lower(): m.ref for m in models if m.ref},
             table_names={t["id"]: t["name"] for t in self.metabase.get_tables()},
         )
 
@@ -165,6 +165,8 @@ class ExposuresMixin(metaclass=ABCMeta):
                 count = counts.get(name, 0)
                 counts[name] = count + 1
 
+                _logger.error(ctx.model_refs)
+
                 exposures.append(
                     {
                         "id": item["id"],
@@ -182,9 +184,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                             creator_email=creator_email or "",
                             native_query=native_query,
                             depends_on={
-                                ctx.model_refs[depend]
+                                ctx.model_refs[depend.lower()]
                                 for depend in depends
-                                if depend in ctx.model_refs
+                                if depend.lower() in ctx.model_refs
                             },
                         ),
                     }
