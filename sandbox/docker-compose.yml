@@ -22,9 +22,10 @@ services:
   metabase:
     # image: metabase/metabase:latest
     build:
-      dockerfile: Dockerfile-metabase
+      dockerfile: Dockerfile.metabase
       args:
         - MB_VERSION=0.50.5
+        - CURL_FLAGS=${CURL_FLAGS:-}
     environment:
       - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
       - MB_DB_FILE=/metabase-data/metabase.db
