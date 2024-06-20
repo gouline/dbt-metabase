@@ -44,14 +44,8 @@ class TestExposures(unittest.TestCase):
             output_grouping="collection",
         )
 
-        self._assert_exposures(
-            fixtures_path / "a_look_at_your_customers_table.yml",
-            output_path / "a_look_at_your_customers_table.yml",
-        )
-        self._assert_exposures(
-            fixtures_path / "our_analytics.yml",
-            output_path / "our_analytics.yml",
-        )
+        for file in fixtures_path.iterdir():
+            self._assert_exposures(file, output_path / file.name)
 
     def test_exposures_grouping_type(self):
         fixtures_path = FIXTURES_PATH / "exposure" / "type"
@@ -61,17 +55,11 @@ class TestExposures(unittest.TestCase):
             output_grouping="type",
         )
 
-        for i in [*range(1, 18), 24]:
-            self._assert_exposures(
-                fixtures_path / "card" / f"{i}.yml",
-                output_path / "card" / f"{i}.yml",
-            )
+        for file in (fixtures_path / "card").iterdir():
+            self._assert_exposures(file, output_path / "card" / file.name)
 
-        for i in range(1, 2):
-            self._assert_exposures(
-                fixtures_path / "dashboard" / f"{i}.yml",
-                output_path / "dashboard" / f"{i}.yml",
-            )
+        for file in (fixtures_path / "dashboard").iterdir():
+            self._assert_exposures(file, output_path / "dashboard" / file.name)
 
     def test_exposures_aliased_ref(self):
         for model in self.c.manifest.read_models():
