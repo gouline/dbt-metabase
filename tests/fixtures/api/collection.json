@@ -1,49 +1,29 @@
 [
     {
+        "authority_level": null,
+        "can_write": true,
         "name": "Our analytics",
-        "id": "root",
-        "parent_id": null,
-        "effective_location": null,
         "effective_ancestors": [],
-        "can_write": true
+        "effective_location": null,
+        "parent_id": null,
+        "id": "root",
+        "is_personal": false
     },
     {
         "authority_level": null,
         "description": null,
         "archived": false,
         "slug": "dbtmetabase_s_personal_collection",
-        "color": "#31698A",
         "can_write": true,
         "name": "dbtmetabase's Personal Collection",
         "personal_owner_id": 1,
-        "id": 1,
-        "location": "/",
-        "namespace": null
-    },
-    {
-        "authority_level": null,
-        "description": "Automatically generated cards.",
-        "archived": false,
-        "slug": "a_look_at_your_customers_table",
-        "color": "#f9d45c",
-        "can_write": true,
-        "name": "A look at your customers table",
-        "personal_owner_id": null,
-        "id": 3,
-        "location": "/2/",
-        "namespace": null
-    },
-    {
-        "authority_level": null,
-        "description": null,
-        "archived": false,
-        "slug": "automatically_generated_dashboards",
-        "color": "#509EE3",
-        "can_write": true,
-        "name": "Automatically Generated Dashboards",
-        "personal_owner_id": null,
+        "type": null,
+        "is_sample": false,
         "id": 2,
+        "entity_id": "4NxVlV7MwKdihROHJkxCx",
         "location": "/",
-        "namespace": null
+        "namespace": null,
+        "is_personal": true,
+        "created_at": "2024-06-19T11:49:38.03895Z"
     }
 ]

@@ -1,0 +1,17 @@
+version: 2
+exposures:
+  - name: returned_order_count_sql
+    label: Returned Order Count SQL
+    description: "### Visualization: Scalar\n\nNo description provided in Metabase\n\
+      \n#### Query\n\n```\nselect\n    count(*)\nfrom STG_payments as p\n    left\
+      \ join STG_orders as o on p.order_id = o.order_id\nwhere o.status = 'returned'\n\
+      ;\n```\n\n#### Metadata\n\nMetabase ID: __29__\n\nCreated On: __2024-06-19T12:03:01.905927Z__"
+    type: analysis
+    url: http://localhost:3000/card/29
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('stg_orders')
+      - ref('stg_payments')

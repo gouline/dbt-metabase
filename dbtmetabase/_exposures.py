@@ -165,8 +165,6 @@ class ExposuresMixin(metaclass=ABCMeta):
                 count = counts.get(name, 0)
                 counts[name] = count + 1
 
-                _logger.error(ctx.model_refs)
-
                 exposures.append(
                     {
                         "id": item["id"],
@@ -183,11 +181,13 @@ class ExposuresMixin(metaclass=ABCMeta):
                             creator_name=creator_name or "",
                             creator_email=creator_email or "",
                             native_query=native_query,
-                            depends_on={
-                                ctx.model_refs[depend.lower()]
-                                for depend in depends
-                                if depend.lower() in ctx.model_refs
-                            },
+                            depends_on=sorted(
+                                [
+                                    ctx.model_refs[depend.lower()]
+                                    for depend in depends
+                                    if depend.lower() in ctx.model_refs
+                                ]
+                            ),
                         ),
                     }
                 )

@@ -14,6 +14,7 @@ FIXTURES_PATH = Path("tests") / "fixtures"
 TMP_PATH = Path("tests") / "tmp"
 
 RECORD = os.getenv("RECORD", "").lower() == "true"
+SANDBOX_ENV = dotenv_values(Path().parent / "sandbox" / ".env")
 
 
 class MockMetabase(Metabase):
@@ -25,10 +26,9 @@ class MockMetabase(Metabase):
         password = None
 
         if record:
-            env = dotenv_values(Path().parent / "sandbox" / ".env")
             api_key = None
-            username = env["MB_USER"]
-            password = env["MB_PASSWORD"]
+            username = SANDBOX_ENV["MB_USER"]
+            password = SANDBOX_ENV["MB_PASSWORD"]
 
         super().__init__(
             url=url,
@@ -86,8 +86,8 @@ class MockManifest(Manifest):
 class MockDbtMetabase(DbtMetabase):
     def __init__(
         self,
-        manifest_path: Path = FIXTURES_PATH / "manifest-v2.json",
-        metabase_url: str = "http://localhost:3000",
+        manifest_path: Path = FIXTURES_PATH / "manifest-v12.json",
+        metabase_url: str = f"http://localhost:{SANDBOX_ENV['MB_PORT']}",
     ):  # pylint: disable=super-init-not-called
         self._manifest = MockManifest(path=manifest_path)
         self._metabase = MockMetabase(url=metabase_url, record=RECORD)
