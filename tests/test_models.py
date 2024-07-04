@@ -13,7 +13,24 @@ class TestModels(unittest.TestCase):
         self.c.export_models(
             metabase_database="dbtmetabase",
             skip_sources=True,
-            sync_timeout=0,
+            sync_timeout=1,
+            order_fields=True,
+        )
+
+    def test_export_hidden_table(self):
+        # pylint: disable=protected-access
+        self.c._manifest.read_models()
+        model = self.c._manifest.find_model("stg_customers")
+        model.visibility_type = "hidden"
+
+        column = model.columns[0]
+        column.name = "new_column_since_stale"
+        model.columns.append(column)
+
+        self.c.export_models(
+            metabase_database="dbtmetabase",
+            skip_sources=True,
+            sync_timeout=1,
             order_fields=True,
         )
 

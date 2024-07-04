@@ -1,21 +1,22 @@
 import unittest
 from operator import attrgetter
-from typing import Optional, Sequence
+from typing import Sequence
 
 from dbtmetabase.manifest import Column, Group, Manifest, Model
 
-from ._mocks import FIXTURES_PATH
+from ._mocks import FIXTURES_PATH, MockManifest
 
 
 class TestManifest(unittest.TestCase):
     def test_v11_disabled(self):
-        models = Manifest(FIXTURES_PATH / "manifest-v11-disabled.json").read_models()
+        manifest = MockManifest(FIXTURES_PATH / "manifest-v11-disabled.json")
+        manifest.read_models()
 
-        orders_mod = self._find_model(models, "orders")
+        orders_mod = manifest.find_model("orders")
         self.assertIsNone(orders_mod)
 
-        customer_id_col = self._find_column(models, "customers", "customer_id")
-        assert customer_id_col
+        customer_id_col = manifest.find_column("customers", "customer_id")
+        self.assertIsNotNone(customer_id_col)
         self.assertIsNone(customer_id_col.fk_target_table)
         self.assertIsNone(customer_id_col.fk_target_field)
 
@@ -387,23 +388,3 @@ class TestManifest(unittest.TestCase):
             )
 
         self.assertEqual(first, second)
-
-    @staticmethod
-    def _find_model(models: Sequence[Model], model_name: str) -> Optional[Model]:
-        filtered = [m for m in models if m.name == model_name]
-        if filtered:
-            return filtered[0]
-        return None
-
-    @staticmethod
-    def _find_column(
-        models: Sequence[Model],
-        model_name: str,
-        column_name: str,
-    ) -> Optional[Column]:
-        model = TestManifest._find_model(models=models, model_name=model_name)
-        if model:
-            filtered = [c for c in model.columns if c.name == column_name]
-            if filtered:
-                return filtered[0]
-        return None

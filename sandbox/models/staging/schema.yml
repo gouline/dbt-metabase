@@ -2,6 +2,8 @@ version: 2
 
 models:
   - name: stg_customers
+    meta:
+      metabase.visibility_type: hidden
     columns:
       - name: customer_id
         data_tests:

@@ -7,7 +7,7 @@ import requests
 from dotenv import dotenv_values
 
 from dbtmetabase.core import DbtMetabase
-from dbtmetabase.manifest import Manifest, Model
+from dbtmetabase.manifest import Column, Manifest, Model
 from dbtmetabase.metabase import Metabase
 
 FIXTURES_PATH = Path("tests") / "fixtures"
@@ -50,28 +50,30 @@ class MockMetabase(Metabase):
         params: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> Union[Mapping, Sequence]:
+        result = {}
         path_toks = f"{path.lstrip('/')}.json".split("/")
         json_path = Path.joinpath(FIXTURES_PATH, *path_toks)
 
         if self.record:
-            resp = super()._api(method, path, params, **kwargs)
+            is_auth = path == "/api/session"
+            if method == "get" or is_auth:
+                result = super()._api(method, path, params, **kwargs)
 
-            if method == "get":
-                json_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(json_path, "w", encoding="utf-8") as f:
-                    json.dump(resp, f, indent=4)
-
-            return resp
+                if not is_auth:
+                    json_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(json_path, "w", encoding="utf-8") as f:
+                        json.dump(result, f, indent=4)
         else:
             if method == "get":
                 if json_path.exists():
                     with open(json_path, encoding="utf-8") as f:
-                        return json.load(f)
+                        result = json.load(f)
                 else:
                     response = requests.Response()
                     response.status_code = 404
                     raise requests.exceptions.HTTPError(response=response)
-            return {}
+
+        return result
 
 
 class MockManifest(Manifest):
@@ -81,6 +83,24 @@ class MockManifest(Manifest):
         if not self._models:
             self._models = super().read_models()
         return self._models
+
+    def find_model(self, model_name: str) -> Optional[Model]:
+        filtered = [m for m in self._models if m.name == model_name]
+        if filtered:
+            return filtered[0]
+        return None
+
+    def find_column(
+        self,
+        model_name: str,
+        column_name: str,
+    ) -> Optional[Column]:
+        model = self.find_model(model_name=model_name)
+        if model:
+            filtered = [c for c in model.columns if c.name == column_name]
+            if filtered:
+                return filtered[0]
+        return None
 
 
 class MockDbtMetabase(DbtMetabase):
