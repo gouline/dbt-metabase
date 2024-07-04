@@ -2,7 +2,7 @@
     "email": "dbtmetabase@example.com",
     "first_name": "dbtmetabase",
     "locale": null,
-    "last_login": "2024-06-20T06:03:33.519227Z",
+    "last_login": "2024-07-04T05:55:25.914119Z",
     "is_active": true,
     "user_group_memberships": [
         {
@@ -13,7 +13,7 @@
         }
     ],
     "is_qbnewb": false,
-    "updated_at": "2024-06-20T06:03:33.519227Z",
+    "updated_at": "2024-07-04T05:55:25.914119Z",
     "is_superuser": true,
     "login_attributes": null,
     "id": 1,

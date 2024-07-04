@@ -2,7 +2,7 @@
     "cache_invalidated_at": null,
     "description": "CTE SQL",
     "archived": false,
-    "view_count": 12,
+    "view_count": 19,
     "collection_position": null,
     "table_id": null,
     "can_run_adhoc_query": true,
@@ -276,7 +276,7 @@
     "creator": {
         "email": "dbtmetabase@example.com",
         "first_name": "dbtmetabase",
-        "last_login": "2024-06-20T06:03:33.519227Z",
+        "last_login": "2024-07-04T05:55:25.914119Z",
         "is_qbnewb": false,
         "is_superuser": true,
         "id": 1,
