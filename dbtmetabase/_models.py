@@ -100,10 +100,19 @@ class ModelsMixin(metaclass=ABCMeta):
 
                     field = table.get("fields", {}).get(column_name)
                     if not field:
+                        if table.get("visibility_type") == "hidden":
+                            table_label = "hidden table"
+                            table["stale"] = True
+                        else:
+                            table_label = "table"
+                            synced = False
+
                         _logger.warning(
-                            "Field '%s' not in table '%s'", column_name, table_key
+                            "Field '%s' not in %s '%s'",
+                            column_name,
+                            table_label,
+                            table_key,
                         )
-                        synced = False
                         continue
 
             ctx.tables = tables
@@ -178,6 +187,13 @@ class ModelsMixin(metaclass=ABCMeta):
         model_caveats = model.caveats or None
         model_visibility = model.visibility_type or None
 
+        # Going from hidden to visible may require a retry
+        retryable = (
+            api_table.get("visibility_type") == "hidden"
+            and model_visibility != "hidden"
+            and api_table.get("stale", False)
+        )
+
         body_table = {}
 
         # Update if specified, otherwise reset one that had been set
@@ -205,6 +221,10 @@ class ModelsMixin(metaclass=ABCMeta):
         else:
             _logger.info("Table '%s' is up to date", table_key)
 
+        if model_visibility == "hidden":
+            _logger.info("Table '%s' is hidden, skipping columns", table_key)
+            return success
+
         for column in model.columns:
             success &= self.__export_column(
                 ctx,
@@ -219,6 +239,11 @@ class ModelsMixin(metaclass=ABCMeta):
                 model=model,
                 api_table=api_table,
                 table_key=table_key,
+            )
+
+        if not success and retryable:
+            _logger.error(
+                "Table '%s' got stale while hidden, retrying may help", table_key
             )
 
         return success
