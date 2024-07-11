@@ -100,7 +100,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
                     field = table.get("fields", {}).get(column_name)
                     if not field:
-                        if table.get("visibility_type") == "hidden":
+                        if table.get("visibility_type") is not None:
                             table_label = "hidden table"
                             table["stale"] = True
                         else:
