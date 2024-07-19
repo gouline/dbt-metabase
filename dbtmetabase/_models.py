@@ -189,8 +189,8 @@ class ModelsMixin(metaclass=ABCMeta):
 
         # Going from hidden to visible may require a retry
         retryable = (
-            api_table.get("visibility_type") == "hidden"
-            and model_visibility != "hidden"
+            api_table.get("visibility_type") is not None
+            and model_visibility is None
             and api_table.get("stale", False)
         )
 
@@ -221,7 +221,7 @@ class ModelsMixin(metaclass=ABCMeta):
         else:
             _logger.info("Table '%s' is up to date", table_key)
 
-        if model_visibility == "hidden":
+        if model_visibility is not None:
             _logger.info("Table '%s' is hidden, skipping columns", table_key)
             return success
 
