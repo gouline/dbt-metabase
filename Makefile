@@ -44,7 +44,7 @@ check: check-fmt check-imports check-lint-python check-type
 
 test:
 	rm -rf tests/tmp
-	python3 -m unittest tests
+	pytest tests
 .PHONY: test
 
 pre: fix check test
