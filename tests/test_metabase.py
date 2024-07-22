@@ -1,40 +1,43 @@
-import unittest
+import pytest
 
 from tests._mocks import MockMetabase
 
 
-class TestMetabase(unittest.TestCase):
-    def setUp(self):
-        self.metabase = MockMetabase(url="http://localhost")
+@pytest.fixture(name="metabase")
+def fixture_metabase() -> MockMetabase:
+    return MockMetabase(url="http://localhost")
 
-    def test_metabase_find_database(self):
-        db = self.metabase.find_database(name="dbtmetabase")
-        assert db
-        self.assertEqual(2, db["id"])
-        self.assertIsNone(self.metabase.find_database(name="foo"))
 
-    def test_metabase_get_collections(self):
-        excluded = self.metabase.get_collections(exclude_personal=True)
-        self.assertEqual(1, len(excluded))
+def test_metabase_find_database(metabase: MockMetabase):
+    db = metabase.find_database(name="dbtmetabase")
+    assert db
+    assert db["id"] == 2
+    assert metabase.find_database(name="foo") is None
 
-        included = self.metabase.get_collections(exclude_personal=False)
-        self.assertEqual(2, len(included))
 
-    def test_metabase_get_collection_items(self):
-        cards = self.metabase.get_collection_items(
-            uid="root",
-            models=("card",),
-        )
-        self.assertEqual({"card"}, {item["model"] for item in cards})
+def test_metabase_get_collections(metabase: MockMetabase):
+    excluded = metabase.get_collections(exclude_personal=True)
+    assert len(excluded) == 1
 
-        dashboards = self.metabase.get_collection_items(
-            uid="root",
-            models=("dashboard",),
-        )
-        self.assertEqual({"dashboard"}, {item["model"] for item in dashboards})
+    included = metabase.get_collections(exclude_personal=False)
+    assert len(included) == 2
 
-        both = self.metabase.get_collection_items(
-            uid="root",
-            models=("card", "dashboard"),
-        )
-        self.assertEqual({"card", "dashboard"}, {item["model"] for item in both})
+
+def test_metabase_get_collection_items(metabase: MockMetabase):
+    cards = metabase.get_collection_items(
+        uid="root",
+        models=("card",),
+    )
+    assert {item["model"] for item in cards} == {"card"}
+
+    dashboards = metabase.get_collection_items(
+        uid="root",
+        models=("dashboard",),
+    )
+    assert {item["model"] for item in dashboards} == {"dashboard"}
+
+    both = metabase.get_collection_items(
+        uid="root",
+        models=("card", "dashboard"),
+    )
+    assert {item["model"] for item in both} == {"card", "dashboard"}
