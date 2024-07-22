@@ -1,8 +1,7 @@
 import unittest
 
 from dbtmetabase.format import Filter, NullValue, dump_yaml, safe_description, safe_name
-
-from ._mocks import FIXTURES_PATH, TMP_PATH
+from tests._mocks import FIXTURES_PATH, TMP_PATH
 
 
 class TestFormat(unittest.TestCase):

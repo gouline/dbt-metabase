@@ -3,8 +3,7 @@ from operator import attrgetter
 from typing import Sequence
 
 from dbtmetabase.manifest import Column, Group, Manifest, Model
-
-from ._mocks import FIXTURES_PATH, MockManifest
+from tests._mocks import FIXTURES_PATH, MockManifest
 
 
 class TestManifest(unittest.TestCase):
@@ -16,6 +15,7 @@ class TestManifest(unittest.TestCase):
         self.assertIsNone(orders_mod)
 
         customer_id_col = manifest.find_column("customers", "customer_id")
+        assert customer_id_col is not None
         self.assertIsNotNone(customer_id_col)
         self.assertIsNone(customer_id_col.fk_target_table)
         self.assertIsNone(customer_id_col.fk_target_field)

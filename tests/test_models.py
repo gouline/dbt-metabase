@@ -1,6 +1,8 @@
 import unittest
+from typing import MutableSequence, cast
 
-from ._mocks import MockDbtMetabase
+from dbtmetabase.manifest import Column
+from tests._mocks import MockDbtMetabase
 
 
 class TestModels(unittest.TestCase):
@@ -21,11 +23,13 @@ class TestModels(unittest.TestCase):
         # pylint: disable=protected-access
         self.c._manifest.read_models()
         model = self.c._manifest.find_model("stg_customers")
+        assert model is not None
         model.visibility_type = "hidden"
 
         column = model.columns[0]
         column.name = "new_column_since_stale"
-        model.columns.append(column)
+        columns = cast(MutableSequence[Column], model.columns)
+        columns.append(column)
 
         self.c.export_models(
             metabase_database="dbtmetabase",

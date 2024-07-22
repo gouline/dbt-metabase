@@ -1,6 +1,6 @@
 import unittest
 
-from ._mocks import MockMetabase
+from tests._mocks import MockMetabase
 
 
 class TestMetabase(unittest.TestCase):

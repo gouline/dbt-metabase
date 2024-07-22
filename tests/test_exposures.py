@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from ._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
+from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
 
 
 class TestExposures(unittest.TestCase):
