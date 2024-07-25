@@ -155,6 +155,7 @@ def _add_setup(func: Callable) -> Callable:
     @click.option(
         "--http-header",
         "http_headers",
+        metavar="KEY VALUE",
         type=(str, str),
         multiple=True,
         help="Additional HTTP request headers.",
@@ -380,6 +381,7 @@ def models(
 @click.option(
     "--tag",
     "tags",
+    metavar="TAG",
     multiple=True,
     help="Optional tags for exported dbt exposures.",
 )
