@@ -14,6 +14,8 @@ exposures:
       email: dbtmetabase@example.com
     depends_on:
       - ref('orders')
+    tags:
+      - metabase
   - name: dummy
     label: Dummy
     description: '### Visualization: Table
@@ -46,6 +48,8 @@ exposures:
       name: dbtmetabase
       email: dbtmetabase@example.com
     depends_on: []
+    tags:
+      - metabase
   - name: dummy_1
     label: Dummy
     description: '### Visualization: Table
@@ -78,6 +82,8 @@ exposures:
       name: dbtmetabase
       email: dbtmetabase@example.com
     depends_on: []
+    tags:
+      - metabase
   - name: orders___customers
     label: Orders + Customers
     description: '### Visualization: Table
@@ -102,6 +108,8 @@ exposures:
     depends_on:
       - ref('customers')
       - ref('orders')
+    tags:
+      - metabase
   - name: orders___customers__filtered_by_status_is_completed
     label: Orders + Customers, Filtered by Status is completed
     description: '### Visualization: Table
@@ -126,6 +134,8 @@ exposures:
     depends_on:
       - ref('customers')
       - ref('orders')
+    tags:
+      - metabase
   - name: returned_order_count_sql
     label: Returned Order Count SQL
     description: "### Visualization: Scalar\n\nNo description provided in Metabase\n\
@@ -141,6 +151,8 @@ exposures:
     depends_on:
       - ref('stg_orders')
       - ref('stg_payments')
+    tags:
+      - metabase
   - name: the_dashboard
     label: The Dashboard
     description: '### Dashboard Cards: 3
@@ -167,3 +179,5 @@ exposures:
       - ref('orders')
       - ref('stg_orders')
       - ref('stg_payments')
+    tags:
+      - metabase

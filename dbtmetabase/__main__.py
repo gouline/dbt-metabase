@@ -155,6 +155,7 @@ def _add_setup(func: Callable) -> Callable:
     @click.option(
         "--http-header",
         "http_headers",
+        metavar="KEY VALUE",
         type=(str, str),
         multiple=True,
         help="Additional HTTP request headers.",
@@ -377,6 +378,13 @@ def models(
     is_flag=True,
     help="Exclude items that have not been verified. Only applies to entity types that support verification.",
 )
+@click.option(
+    "--tag",
+    "tags",
+    metavar="TAG",
+    multiple=True,
+    help="Optional tags for exported dbt exposures.",
+)
 def exposures(
     output_path: str,
     output_grouping: Optional[str],
@@ -384,6 +392,7 @@ def exposures(
     exclude_collections: Optional[Sequence[str]],
     allow_personal_collections: bool,
     exclude_unverified: bool,
+    tags: Sequence[str],
     core: DbtMetabase,
 ):
     core.extract_exposures(
@@ -395,6 +404,7 @@ def exposures(
         ),
         allow_personal_collections=allow_personal_collections,
         exclude_unverified=exclude_unverified,
+        tags=tags,
     )
 
 

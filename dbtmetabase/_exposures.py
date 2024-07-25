@@ -6,7 +6,15 @@ import re
 from abc import ABCMeta, abstractmethod
 from operator import itemgetter
 from pathlib import Path
-from typing import Iterable, Mapping, MutableMapping, MutableSequence, Optional, Tuple
+from typing import (
+    Iterable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from dbtmetabase.metabase import Metabase
 
@@ -47,6 +55,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         collection_filter: Optional[Filter] = None,
         allow_personal_collections: bool = False,
         exclude_unverified: bool = False,
+        tags: Optional[Sequence[str]] = None,
     ) -> Iterable[Mapping]:
         """Extract dbt exposures from Metabase.
 
@@ -56,6 +65,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             collection_filter (Optional[Filter], optional): Filter Metabase collections. Defaults to None.
             allow_personal_collections (bool, optional): Allow personal Metabase collections. Defaults to False.
             exclude_unverified (bool, optional): Exclude items that have not been verified. Only applies to entity types that support verification. Defaults to False.
+            tags (Sequence[str], optional): Optional tags for exported dbt exposures. Defaults to None.
 
         Returns:
             Iterable[Mapping]: List of parsed exposures.
@@ -188,6 +198,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                                     if depend.lower() in ctx.model_refs
                                 ]
                             ),
+                            tags=tags,
                         ),
                     }
                 )
@@ -301,6 +312,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         creator_email: str,
         native_query: Optional[str],
         depends_on: Iterable[str],
+        tags: Optional[Sequence[str]],
     ) -> Mapping:
         """Builds dbt exposure representation (see https://docs.getdbt.com/reference/exposure-properties)."""
 
@@ -334,7 +346,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             + f"Created On: __{created_at}__"
         )
 
-        return {
+        exposure = {
             "name": name,
             "label": label,
             "description": safe_description(
@@ -349,6 +361,11 @@ class ExposuresMixin(metaclass=ABCMeta):
             },
             "depends_on": list(depends_on),
         }
+
+        if tags:
+            exposure["tags"] = list(tags)
+
+        return exposure
 
     @staticmethod
     def __write_exposures(

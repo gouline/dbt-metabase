@@ -94,6 +94,7 @@ sandbox-exposures:
 		--metabase-password $$MB_PASSWORD \
 		--output-path sandbox/models/exposures \
 		--output-grouping collection \
+		--tag metabase \
 		--verbose )
 	
 	( . sandbox/.env && cd sandbox && \
