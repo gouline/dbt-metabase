@@ -6,7 +6,9 @@ import yaml
 
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
 
-TMP_PATH.mkdir(exist_ok=True)
+
+def setup_module():
+    TMP_PATH.mkdir(exist_ok=True)
 
 
 @pytest.fixture(name="core")
@@ -29,6 +31,7 @@ def test_exposures(core: MockDbtMetabase):
     core.extract_exposures(
         output_path=str(output_path),
         output_grouping=None,
+        tags=["metabase"],
     )
 
     _assert_exposures(
