@@ -25,7 +25,7 @@ def _assert_exposures(expected_path: Path, actual_path: Path):
     assert actual["exposures"] == sorted(expected["exposures"], key=itemgetter("name"))
 
 
-def test_exposures(core: MockDbtMetabase):
+def test_exposures_default(core: MockDbtMetabase):
     fixtures_path = FIXTURES_PATH / "exposure" / "default"
     output_path = TMP_PATH / "exposure" / "default"
     core.extract_exposures(
@@ -40,7 +40,7 @@ def test_exposures(core: MockDbtMetabase):
     )
 
 
-def test_exposures_aliased_ref(core: MockDbtMetabase):
+def test_exposures_default_aliased(core: MockDbtMetabase):
     for model in core.manifest.read_models():
         if not model.name.startswith("stg_"):
             model.alias = f"{model.name}_alias"

@@ -65,7 +65,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             collection_filter (Optional[Filter], optional): Filter Metabase collections. Defaults to None.
             allow_personal_collections (bool, optional): Allow personal Metabase collections. Defaults to False.
             exclude_unverified (bool, optional): Exclude items that have not been verified. Only applies to entity types that support verification. Defaults to False.
-            tags (Sequence[str], optional): Optional tags for resulting dbt exposures. Defaults to None.
+            tags (Sequence[str], optional): Optional tags for exported dbt exposures. Defaults to None.
 
         Returns:
             Iterable[Mapping]: List of parsed exposures.
