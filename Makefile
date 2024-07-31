@@ -12,34 +12,21 @@ requirements:
 		-r requirements-test.txt
 .PHONY: requirements
 
-fix-fmt:
-	black .
-.PHONY: fix-fmt
-
-fix-imports:
-	isort .
-.PHONY: fix-imports
-
-fix: fix-fmt fix-imports
+fix:
+	ruff format .
+	ruff check --fix .
 .PHONY: fix
 
-check-fmt:
-	black --check .
-.PHONY: check-fmt
-
-check-imports:
-	isort --check .
-.PHONY: check-imports
-
-check-lint-python:
-	pylint dbtmetabase
-.PHONY: check-lint-python
+check-lint:
+	ruff format --check .
+	ruff check .
+.PHONY: check-lint
 
 check-type:
 	mypy dbtmetabase
 .PHONY: check-type
 
-check: check-fmt check-imports check-lint-python check-type
+check: check-lint check-type
 .PHONY: check
 
 test:

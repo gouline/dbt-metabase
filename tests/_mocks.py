@@ -108,6 +108,6 @@ class MockDbtMetabase(DbtMetabase):
         self,
         manifest_path: Path = FIXTURES_PATH / "manifest-v12.json",
         metabase_url: str = f"http://localhost:{SANDBOX_ENV['MB_PORT']}",
-    ):  # pylint: disable=super-init-not-called
+    ):
         self._manifest = MockManifest(path=manifest_path)
         self._metabase = MockMetabase(url=metabase_url, record=RECORD)

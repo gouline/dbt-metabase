@@ -28,14 +28,8 @@ jobs:
       - name: Build
         run: make build
 
-      - name: Formatting check (black)
-        run: make check-fmt
-
-      - name: Imports ordering check (isort)
-        run: make check-imports
-
-      - name: Lint Python check (pylint)
-        run: make check-lint-python
+      - name: Lint check (ruff)
+        run: make check-lint
 
       - name: Type check (mypy)
         run: make check-type

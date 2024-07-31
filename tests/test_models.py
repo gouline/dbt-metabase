@@ -8,7 +8,6 @@ from tests._mocks import MockDbtMetabase
 
 @pytest.fixture(name="core")
 def fixture_core() -> MockDbtMetabase:
-    # pylint: disable=protected-access
     c = MockDbtMetabase()
     c._ModelsMixin__SYNC_PERIOD = 1  # type: ignore
     return c
@@ -24,7 +23,6 @@ def test_export(core: MockDbtMetabase):
 
 
 def test_export_hidden_table(core: MockDbtMetabase):
-    # pylint: disable=protected-access
     core._manifest.read_models()
     model = core._manifest.find_model("stg_customers")
     assert model is not None
@@ -44,7 +42,6 @@ def test_export_hidden_table(core: MockDbtMetabase):
 
 
 def test_build_lookups(core: MockDbtMetabase):
-    # pylint: disable=protected-access,no-member
     expected = {
         "PUBLIC.CUSTOMERS": [
             "CUSTOMER_ID",

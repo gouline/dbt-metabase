@@ -97,7 +97,7 @@ def metabase_setup():
         timeout=10,
     ).json()
     for collection in collections:
-        if collection.get("is_sample") == True and collection.get("archived") == False:
+        if collection.get("is_sample") and not collection.get("archived"):
             logging.info("Deleting Metabase sample collection %s", collection["id"])
             requests.put(
                 url=f"{MB_API_URL}/collection/{collection['id']}",
