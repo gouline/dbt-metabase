@@ -337,7 +337,7 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         if native_query:
             # Format query into markdown code block
-            native_query = "\n".join(l for l in native_query.split("\n") if l.strip())
+            native_query = "\n".join(x for x in native_query.split("\n") if x.strip())
             native_query = f"#### Query\n\n```\n{native_query}\n```\n\n"
 
         metadata = (
@@ -393,7 +393,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             path = path.joinpath(*group[:-1]) / f"{group[-1]}.yml"
             path.parent.mkdir(parents=True, exist_ok=True)
 
-            exps_unwrapped = map(lambda x: x["body"], exps)
+            exps_unwrapped = (x["body"] for x in exps)
             exps_sorted = sorted(exps_unwrapped, key=itemgetter("name"))
 
             with open(path, "w", encoding="utf-8") as f:

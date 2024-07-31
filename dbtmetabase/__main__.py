@@ -65,7 +65,7 @@ def cli(ctx: click.Context, config_path: str):
 
     config_path_expanded = Path(config_path).expanduser()
     if config_path_expanded.exists():
-        with open(config_path_expanded, "r", encoding="utf-8") as f:
+        with open(config_path_expanded, encoding="utf-8") as f:
             config = yaml.safe_load(f).get("config", {})
             # Propagate common configs to all commands
             common = {k: v for k, v in config.items() if k not in group.commands}
@@ -197,7 +197,7 @@ def _add_setup(func: Callable) -> Callable:
                 skip_verify=skip_verify,
                 cert=cert,
                 http_timeout=http_timeout,
-                http_headers={k: v for k, v in http_headers},
+                http_headers=dict(http_headers),
             ),
             **kwargs,
         )
@@ -410,4 +410,4 @@ def exposures(
 
 if __name__ == "__main__":
     # Executed when running locally via python3 -m dbtmetabase
-    cli()  # pylint: disable=no-value-for-parameter
+    cli()
