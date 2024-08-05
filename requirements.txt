@@ -2,3 +2,6 @@ PyYAML>=5.4.1
 requests>=2.26.0
 click>=8.0.0
 rich>=12.0.0
+google-auth==2.32.0
+google-cloud-iam==2.15.2
+jwt==1.3.1

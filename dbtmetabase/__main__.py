@@ -166,6 +166,12 @@ def _add_setup(func: Callable) -> Callable:
         is_flag=True,
         help="Enable verbose logging.",
     )
+    @click.option(
+        "--gcp-iap-service-account",
+        required=False,
+        type=click.STRING,
+        help="Service account with permission to IAP when metabase deployed with IAP authentication on GCP.",
+    )
     @functools.wraps(func)
     def wrapper(
         manifest_path: str,
@@ -179,6 +185,7 @@ def _add_setup(func: Callable) -> Callable:
         http_timeout: int,
         http_headers: Sequence[Tuple[str, str]],
         verbose: bool,
+        gcp_iap_service_account: Optional[str],
         **kwargs,
     ):
         setup_logging(
@@ -198,6 +205,7 @@ def _add_setup(func: Callable) -> Callable:
                 cert=cert,
                 http_timeout=http_timeout,
                 http_headers={k: v for k, v in http_headers},
+                gcp_iap_service_account=gcp_iap_service_account
             ),
             **kwargs,
         )

@@ -32,6 +32,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
         http_timeout: int = DEFAULT_HTTP_TIMEOUT,
         http_headers: Optional[dict] = None,
         http_adapter: Optional[HTTPAdapter] = None,
+        gcp_iap_service_account: Optional[str] = None,
     ):
         """dbt + Metabase integration.
 
@@ -63,6 +64,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
             http_timeout=http_timeout,
             http_headers=http_headers,
             http_adapter=http_adapter,
+            gcp_iap_service_account=gcp_iap_service_account
         )
 
     @property

@@ -6,6 +6,12 @@ from requests.adapters import HTTPAdapter, Retry
 
 from .errors import ArgumentError
 
+import google.auth
+from google.cloud import iam_credentials_v1
+import jwt
+import datetime
+import json
+
 _logger = logging.getLogger(__name__)
 
 
@@ -22,6 +28,7 @@ class Metabase:
         http_timeout: int,
         http_headers: Optional[dict],
         http_adapter: Optional[HTTPAdapter],
+        gcp_iap_service_account: Optional[str]
     ):
         self.url = url.rstrip("/")
 
@@ -30,6 +37,9 @@ class Metabase:
         self.session = requests.Session()
         self.session.verify = not skip_verify
         self.session.cert = cert
+
+        self.gcp_iap_service_account = gcp_iap_service_account
+        _logger.info(gcp_iap_service_account)
 
         if http_headers:
             self.session.headers.update(http_headers)
@@ -94,38 +104,83 @@ class Metabase:
             return response_json["data"]
 
         return response_json
+    
+    def _generate_gcp_iap_token(
+        self,
+        endpoint: str
+    ) -> str:  
+        
+        _logger.info(self.url + endpoint)
+        iat = int(datetime.datetime.now().strftime('%s'))
+        exp = iat + 10
+        jwt_payload =  json.dumps({
+            'iss': self.gcp_iap_service_account,
+            'sub': self.gcp_iap_service_account,
+            'aud': self.url + endpoint,
+            'iat': iat,
+            'exp': exp,
+        })
+    
+        source_credentials, _ = google.auth.default()
+        iam_client = iam_credentials_v1.IAMCredentialsClient(credentials=source_credentials)
+
+        token = iam_client.sign_jwt(
+            name=iam_client.service_account_path('-', self.gcp_iap_service_account),
+            payload=jwt_payload,
+        ).signed_jwt
+
+        _logger.info(token)
+
+        return token
+        
 
     def find_database(self, name: str) -> Optional[Mapping]:
         """Finds database by name attribute or returns none."""
-        for api_database in list(self._api("get", "/api/database")):
+        endpoint = "/api/database"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
+
+        for api_database in list(self._api("get", endpoint)):
             if api_database["name"].upper() == name.upper():
                 return api_database
         return None
 
     def sync_database_schema(self, uid: str):
         """Triggers schema sync on a database."""
-        self._api("post", f"/api/database/{uid}/sync_schema")
+        endpoint = f"/api/database/{uid}/sync_schema"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
+        self._api("post", endpoint)
 
     def get_database_metadata(self, uid: str) -> Mapping:
         """Retrieves metadata for all tables and fields in a database, including hidden ones."""
+        endpoint = f"/api/database/{uid}/metadata"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
         return dict(
             self._api(
                 method="get",
-                path=f"/api/database/{uid}/metadata",
+                path=endpoint,
                 params={"include_hidden": True},
             )
         )
 
     def get_tables(self) -> Sequence[Mapping]:
         """Retrieves all tables for all databases."""
-        return list(self._api("get", "/api/table"))
+        endpoint = "/api/table"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
+        return list(self._api("get", endpoint))
 
     def get_collections(self, exclude_personal: bool) -> Sequence[Mapping]:
         """Retrieves all collections and optionally filters out personal collections."""
+        endpoint = "/api/collection"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
         results = list(
             self._api(
                 method="get",
-                path="/api/collection",
+                path=endpoint,
                 params={"exclude-other-user-collections": exclude_personal},
             )
         )
@@ -139,10 +194,13 @@ class Metabase:
         models: Sequence[str],
     ) -> Sequence[Mapping]:
         """Retrieves collection items of specific types (e.g. card, dashboard, collection)."""
+        endpoint = f"/api/collection/{uid}/items"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
         results = list(
             self._api(
                 method="get",
-                path=f"/api/collection/{uid}/items",
+                path=endpoint,
                 params={"models": models},
             )
         )
@@ -151,8 +209,11 @@ class Metabase:
 
     def find_card(self, uid: str) -> Optional[Mapping]:
         """Retrieves card (known as question in Metabase UI)."""
+        endpoint = f"/api/card/{uid}"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
         try:
-            return dict(self._api("get", f"/api/card/{uid}"))
+            return dict(self._api("get", endpoint))
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == 404:
                 _logger.warning("Card '%s' not found", uid)
@@ -165,8 +226,11 @@ class Metabase:
 
     def find_dashboard(self, uid: str) -> Optional[Mapping]:
         """Retrieves dashboard."""
+        endpoint = f"/api/dashboard/{uid}"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
         try:
-            return dict(self._api("get", f"/api/dashboard/{uid}"))
+            return dict(self._api("get", endpoint))
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == 404:
                 _logger.warning("Dashboard '%s' not found", uid)
@@ -179,8 +243,11 @@ class Metabase:
 
     def find_user(self, uid: str) -> Optional[Mapping]:
         """Finds user by ID or returns none."""
+        endpoint = f"/api/user/{uid}"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
         try:
-            return dict(self._api("get", f"/api/user/{uid}"))
+            return dict(self._api("get", endpoint))
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == 404:
                 _logger.warning("User '%s' not found", uid)
@@ -196,12 +263,21 @@ class Metabase:
 
     def update_table(self, uid: str, body: Mapping) -> Mapping:
         """Posts update to an existing table."""
-        return dict(self._api("put", f"/api/table/{uid}", json=body))
+        endpoint = f"/api/table/{uid}"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
+        return dict(self._api("put", endpoint, json=body))
 
     def update_table_field_order(self, uid: str, body: Sequence) -> Sequence:
         """Posts update to field order of an existing table."""
-        return list(self._api("put", f"/api/table/{uid}/fields/order", json=body))
+        endpoint = f"/api/table/{uid}/fields/order"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
+        return list(self._api("put", endpoint, json=body))
 
     def update_field(self, uid: str, body: Mapping) -> Mapping:
         """Posts an update to an existing table field."""
-        return dict(self._api("put", f"/api/field/{uid}", json=body))
+        endpoint = f"/api/field/{uid}"
+        if self.gcp_iap_service_account:
+            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(endpoint)})
+        return dict(self._api("put", endpoint, json=body))
