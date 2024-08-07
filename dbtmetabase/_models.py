@@ -168,7 +168,6 @@ class ModelsMixin(metaclass=ABCMeta):
         order_fields: bool,
     ) -> bool:
         """Exports one dbt model to Metabase database schema."""
-
         success = True
 
         schema_name = model.schema.upper()
@@ -471,7 +470,7 @@ class ModelsMixin(metaclass=ABCMeta):
         schema_filter: Optional[Filter],
         model_filter: Optional[Filter],
         skip_sources: bool,
-    ) -> Iterable[Model]:
+    ) -> Iterable[Model]:   
         def selected(m: Model) -> bool:
             return (
                 (not skip_sources or m.group != Group.sources)
