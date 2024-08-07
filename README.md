@@ -314,6 +314,9 @@ config:
     gcp_iap_service_account: service-account@your-project.iam.gserviceaccount.com
 ```
 
-The service account must have `IAP-secured Web App User` role on your Application.
+Service account must have Service Account Token Creator role (roles/iam.serviceAccountTokenCreator).
+Service account must have `IAP-secured Web App User` role on your Application.
+
+Check [Authenticating a service account](https://cloud.google.com/iap/docs/authentication-howto#authenticating_a_service_account) for more details.
 
 API-KEY from metabase is still necessary on this scenario.

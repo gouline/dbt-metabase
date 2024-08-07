@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
 import google.auth
+import google.api_core.exceptions
 import requests
 from google.cloud import iam_credentials_v1
 from requests.adapters import HTTPAdapter, Retry
@@ -125,13 +126,17 @@ class Metabase:
         iam_client = iam_credentials_v1.IAMCredentialsClient(
             credentials=source_credentials
         )
-
-        token = iam_client.sign_jwt(
-            name=iam_client.service_account_path(
-                "-", str(self.gcp_iap_service_account)
-            ),
-            payload=jwt_payload,
-        ).signed_jwt
+        
+        try:
+            token = iam_client.sign_jwt(
+                name=iam_client.service_account_path(
+                    "-", str(self.gcp_iap_service_account)
+                ),
+                payload=jwt_payload,
+            ).signed_jwt
+        except google.api_core.exceptions.NotFound as e:
+            _logger.error("Error signing jwt for GCP service account: %s", e)
+            raise
 
         return token
 
