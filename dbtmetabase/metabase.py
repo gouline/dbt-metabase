@@ -3,8 +3,8 @@ import json
 import logging
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
-import google.auth
 import google.api_core.exceptions
+import google.auth
 import requests
 from google.cloud import iam_credentials_v1
 from requests.adapters import HTTPAdapter, Retry
@@ -109,7 +109,6 @@ class Metabase:
         return response_json
 
     def _generate_gcp_iap_token(self, endpoint: str) -> str:
-
         iat = int(datetime.datetime.now().strftime("%s"))
         exp = iat + 10
         jwt_payload = json.dumps(
@@ -126,7 +125,7 @@ class Metabase:
         iam_client = iam_credentials_v1.IAMCredentialsClient(
             credentials=source_credentials
         )
-        
+
         try:
             token = iam_client.sign_jwt(
                 name=iam_client.service_account_path(
