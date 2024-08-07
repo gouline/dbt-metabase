@@ -305,3 +305,22 @@ c.extract_exposures(
 ```
 
 See function header comments for information about other parameters.
+
+## For users with Metabase instance deployed using GCP IAP authentication
+If your Metabase instance is deployed in GCP with access control protected by IAP (Identity-Aware Proxy), you can pass a service account to argument `--gcp-iap-service-account` or add it to key `gcp_iap_service_account` on configuration file:
+
+```yaml
+config:
+    manifest_path: target/manifest.json
+    metabase_url: https://metabase.example.com
+    metabase_api_key: mb_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
+    gcp_iap_service_account: dbt-metabase@nutrisense-bi.iam.gserviceaccount.com
+    # Configuration specific to models command
+    models:
+      metabase_database: business
+    # Configuration specific to exposures command
+    exposures:
+      output_path: models
+```
+
+The service account must have `IAP-secured Web App User` role on your Application.
