@@ -324,3 +324,5 @@ config:
 ```
 
 The service account must have `IAP-secured Web App User` role on your Application.
+
+API-KEY from metabase is still necessary on this scenario.
