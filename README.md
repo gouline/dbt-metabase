@@ -314,7 +314,7 @@ config:
     manifest_path: target/manifest.json
     metabase_url: https://metabase.example.com
     metabase_api_key: mb_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
-    gcp_iap_service_account: dbt-metabase@nutrisense-bi.iam.gserviceaccount.com
+    gcp_iap_service_account: service-account@your-project.iam.gserviceaccount.com
     # Configuration specific to models command
     models:
       metabase_database: business
