@@ -307,7 +307,7 @@ c.extract_exposures(
 See function header comments for information about other parameters.
 
 ## For users with Metabase instance deployed using GCP IAP authentication
-If your Metabase instance is deployed in GCP with access control protected by IAP (Identity-Aware Proxy), you can pass a service account to argument `--gcp-iap-service-account` or add it to key `gcp_iap_service_account` on configuration file:
+If your Metabase instance is deployed in GCP with access control protected by Identity-Aware Proxy (IAP), you can pass a service account to argument `--gcp-iap-service-account` or add it to key `gcp_iap_service_account` on configuration file:
 
 ```yaml
 config:
