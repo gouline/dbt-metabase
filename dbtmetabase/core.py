@@ -64,7 +64,7 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
             http_timeout=http_timeout,
             http_headers=http_headers,
             http_adapter=http_adapter,
-            gcp_iap_service_account=gcp_iap_service_account
+            gcp_iap_service_account=gcp_iap_service_account,
         )
 
     @property

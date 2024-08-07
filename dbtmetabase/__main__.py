@@ -205,7 +205,7 @@ def _add_setup(func: Callable) -> Callable:
                 cert=cert,
                 http_timeout=http_timeout,
                 http_headers={k: v for k, v in http_headers},
-                gcp_iap_service_account=gcp_iap_service_account
+                gcp_iap_service_account=gcp_iap_service_account,
             ),
             **kwargs,
         )

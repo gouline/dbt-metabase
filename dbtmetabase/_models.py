@@ -470,7 +470,7 @@ class ModelsMixin(metaclass=ABCMeta):
         schema_filter: Optional[Filter],
         model_filter: Optional[Filter],
         skip_sources: bool,
-    ) -> Iterable[Model]:   
+    ) -> Iterable[Model]:
         def selected(m: Model) -> bool:
             return (
                 (not skip_sources or m.group != Group.sources)

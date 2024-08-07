@@ -18,12 +18,13 @@ SANDBOX_ENV = dotenv_values(Path().parent / "sandbox" / ".env")
 
 
 class MockMetabase(Metabase):
-    def __init__(self, url: str, record: bool = False):
+    def __init__(self, url: str, record: bool = False, gcp_iap_service_account=None):
         self.record = record
 
         api_key = "dummy"
         username = None
         password = None
+        # gcp_iap_service_account = None
 
         if record:
             api_key = None
@@ -41,6 +42,7 @@ class MockMetabase(Metabase):
             http_timeout=1,
             http_headers=None,
             http_adapter=None,
+            gcp_iap_service_account=gcp_iap_service_account,
         )
 
     def _api(

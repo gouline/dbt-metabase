@@ -1,16 +1,14 @@
+import datetime
+import json
 import logging
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
+import google.auth
 import requests
+from google.cloud import iam_credentials_v1
 from requests.adapters import HTTPAdapter, Retry
 
 from .errors import ArgumentError
-
-import google.auth
-from google.cloud import iam_credentials_v1
-import jwt
-import datetime
-import json
 
 _logger = logging.getLogger(__name__)
 
@@ -28,7 +26,7 @@ class Metabase:
         http_timeout: int,
         http_headers: Optional[dict],
         http_adapter: Optional[HTTPAdapter],
-        gcp_iap_service_account: Optional[str]
+        gcp_iap_service_account: Optional[str],
     ):
         self.url = url.rstrip("/")
 
@@ -84,7 +82,9 @@ class Metabase:
                     params[key] = str(value).lower()
 
         if self.gcp_iap_service_account:
-            self.session.headers.update({'Authorization': 'Bearer '+ self._generate_gcp_iap_token(path)})
+            self.session.headers.update(
+                {"Authorization": "Bearer " + self._generate_gcp_iap_token(path)}
+            )
 
         response = self.session.request(
             method=method,
@@ -106,32 +106,34 @@ class Metabase:
             return response_json["data"]
 
         return response_json
-    
-    def _generate_gcp_iap_token(
-        self,
-        endpoint: str
-    ) -> str:  
-        
-        iat = int(datetime.datetime.now().strftime('%s'))
+
+    def _generate_gcp_iap_token(self, endpoint: str) -> str:
+
+        iat = int(datetime.datetime.now().strftime("%s"))
         exp = iat + 10
-        jwt_payload =  json.dumps({
-            'iss': self.gcp_iap_service_account,
-            'sub': self.gcp_iap_service_account,
-            'aud': self.url + endpoint,
-            'iat': iat,
-            'exp': exp,
-        })
-    
+        jwt_payload = json.dumps(
+            {
+                "iss": self.gcp_iap_service_account,
+                "sub": self.gcp_iap_service_account,
+                "aud": self.url + endpoint,
+                "iat": iat,
+                "exp": exp,
+            }
+        )
+
         source_credentials, _ = google.auth.default()
-        iam_client = iam_credentials_v1.IAMCredentialsClient(credentials=source_credentials)
+        iam_client = iam_credentials_v1.IAMCredentialsClient(
+            credentials=source_credentials
+        )
 
         token = iam_client.sign_jwt(
-            name=iam_client.service_account_path('-', self.gcp_iap_service_account),
+            name=iam_client.service_account_path(
+                "-", str(self.gcp_iap_service_account)
+            ),
             payload=jwt_payload,
         ).signed_jwt
 
         return token
-        
 
     def find_database(self, name: str) -> Optional[Mapping]:
         """Finds database by name attribute or returns none."""
