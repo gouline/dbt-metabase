@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/dbt-metabase)](https://pypi.org/project/dbt-metabase/)
 [![Downloads](https://pepy.tech/badge/dbt-metabase)](https://pepy.tech/project/dbt-metabase)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gouline/dbt-metabase/blob/master/LICENSE)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 Integration between [dbt](https://www.getdbt.com/) and [Metabase](https://www.metabase.com/).
 

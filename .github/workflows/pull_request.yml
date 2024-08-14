@@ -7,13 +7,13 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.8.18"
+          python-version: "3.8"
 
       - uses: actions/cache@v2
         with:
