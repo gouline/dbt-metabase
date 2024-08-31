@@ -1,6 +1,58 @@
 [build-system]
+requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=60", "setuptools-scm"]
+
+[project]
+name = "dbt-metabase"
+description = "dbt + Metabase integration."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "PyYAML>=5.4.1",
+    "requests>=2.26.0",
+    "click>=8.0.0",
+    "rich>=12.0.0",
+]
+dynamic = ["version"]
+license = { text = "MIT License" }
+authors = [{ name = "Mike Gouline" }]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.scripts]
+dbt-metabase = "dbtmetabase.__main__:cli"
+
+[project.optional-dependencies]
+test = [
+    "build>=1.0.3",
+    "twine>=4.0.2",
+    "ruff>=0.5.5",
+    "mypy>=1.7.1",
+    "pytest>=8.3.1",
+    "molot~=1.0.0",
+    "dbt-postgres~=1.8.1",
+    "python-dotenv~=1.0.1",
+    "types-requests",
+    "types-PyYAML",
+]
+
+[project.urls]
+Homepage = "https://github.com/gouline/dbt-metabase"
+
+[tool.setuptools]
+packages = ["dbtmetabase"]
 
 [tool.setuptools_scm]
 version_file = "dbtmetabase/_version.py"
