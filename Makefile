@@ -1,65 +1,64 @@
-build: clean
-	python3 -m build
-.PHONY: build
+.PHONY: dependencies
+dependencies:
+	uv sync --frozen --no-install-project --all-extras
 
+.PHONY: build
+build: clean
+	uv run python3 -m build
+
+.PHONY: clean
 clean:
 	rm -rf build dist
-.PHONY: clean
 
-requirements:
-	python3 -m pip install \
-		-r requirements.txt \
-		-r requirements-test.txt
-.PHONY: requirements
-
-fix:
-	ruff format .
-	ruff check --fix .
 .PHONY: fix
+fix:
+	uv run ruff format .
+	uv run ruff check --fix .
 
-check-lint:
-	ruff format --check .
-	ruff check .
 .PHONY: check-lint
+check-lint:
+	uv run ruff format --check .
+	uv run ruff check .
 
-check-type:
-	mypy dbtmetabase
 .PHONY: check-type
+check-type:
+	uv run mypy dbtmetabase
 
-check: check-lint check-type
 .PHONY: check
+check: check-lint check-type
 
+.PHONY: test
 test:
 	rm -rf tests/tmp
-	pytest tests
-.PHONY: test
+	uv run pytest tests
 
-pre: fix check test
 .PHONY: pre
+pre: fix check test
 
-dist-check: build
-	twine check dist/*
 .PHONY: dist-check
+dist-check: build
+	uv run twine check dist/*
 
-dist-upload: check
-	twine upload dist/*
 .PHONY: dist-upload
+dist-upload: check
+	uv run twine upload dist/*
 
-install: build
-	python3 -m pip uninstall -y dbt-metabase \
-		&& python3 -m pip install dist/dbt_metabase-*-py3-none-any.whl
 .PHONY: install
+install: build
+	uv pip uninstall dbt-metabase \
+		&& uv pip install dist/dbt_metabase-*-py3-none-any.whl
 
+.PHONY: sandbox-up
 sandbox-up:
 	( cd sandbox && docker compose up --build --attach app )
-.PHONY: sandbox-up
 
+.PHONY: sandbox-up
 sandbox-down:
 	( cd sandbox && docker compose down )
-.PHONY: sandbox-up
 
+.PHONY: sandbox-models
 sandbox-models:
-	( . sandbox/.env && python3 -m dbtmetabase models \
+	( . sandbox/.env && uv run python3 -m dbtmetabase models \
 		--manifest-path sandbox/target/manifest.json \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
@@ -69,12 +68,12 @@ sandbox-models:
 		--http-header x-dummy-key dummy-value \
 		--order-fields \
 		--verbose )
-.PHONY: sandbox-models
 
+.PHONY: sandbox-exposures
 sandbox-exposures:
 	rm -rf sandbox/models/exposures
 	mkdir -p sandbox/models/exposures
-	( . sandbox/.env && python3 -m dbtmetabase exposures \
+	( . sandbox/.env && uv run python3 -m dbtmetabase exposures \
 		--manifest-path sandbox/target/manifest.json \
 		--metabase-url http://localhost:$$MB_PORT \
 		--metabase-username $$MB_USER \
@@ -91,8 +90,7 @@ sandbox-exposures:
 		POSTGRES_PASSWORD=$$POSTGRES_PASSWORD \
 		POSTGRES_DB=$$POSTGRES_DB \
 		POSTGRES_SCHEMA=$$POSTGRES_SCHEMA \
-		dbt docs generate )
-.PHONY: sandbox-exposures
+		uv run dbt docs generate )
 
-sandbox-e2e: sandbox-up sandbox-models sandbox-exposures sandbox-down
 .PHONY: sandbox-e2e
+sandbox-e2e: sandbox-up sandbox-models sandbox-exposures sandbox-down

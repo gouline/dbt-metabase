@@ -71,8 +71,11 @@ jobs:
       with:
         python-version: "3.8.x"
 
-    - name: Requirements
-      run: make requirements
+    - name: Install uv
+      run: pipx install uv  
+
+    - name: Dependencies
+      run: make dependencies
 
     - name: Build
       run: make build

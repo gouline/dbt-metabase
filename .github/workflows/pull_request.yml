@@ -15,15 +15,16 @@ jobs:
         with:
           python-version: "3.8"
 
-      - uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+      - name: Install uv
+        run: pipx install uv
 
-      - name: Requirements
-        run: make requirements
+      - uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/uv.lock') }}
+
+      - name: Dependencies
+        run: make dependencies
 
       - name: Build
         run: make build

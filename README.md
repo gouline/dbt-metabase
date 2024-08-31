@@ -2,9 +2,9 @@
 
 [![GitHub Actions](https://github.com/gouline/dbt-metabase/actions/workflows/master.yml/badge.svg)](https://github.com/gouline/dbt-metabase/actions/workflows/master.yml)
 [![PyPI](https://img.shields.io/pypi/v/dbt-metabase)](https://pypi.org/project/dbt-metabase/)
-[![Downloads](https://pepy.tech/badge/dbt-metabase)](https://pepy.tech/project/dbt-metabase)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gouline/dbt-metabase/blob/master/LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 Integration between [dbt](https://www.getdbt.com/) and [Metabase](https://www.metabase.com/).
 
@@ -13,6 +13,8 @@ If dbt is your source of truth for database schemas and you use Metabase as your
 ## Requirements
 
 Requires Python 3.8 or above.
+
+For development, you will need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
 
 ## Usage
 
