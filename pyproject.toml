@@ -34,8 +34,17 @@ classifiers = [
 [project.scripts]
 dbt-metabase = "dbtmetabase.__main__:cli"
 
-[project.optional-dependencies]
-test = [
+[project.urls]
+Homepage = "https://github.com/gouline/dbt-metabase"
+
+[tool.setuptools]
+packages = ["dbtmetabase"]
+
+[tool.setuptools_scm]
+version_file = "dbtmetabase/_version.py"
+
+[tool.uv]
+dev-dependencies = [
     "build>=1.0.3",
     "twine>=4.0.2",
     "ruff>=0.5.5",
@@ -47,15 +56,6 @@ test = [
     "types-requests",
     "types-PyYAML",
 ]
-
-[project.urls]
-Homepage = "https://github.com/gouline/dbt-metabase"
-
-[tool.setuptools]
-packages = ["dbtmetabase"]
-
-[tool.setuptools_scm]
-version_file = "dbtmetabase/_version.py"
 
 [tool.mypy]
 check_untyped_defs = true

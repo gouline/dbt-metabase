@@ -420,8 +420,8 @@ dependencies = [
     { name = "rich" },
 ]
 
-[package.optional-dependencies]
-test = [
+[package.dev-dependencies]
+dev = [
     { name = "build" },
     { name = "dbt-postgres" },
     { name = "molot" },
@@ -436,20 +436,24 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "build", marker = "extra == 'test'", specifier = ">=1.0.3" },
     { name = "click", specifier = ">=8.0.0" },
-    { name = "dbt-postgres", marker = "extra == 'test'", specifier = "~=1.8.1" },
-    { name = "molot", marker = "extra == 'test'", specifier = "~=1.0.0" },
-    { name = "mypy", marker = "extra == 'test'", specifier = ">=1.7.1" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3.1" },
-    { name = "python-dotenv", marker = "extra == 'test'", specifier = "~=1.0.1" },
     { name = "pyyaml", specifier = ">=5.4.1" },
     { name = "requests", specifier = ">=2.26.0" },
     { name = "rich", specifier = ">=12.0.0" },
-    { name = "ruff", marker = "extra == 'test'", specifier = ">=0.5.5" },
-    { name = "twine", marker = "extra == 'test'", specifier = ">=4.0.2" },
-    { name = "types-pyyaml", marker = "extra == 'test'" },
-    { name = "types-requests", marker = "extra == 'test'" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "build", specifier = ">=1.0.3" },
+    { name = "dbt-postgres", specifier = "~=1.8.1" },
+    { name = "molot", specifier = "~=1.0.0" },
+    { name = "mypy", specifier = ">=1.7.1" },
+    { name = "pytest", specifier = ">=8.3.1" },
+    { name = "python-dotenv", specifier = "~=1.0.1" },
+    { name = "ruff", specifier = ">=0.5.5" },
+    { name = "twine", specifier = ">=4.0.2" },
+    { name = "types-pyyaml" },
+    { name = "types-requests" },
 ]
 
 [[package]]
@@ -801,14 +805,14 @@ sdist = { url = "https://files.pythonhosted.org/packages/e4/9f/004f810169a48ed5c
 
 [[package]]
 name = "molot"
-version = "1.0.2"
+version = "1.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "python-dotenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/b4/94499b91aae7913ee2630f1161f32fa8c173e57a1e435ad565e4f0c26df3/molot-1.0.2.tar.gz", hash = "sha256:2e11d39c6ec99f3074a9fcf231d172b55e2b69a8dc77c2d557d62a264e25cb43", size = 47005 }
+sdist = { url = "https://files.pythonhosted.org/packages/3e/09/092d30c756fdc1efdbfb755b9991d5ca924213b2f689f462fd2885bc7536/molot-1.0.3.tar.gz", hash = "sha256:29286c5f6cb5c7ae3bfdcc5a7de4e8b443b2cd0ea474fbf30e0dd3d8e4099be4", size = 46908 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/aa/928420c320173fbb60a8f2d7826252275a04ad529636ecb3b9b8300f7a61/molot-1.0.2-py3-none-any.whl", hash = "sha256:82dc9690bfd7582960961134607ce6c562cbaae8a2b43198224570b3cb360dc1", size = 10153 },
+    { url = "https://files.pythonhosted.org/packages/cd/74/08a14484568449cba0312cce34eba63d77abed201b260272e5a29caed81c/molot-1.0.3-py3-none-any.whl", hash = "sha256:4e8ef88916272f153aebadc297fc323a3ea21d3ed8a6ea43cf4ab246a1e259c5", size = 10075 },
 ]
 
 [[package]]
