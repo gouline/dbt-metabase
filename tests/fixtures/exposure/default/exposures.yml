@@ -14,6 +14,8 @@ exposures:
       email: dbtmetabase@example.com
     depends_on:
       - ref('orders')
+    meta:
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
   - name: dummy
@@ -50,7 +52,7 @@ exposures:
     depends_on: []
     meta:
       average_query_time: '0:00.028'
-      last_used_at: '2024-06-20T05:56:57.295379Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
   - name: dummy_1
@@ -87,7 +89,7 @@ exposures:
     depends_on: []
     meta:
       average_query_time: '0:00.024'
-      last_used_at: '2024-06-20T05:57:12.297288Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
   - name: orders___customers
@@ -116,7 +118,7 @@ exposures:
       - ref('orders')
     meta:
       average_query_time: '0:00.107'
-      last_used_at: '2024-06-20T05:55:59.079272Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
   - name: orders___customers__filtered_by_status_is_completed
@@ -145,7 +147,7 @@ exposures:
       - ref('orders')
     meta:
       average_query_time: '0:00.264'
-      last_used_at: '2024-06-19T12:09:31.689381Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
   - name: returned_order_count_sql
@@ -165,7 +167,7 @@ exposures:
       - ref('stg_payments')
     meta:
       average_query_time: '0:00.191'
-      last_used_at: '2024-06-19T12:09:31.486489Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
   - name: the_dashboard
@@ -221,6 +223,6 @@ exposures:
       - ref('payments')
     meta:
       average_query_time: '0:00.058'
-      last_used_at: '2024-10-12T01:52:30.585371Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'
     tags:
       - metabase
