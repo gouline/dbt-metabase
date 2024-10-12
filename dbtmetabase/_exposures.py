@@ -79,7 +79,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         models = self.manifest.read_models()
 
         ctx = self.__Context(
-            model_refs={m.name.lower(): m.ref for m in models if m.ref},
+            model_refs={m.alias.lower(): m.ref for m in models if m.ref},
             table_names={t["id"]: t["name"] for t in self.metabase.get_tables()},
         )
 

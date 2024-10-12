@@ -57,7 +57,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -78,10 +78,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -92,7 +92,7 @@
         "show_in_getting_started": false,
         "name": "customers",
         "caveats": null,
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 12,
         "db_id": 2,
@@ -163,7 +163,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -184,10 +184,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -198,7 +198,7 @@
         "show_in_getting_started": false,
         "name": "orders",
         "caveats": "Some facts are derived from payments",
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 10,
         "db_id": 2,
@@ -269,7 +269,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -290,10 +290,116 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
+                ]
+            },
+            "uploads_enabled": false,
+            "refingerprint": false,
+            "created_at": "2024-06-19T11:49:38.313316Z",
+            "points_of_interest": null
+        },
+        "show_in_getting_started": false,
+        "name": "payments",
+        "caveats": null,
+        "updated_at": "2024-10-12T02:11:00.183707Z",
+        "active": true,
+        "id": 17,
+        "db_id": 2,
+        "visibility_type": null,
+        "field_order": "database",
+        "is_upload": false,
+        "initial_sync_status": "complete",
+        "display_name": "Payments",
+        "created_at": "2024-10-11T23:40:47.315991Z",
+        "estimated_row_count": 113,
+        "points_of_interest": null
+    },
+    {
+        "description": null,
+        "entity_type": "entity/GenericTable",
+        "view_count": 0,
+        "schema": "public",
+        "database_require_filter": null,
+        "db": {
+            "uploads_schema_name": null,
+            "description": null,
+            "features": [
+                "index-info",
+                "full-join",
+                "window-functions/cumulative",
+                "basic-aggregations",
+                "temporal-extract",
+                "actions/custom",
+                "window-functions/offset",
+                "now",
+                "convert-timezone",
+                "nested-field-columns",
+                "standard-deviation-aggregations",
+                "test/jvm-timezone-setting",
+                "date-arithmetics",
+                "persist-models",
+                "actions",
+                "expression-aggregations",
+                "percentile-aggregations",
+                "connection-impersonation",
+                "foreign-keys",
+                "table-privileges",
+                "right-join",
+                "left-join",
+                "native-parameters",
+                "schemas",
+                "nested-queries",
+                "expressions",
+                "uploads",
+                "set-timezone",
+                "regex",
+                "case-sensitivity-string-filter-options",
+                "binning",
+                "metadata/key-constraints",
+                "datetime-diff",
+                "upload-with-auto-pk",
+                "inner-join",
+                "advanced-math-expressions",
+                "fingerprint"
+            ],
+            "uploads_table_prefix": null,
+            "cache_field_values_schedule": "0 0 5 * * ? *",
+            "timezone": "Etc/UTC",
+            "auto_run_queries": true,
+            "metadata_sync_schedule": "0 11 * * * ? *",
+            "name": "dbtmetabase",
+            "settings": null,
+            "caveats": null,
+            "creator_id": 1,
+            "is_full_sync": true,
+            "updated_at": "2024-10-12T01:52:11.286632Z",
+            "cache_ttl": null,
+            "details": {
+                "ssl": false,
+                "password": "**MetabasePass**",
+                "port": 5432,
+                "advanced-options": false,
+                "schema-filters-type": "all",
+                "dbname": "dbtmetabase",
+                "host": "postgres",
+                "tunnel-enabled": false,
+                "user": "dbtmetabase"
+            },
+            "is_sample": false,
+            "id": 2,
+            "is_on_demand": false,
+            "engine": "postgres",
+            "initial_sync_status": "complete",
+            "is_audit": false,
+            "dbms_version": {
+                "flavor": "PostgreSQL",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
+                "semantic-version": [
+                    16,
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -304,7 +410,7 @@
         "show_in_getting_started": false,
         "name": "raw_customers",
         "caveats": null,
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 13,
         "db_id": 2,
@@ -375,7 +481,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -396,10 +502,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -410,7 +516,7 @@
         "show_in_getting_started": false,
         "name": "raw_orders",
         "caveats": null,
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 14,
         "db_id": 2,
@@ -481,7 +587,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -502,10 +608,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -516,7 +622,7 @@
         "show_in_getting_started": false,
         "name": "raw_payments",
         "caveats": null,
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 11,
         "db_id": 2,
@@ -587,7 +693,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -608,10 +714,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -693,7 +799,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -714,10 +820,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -728,7 +834,7 @@
         "show_in_getting_started": false,
         "name": "stg_orders",
         "caveats": null,
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 15,
         "db_id": 2,
@@ -799,7 +905,7 @@
             "caveats": null,
             "creator_id": 1,
             "is_full_sync": true,
-            "updated_at": "2024-07-04T05:54:51.198536Z",
+            "updated_at": "2024-10-12T01:52:11.286632Z",
             "cache_ttl": null,
             "details": {
                 "ssl": false,
@@ -820,10 +926,10 @@
             "is_audit": false,
             "dbms_version": {
                 "flavor": "PostgreSQL",
-                "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
                 "semantic-version": [
                     16,
-                    1
+                    4
                 ]
             },
             "uploads_enabled": false,
@@ -834,7 +940,7 @@
         "show_in_getting_started": false,
         "name": "stg_payments",
         "caveats": null,
-        "updated_at": "2024-07-04T05:54:52.259601Z",
+        "updated_at": "2024-10-12T02:11:00.183707Z",
         "active": true,
         "id": 9,
         "db_id": 2,
@@ -845,6 +951,112 @@
         "display_name": "Stg Payments",
         "created_at": "2024-06-19T11:49:38.586822Z",
         "estimated_row_count": null,
+        "points_of_interest": null
+    },
+    {
+        "description": "This table has basic information about payments",
+        "entity_type": "entity/TransactionTable",
+        "view_count": 1,
+        "schema": "public",
+        "database_require_filter": null,
+        "db": {
+            "uploads_schema_name": null,
+            "description": null,
+            "features": [
+                "index-info",
+                "full-join",
+                "window-functions/cumulative",
+                "basic-aggregations",
+                "temporal-extract",
+                "actions/custom",
+                "window-functions/offset",
+                "now",
+                "convert-timezone",
+                "nested-field-columns",
+                "standard-deviation-aggregations",
+                "test/jvm-timezone-setting",
+                "date-arithmetics",
+                "persist-models",
+                "actions",
+                "expression-aggregations",
+                "percentile-aggregations",
+                "connection-impersonation",
+                "foreign-keys",
+                "table-privileges",
+                "right-join",
+                "left-join",
+                "native-parameters",
+                "schemas",
+                "nested-queries",
+                "expressions",
+                "uploads",
+                "set-timezone",
+                "regex",
+                "case-sensitivity-string-filter-options",
+                "binning",
+                "metadata/key-constraints",
+                "datetime-diff",
+                "upload-with-auto-pk",
+                "inner-join",
+                "advanced-math-expressions",
+                "fingerprint"
+            ],
+            "uploads_table_prefix": null,
+            "cache_field_values_schedule": "0 0 5 * * ? *",
+            "timezone": "Etc/UTC",
+            "auto_run_queries": true,
+            "metadata_sync_schedule": "0 11 * * * ? *",
+            "name": "dbtmetabase",
+            "settings": null,
+            "caveats": null,
+            "creator_id": 1,
+            "is_full_sync": true,
+            "updated_at": "2024-10-12T01:52:11.286632Z",
+            "cache_ttl": null,
+            "details": {
+                "ssl": false,
+                "password": "**MetabasePass**",
+                "port": 5432,
+                "advanced-options": false,
+                "schema-filters-type": "all",
+                "dbname": "dbtmetabase",
+                "host": "postgres",
+                "tunnel-enabled": false,
+                "user": "dbtmetabase"
+            },
+            "is_sample": false,
+            "id": 2,
+            "is_on_demand": false,
+            "engine": "postgres",
+            "initial_sync_status": "complete",
+            "is_audit": false,
+            "dbms_version": {
+                "flavor": "PostgreSQL",
+                "version": "16.4 (Debian 16.4-1.pgdg120+2)",
+                "semantic-version": [
+                    16,
+                    4
+                ]
+            },
+            "uploads_enabled": false,
+            "refingerprint": false,
+            "created_at": "2024-06-19T11:49:38.313316Z",
+            "points_of_interest": null
+        },
+        "show_in_getting_started": false,
+        "name": "transactions",
+        "caveats": null,
+        "updated_at": "2024-10-12T02:11:00.183707Z",
+        "active": true,
+        "id": 18,
+        "db_id": 2,
+        "visibility_type": null,
+        "field_order": "custom",
+        "is_upload": false,
+        "initial_sync_status": "complete",
+        "display_name": "Transactions",
+        "created_at": "2024-10-11T23:45:52.718262Z",
+        "estimated_row_count": 113,
         "points_of_interest": null
     }
 ]

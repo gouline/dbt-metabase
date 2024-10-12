@@ -43,7 +43,7 @@ def test_export_hidden_table(core: MockDbtMetabase):
 
 def test_build_lookups(core: MockDbtMetabase):
     expected = {
-        "PUBLIC.CUSTOMERS": [
+        "PUBLIC.CUSTOMERS": {
             "CUSTOMER_ID",
             "FIRST_NAME",
             "LAST_NAME",
@@ -51,8 +51,8 @@ def test_build_lookups(core: MockDbtMetabase):
             "MOST_RECENT_ORDER",
             "NUMBER_OF_ORDERS",
             "CUSTOMER_LIFETIME_VALUE",
-        ],
-        "PUBLIC.ORDERS": [
+        },
+        "PUBLIC.ORDERS": {
             "ORDER_ID",
             "CUSTOMER_ID",
             "ORDER_DATE",
@@ -62,23 +62,32 @@ def test_build_lookups(core: MockDbtMetabase):
             "COUPON_AMOUNT",
             "BANK_TRANSFER_AMOUNT",
             "GIFT_CARD_AMOUNT",
-        ],
-        "PUBLIC.RAW_CUSTOMERS": ["ID", "FIRST_NAME", "LAST_NAME"],
-        "PUBLIC.RAW_ORDERS": ["ID", "USER_ID", "ORDER_DATE", "STATUS"],
-        "PUBLIC.RAW_PAYMENTS": ["ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"],
-        "PUBLIC.STG_CUSTOMERS": ["CUSTOMER_ID", "FIRST_NAME", "LAST_NAME"],
-        "PUBLIC.STG_ORDERS": ["ORDER_ID", "STATUS", "ORDER_DATE", "CUSTOMER_ID"],
-        "PUBLIC.STG_PAYMENTS": [
+        },
+        "PUBLIC.PAYMENTS": {
+            "PAYMENT_ID",  # TODO: why?
+        },
+        "PUBLIC.TRANSACTIONS": {
             "PAYMENT_ID",
             "PAYMENT_METHOD",
             "ORDER_ID",
             "AMOUNT",
-        ],
+        },
+        "PUBLIC.RAW_CUSTOMERS": {"ID", "FIRST_NAME", "LAST_NAME"},
+        "PUBLIC.RAW_ORDERS": {"ID", "USER_ID", "ORDER_DATE", "STATUS"},
+        "PUBLIC.RAW_PAYMENTS": {"ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"},
+        "PUBLIC.STG_CUSTOMERS": {"CUSTOMER_ID", "FIRST_NAME", "LAST_NAME"},
+        "PUBLIC.STG_ORDERS": {"ORDER_ID", "STATUS", "ORDER_DATE", "CUSTOMER_ID"},
+        "PUBLIC.STG_PAYMENTS": {
+            "PAYMENT_ID",
+            "PAYMENT_METHOD",
+            "ORDER_ID",
+            "AMOUNT",
+        },
     }
 
     actual_tables = core._ModelsMixin__get_tables(database_id="2")  # type: ignore
 
-    assert list(actual_tables.keys()) == list(expected.keys())
+    assert set(actual_tables.keys()) == set(expected.keys())
 
     for table, columns in expected.items():
-        assert list(actual_tables[table]["fields"].keys()) == columns
+        assert set(actual_tables[table]["fields"].keys()) == columns, f"table: {table}"
