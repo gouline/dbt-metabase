@@ -2,7 +2,7 @@
     "cache_invalidated_at": null,
     "description": "Dummy 2",
     "archived": false,
-    "view_count": 28,
+    "view_count": 37,
     "collection_position": null,
     "table_id": null,
     "can_run_adhoc_query": true,
@@ -41,7 +41,7 @@
     "creator": {
         "email": "dbtmetabase@example.com",
         "first_name": "dbtmetabase",
-        "last_login": "2024-07-04T05:55:25.914119Z",
+        "last_login": "2024-10-12T02:16:15.081959Z",
         "is_qbnewb": false,
         "is_superuser": true,
         "id": 1,

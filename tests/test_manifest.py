@@ -27,6 +27,37 @@ def test_v12():
                 database="dbtmetabase",
                 schema="public",
                 group=Group.nodes,
+                name="payments",
+                alias="transactions",
+                description="This table has basic information about payments",
+                unique_id="model.sandbox.payments",
+                columns=[
+                    Column(
+                        name="payment_id",
+                        description="This is a unique identifier for a payment",
+                        semantic_type="type/PK",
+                    ),
+                    Column(
+                        name="payment_method",
+                        description="",
+                    ),
+                    Column(
+                        name="order_id",
+                        description="Foreign key to the orders table",
+                        semantic_type="type/FK",
+                        fk_target_table="public.orders",
+                        fk_target_field="order_id",
+                    ),
+                    Column(
+                        name="amount",
+                        description="",
+                    ),
+                ],
+            ),
+            Model(
+                database="dbtmetabase",
+                schema="public",
+                group=Group.nodes,
                 name="customers",
                 alias="customers",
                 description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
@@ -125,6 +156,7 @@ def test_v12():
                 alias="stg_customers",
                 description="",
                 unique_id="model.sandbox.stg_customers",
+                visibility_type="hidden",
                 columns=[
                     Column(
                         name="customer_id",

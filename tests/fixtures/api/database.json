@@ -51,7 +51,7 @@
         "caveats": null,
         "creator_id": 1,
         "is_full_sync": true,
-        "updated_at": "2024-07-04T05:54:51.198536Z",
+        "updated_at": "2024-10-12T01:52:11.286632Z",
         "native_permissions": "write",
         "cache_ttl": null,
         "details": {
@@ -73,10 +73,10 @@
         "is_audit": false,
         "dbms_version": {
             "flavor": "PostgreSQL",
-            "version": "16.1 (Debian 16.1-1.pgdg120+1)",
+            "version": "16.4 (Debian 16.4-1.pgdg120+2)",
             "semantic-version": [
                 16,
-                1
+                4
             ]
         },
         "uploads_enabled": false,

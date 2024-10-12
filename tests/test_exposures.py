@@ -40,29 +40,6 @@ def test_exposures_default(core: MockDbtMetabase):
     )
 
 
-def test_exposures_default_aliased(core: MockDbtMetabase):
-    for model in core.manifest.read_models():
-        if not model.name.startswith("stg_"):
-            model.alias = f"{model.name}_alias"
-
-    aliases = [m.alias for m in core.manifest.read_models()]
-    assert "orders_alias" in aliases
-    assert "customers_alias" in aliases
-
-    fixtures_path = FIXTURES_PATH / "exposure" / "default"
-    output_path = TMP_PATH / "exposure" / "aliased"
-    core.extract_exposures(
-        output_path=str(output_path),
-        output_grouping=None,
-        tags=["metabase"],
-    )
-
-    _assert_exposures(
-        fixtures_path / "exposures.yml",
-        output_path / "exposures.yml",
-    )
-
-
 def test_exposures_collection_grouping(core: MockDbtMetabase):
     fixtures_path = FIXTURES_PATH / "exposure" / "collection"
     output_path = TMP_PATH / "exposure" / "collection"

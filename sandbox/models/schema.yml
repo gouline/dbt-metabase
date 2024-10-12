@@ -89,3 +89,29 @@ models:
         description: Amount of the order (AUD) paid for by gift card
         data_tests:
           - not_null
+
+  - name: payments
+    description: This table has basic information about payments
+    columns:
+      - name: payment_id
+        constraints:
+          - type: primary_key
+        data_tests:
+          - unique
+          - not_null
+        description: This is a unique identifier for a payment
+      
+      - name: payment_method
+        data_tests:
+          - accepted_values:
+              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+      
+      - name: order_id
+        description: Foreign key to the orders table
+        constraints:
+          - type: foreign_key
+            expression: orders (order_id)
+        data_tests:
+          - not_null
+      
+      - name: amount
