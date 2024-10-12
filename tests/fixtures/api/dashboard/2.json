@@ -1,7 +1,7 @@
 {
     "description": "Dashboard is a dashboard is a dashboard",
     "archived": false,
-    "view_count": 112,
+    "view_count": 114,
     "collection_position": null,
     "dashcards": [
         {
@@ -14,10 +14,9 @@
                 "cache_invalidated_at": null,
                 "description": "Orders and customers",
                 "archived": false,
-                "view_count": 424,
+                "view_count": 430,
                 "collection_position": null,
                 "table_id": 10,
-                "can_run_adhoc_query": true,
                 "result_metadata": [
                     {
                         "description": "This is a unique identifier for an order",
@@ -577,7 +576,7 @@
                 "collection_id": null,
                 "query_type": "query",
                 "name": "Orders + Customers",
-                "last_used_at": "2024-06-20T05:55:59.079272Z",
+                "last_used_at": "2024-10-12T03:43:09.869884Z",
                 "type": "question",
                 "query_average_duration": 72,
                 "creator_id": 1,
@@ -654,10 +653,9 @@
                 "cache_invalidated_at": null,
                 "description": null,
                 "archived": false,
-                "view_count": 212,
+                "view_count": 215,
                 "collection_position": null,
                 "table_id": 10,
-                "can_run_adhoc_query": true,
                 "result_metadata": [
                     {
                         "description": null,
@@ -1205,7 +1203,7 @@
                 "collection_id": null,
                 "query_type": "query",
                 "name": "Orders + Customers, Filtered by Status is completed",
-                "last_used_at": "2024-06-19T12:09:31.689381Z",
+                "last_used_at": "2024-10-12T03:43:09.869884Z",
                 "type": "question",
                 "query_average_duration": 129,
                 "creator_id": 1,
@@ -1268,10 +1266,9 @@
                 "cache_invalidated_at": null,
                 "description": null,
                 "archived": false,
-                "view_count": 211,
+                "view_count": 214,
                 "collection_position": null,
                 "table_id": null,
-                "can_run_adhoc_query": true,
                 "result_metadata": [
                     {
                         "display_name": "count",
@@ -1311,7 +1308,7 @@
                 "collection_id": null,
                 "query_type": "native",
                 "name": "Returned Order Count SQL",
-                "last_used_at": "2024-06-19T12:09:31.486489Z",
+                "last_used_at": "2024-10-12T03:43:09.869884Z",
                 "type": "question",
                 "query_average_duration": 10,
                 "creator_id": 1,

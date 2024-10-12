@@ -26,4 +26,4 @@ exposures:
       - ref('orders')
     meta:
       average_query_time: '0:00.107'
-      last_used_at: '2024-06-20T05:55:59.079272Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'

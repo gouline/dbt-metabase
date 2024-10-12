@@ -14,3 +14,5 @@ exposures:
       email: dbtmetabase@example.com
     depends_on:
       - ref('orders')
+    meta:
+      last_used_at: '2024-10-12T03:43:09.869884Z'

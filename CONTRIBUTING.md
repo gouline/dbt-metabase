@@ -65,6 +65,16 @@ Once you are finished, stop the sandbox:
 make sandbox-down
 ```
 
+#### Recording
+
+Whenever tests require updating Metabase API fixtures, you need to "record" them from the running sandbox instance by executing:
+
+```
+RECORD=true make test
+```
+
+This will run tests against the actual Metabase instance, instead of fixtures, and write those responses to new fixtures. **Many tests will likely fail**, because of timestamps and other transient data, so you need to manually fix those assertions.
+
 ## Code of Conduct
 
 All contributors are expected to follow the [PSF Code of Conduct](https://www.python.org/psf/conduct/).

@@ -63,9 +63,6 @@ def test_build_lookups(core: MockDbtMetabase):
             "BANK_TRANSFER_AMOUNT",
             "GIFT_CARD_AMOUNT",
         },
-        "PUBLIC.PAYMENTS": {
-            "PAYMENT_ID",  # TODO: why?
-        },
         "PUBLIC.TRANSACTIONS": {
             "PAYMENT_ID",
             "PAYMENT_METHOD",

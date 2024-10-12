@@ -34,4 +34,4 @@ exposures:
     depends_on: []
     meta:
       average_query_time: '0:00.024'
-      last_used_at: '2024-06-20T05:57:12.297288Z'
+      last_used_at: '2024-10-12T03:43:09.869884Z'

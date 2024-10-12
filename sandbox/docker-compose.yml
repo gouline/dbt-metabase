@@ -2,7 +2,7 @@ name: dbt-metabase-sandbox
 
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16.4
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
@@ -20,12 +20,7 @@ services:
     restart: always
 
   metabase:
-    # image: metabase/metabase:latest
-    build:
-      dockerfile: Dockerfile.metabase
-      args:
-        - MB_VERSION=0.50.5
-        - CURL_FLAGS=${CURL_FLAGS:-}
+    image: metabase/metabase:v0.50.29
     environment:
       - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
       - MB_DB_FILE=/metabase-data/metabase.db
@@ -34,7 +29,7 @@ services:
     networks:
       - common
     volumes:
-      - ./metabase:/metabase-data
+      - ./metabase.db:/metabase-data/metabase.db
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:3000/api/health"]
       interval: 10s
