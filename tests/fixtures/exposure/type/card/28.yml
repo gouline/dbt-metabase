@@ -24,3 +24,6 @@ exposures:
     depends_on:
       - ref('customers')
       - ref('orders')
+    meta:
+      average_query_time: '0:00.264'
+      last_used_at: '2024-06-19T12:09:31.689381Z'

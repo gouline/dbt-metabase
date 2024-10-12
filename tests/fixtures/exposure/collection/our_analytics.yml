@@ -46,6 +46,9 @@ exposures:
       name: dbtmetabase
       email: dbtmetabase@example.com
     depends_on: []
+    meta:
+      average_query_time: '0:00.028'
+      last_used_at: '2024-06-20T05:56:57.295379Z'
   - name: dummy_1
     label: Dummy
     description: '### Visualization: Table
@@ -78,6 +81,9 @@ exposures:
       name: dbtmetabase
       email: dbtmetabase@example.com
     depends_on: []
+    meta:
+      average_query_time: '0:00.024'
+      last_used_at: '2024-06-20T05:57:12.297288Z'
   - name: orders___customers
     label: Orders + Customers
     description: '### Visualization: Table
@@ -102,6 +108,9 @@ exposures:
     depends_on:
       - ref('customers')
       - ref('orders')
+    meta:
+      average_query_time: '0:00.107'
+      last_used_at: '2024-06-20T05:55:59.079272Z'
   - name: orders___customers__filtered_by_status_is_completed
     label: Orders + Customers, Filtered by Status is completed
     description: '### Visualization: Table
@@ -126,6 +135,9 @@ exposures:
     depends_on:
       - ref('customers')
       - ref('orders')
+    meta:
+      average_query_time: '0:00.264'
+      last_used_at: '2024-06-19T12:09:31.689381Z'
   - name: returned_order_count_sql
     label: Returned Order Count SQL
     description: "### Visualization: Scalar\n\nNo description provided in Metabase\n\
@@ -141,6 +153,9 @@ exposures:
     depends_on:
       - ref('stg_orders')
       - ref('stg_payments')
+    meta:
+      average_query_time: '0:00.191'
+      last_used_at: '2024-06-19T12:09:31.486489Z'
   - name: the_dashboard
     label: The Dashboard
     description: '### Dashboard Cards: 3
@@ -190,3 +205,6 @@ exposures:
       email: dbtmetabase@example.com
     depends_on:
       - ref('payments')
+    meta:
+      average_query_time: '0:00.058'
+      last_used_at: '2024-10-12T01:52:30.585371Z'

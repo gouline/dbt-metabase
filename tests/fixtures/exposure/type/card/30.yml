@@ -32,3 +32,6 @@ exposures:
       name: dbtmetabase
       email: dbtmetabase@example.com
     depends_on: []
+    meta:
+      average_query_time: '0:00.028'
+      last_used_at: '2024-06-20T05:56:57.295379Z'
