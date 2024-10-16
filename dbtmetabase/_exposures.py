@@ -20,7 +20,7 @@ from dbtmetabase.metabase import Metabase
 
 from .errors import ArgumentError
 from .format import Filter, dump_yaml, safe_description, safe_name
-from .manifest import Manifest
+from .manifest import DEFAULT_SCHEMA, Manifest
 
 _RESOURCE_VERSION = 2
 
@@ -79,12 +79,26 @@ class ExposuresMixin(metaclass=ABCMeta):
         models = self.manifest.read_models()
 
         ctx = self.__Context(
-            model_refs={m.alias.lower(): m.ref for m in models if m.ref},
-            table_names={t["id"]: t["name"] for t in self.metabase.get_tables()},
+            model_refs={m.alias_path.lower(): m.ref for m in models if m.ref},
+            database_names={
+                d["id"]: d["details"].get("dbname", d["name"])
+                for d in self.metabase.get_databases()
+            },
+            table_names={
+                t["id"]: ".".join(
+                    [
+                        t["db"]["details"].get("dbname", t["db"]["name"]),
+                        t["schema"] or DEFAULT_SCHEMA,
+                        t["name"],
+                    ]
+                ).lower()
+                for t in self.metabase.get_tables()
+            },
         )
 
         exposures = []
         counts: MutableMapping[str, int] = {}
+        all_depends = set()
 
         for collection in self.metabase.get_collections(
             exclude_personal=not allow_personal_collections
@@ -184,6 +198,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                 count = counts.get(name, 0)
                 counts[name] = count + 1
 
+                for depend in depends:
+                    all_depends.add(depend)
+
                 exposures.append(
                     {
                         "id": item["id"],
@@ -215,6 +232,15 @@ class ExposuresMixin(metaclass=ABCMeta):
                 )
 
         self.__write_exposures(exposures, output_path, output_grouping)
+
+        with open(Path(output_path) / "depends.yaml", "w", encoding="utf-8") as f:
+            dump_yaml(
+                data={
+                    "models": ctx.model_refs,
+                    "depends": list(all_depends),
+                },
+                stream=f,
+            )
 
         return exposures
 
@@ -288,12 +314,25 @@ class ExposuresMixin(metaclass=ABCMeta):
 
                 # Parse SQL for exposures through FROM or JOIN clauses
                 for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
-                    # Grab just the table / model name
-                    parsed_model = sql_ref.split(".")[-1].strip('"').lower()
+                    # DATABASE.schema.table -> [database, schema, table]
+                    parsed_model_path = [
+                        s.strip('"').lower() for s in sql_ref.split(".")
+                    ]
 
                     # Scrub CTEs (qualified sql_refs can not reference CTEs)
-                    if parsed_model in ctes and "." not in sql_ref:
+                    if parsed_model_path[-1] in ctes and "." not in sql_ref:
                         continue
+
+                    # Missing schema -> use default schema
+                    if len(parsed_model_path) < 2:
+                        parsed_model_path.insert(0, DEFAULT_SCHEMA.lower())
+                    # Missing database -> use query's database
+                    if len(parsed_model_path) < 3:
+                        database_name = ctx.database_names.get(query["database"], "")
+                        parsed_model_path.insert(0, database_name.lower())
+
+                    # Fully-qualified database.schema.table
+                    parsed_model = ".".join(parsed_model_path)
 
                     # Verify this is one of our parsed refable models so exposures dont break the DAG
                     if not ctx.model_refs.get(parsed_model):
@@ -429,4 +468,5 @@ class ExposuresMixin(metaclass=ABCMeta):
     @dc.dataclass
     class __Context:
         model_refs: Mapping[str, str]
+        database_names: Mapping[str, str]
         table_names: Mapping[str, str]
