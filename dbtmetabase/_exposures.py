@@ -98,6 +98,7 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         exposures = []
         counts: MutableMapping[str, int] = {}
+        all_depends = set()
 
         for collection in self.metabase.get_collections(
             exclude_personal=not allow_personal_collections
@@ -197,6 +198,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                 count = counts.get(name, 0)
                 counts[name] = count + 1
 
+                for depend in depends:
+                    all_depends.add(depend)
+
                 exposures.append(
                     {
                         "id": item["id"],
@@ -228,6 +232,15 @@ class ExposuresMixin(metaclass=ABCMeta):
                 )
 
         self.__write_exposures(exposures, output_path, output_grouping)
+
+        with open(Path(output_path) / "depends.yaml", "w", encoding="utf-8") as f:
+            dump_yaml(
+                data={
+                    "models": ctx.model_refs,
+                    "depends": list(all_depends),
+                },
+                stream=f,
+            )
 
         return exposures
 
