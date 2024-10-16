@@ -80,12 +80,15 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         ctx = self.__Context(
             model_refs={m.alias_path.lower(): m.ref for m in models if m.ref},
-            database_names={d["id"]: d["name"] for d in self.metabase.get_databases()},
+            database_names={
+                d["id"]: d["details"].get("dbname", d["name"])
+                for d in self.metabase.get_databases()
+            },
             table_names={
                 t["id"]: ".".join(
                     [
-                        t.get("db", {}).get("name", ""),
-                        t.get("schema", DEFAULT_SCHEMA),
+                        t["db"]["details"].get("dbname", t["db"]["name"]),
+                        t["schema"] or DEFAULT_SCHEMA,
                         t["name"],
                     ]
                 ).lower()
