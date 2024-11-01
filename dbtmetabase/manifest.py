@@ -230,19 +230,22 @@ class Manifest:
                     continue
 
                 depends_on_id = depends_on_nodes[0]
+                depends_on_group = Group.from_unique_id(depends_on_id)
+                if not depends_on_group:
+                    _logger.debug("Unknown group dependency '%s'", depends_on_id)
+                    continue
 
-                fk_target_model = manifest[group].get(depends_on_id, {})
-                fk_target_table = fk_target_model.get(
-                    "alias",
-                    fk_target_model.get("identifier", fk_target_model.get("name")),
+                fk_target_model = manifest[depends_on_group].get(depends_on_id, {})
+                fk_target_table = (
+                    fk_target_model.get("alias")
+                    or fk_target_model.get("identifier")
+                    or fk_target_model.get("name")
                 )
                 if not fk_target_table:
                     _logger.debug("Cannot resolve dependency for '%s'", depends_on_id)
                     continue
 
-                fk_target_schema = manifest[group][depends_on_id].get(
-                    "schema", DEFAULT_SCHEMA
-                )
+                fk_target_schema = fk_target_model.get("schema", DEFAULT_SCHEMA)
                 fk_target_table = f"{fk_target_schema}.{fk_target_table}"
                 fk_target_field = child["test_metadata"]["kwargs"]["field"].strip('"')
 
@@ -340,6 +343,15 @@ class Manifest:
 class Group(str, Enum):
     nodes = "nodes"
     sources = "sources"
+
+    @staticmethod
+    def from_unique_id(unique_id: str) -> Optional[Group]:
+        prefix = unique_id.split(".")[0]
+        if prefix == "source":
+            return Group.sources
+        elif prefix == "model":
+            return Group.nodes
+        return None
 
 
 @dc.dataclass
