@@ -208,5 +208,5 @@ exposures:
     depends_on:
       - ref('payments')
     meta:
-      average_query_time: '0:00.058'
+      average_query_time: '0:00.115'
       last_used_at: '2024-10-12T03:43:09.869884Z'

@@ -73,13 +73,20 @@ def test_build_lookups(core: MockDbtMetabase):
         "PUBLIC.RAW_ORDERS": {"ID", "USER_ID", "ORDER_DATE", "STATUS"},
         "PUBLIC.RAW_PAYMENTS": {"ID", "ORDER_ID", "PAYMENT_METHOD", "AMOUNT"},
         "PUBLIC.STG_CUSTOMERS": {"CUSTOMER_ID", "FIRST_NAME", "LAST_NAME"},
-        "PUBLIC.STG_ORDERS": {"ORDER_ID", "STATUS", "ORDER_DATE", "CUSTOMER_ID"},
+        "PUBLIC.STG_ORDERS": {
+            "ORDER_ID",
+            "STATUS",
+            "ORDER_DATE",
+            "CUSTOMER_ID",
+            "SKU_ID",
+        },
         "PUBLIC.STG_PAYMENTS": {
             "PAYMENT_ID",
             "PAYMENT_METHOD",
             "ORDER_ID",
             "AMOUNT",
         },
+        "INVENTORY.SKUS": {"SKU_ID", "PRODUCT"},
     }
 
     actual_tables = core._ModelsMixin__get_tables(database_id="2")  # type: ignore

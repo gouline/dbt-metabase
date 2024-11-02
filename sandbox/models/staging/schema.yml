@@ -1,5 +1,10 @@
 version: 2
 
+sources:
+  - name: inventory
+    tables:
+      - name: skus
+
 models:
   - name: stg_customers
     meta:
@@ -21,9 +26,15 @@ models:
       - name: status
         data_tests:
           - accepted_values:
-              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+              values: ["placed", "shipped", "completed", "return_pending", "returned"]
       - name: order_date
       - name: customer_id
+      - name: sku_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('inventory', 'skus')
+              field: sku_id
 
   - name: stg_payments
     columns:
@@ -34,6 +45,6 @@ models:
       - name: payment_method
         data_tests:
           - accepted_values:
-              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+              values: ["credit_card", "coupon", "bank_transfer", "gift_card"]
       - name: order_id
       - name: amount
