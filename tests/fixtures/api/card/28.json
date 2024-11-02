@@ -2,7 +2,7 @@
     "cache_invalidated_at": null,
     "description": null,
     "archived": false,
-    "view_count": 215,
+    "view_count": 223,
     "collection_position": null,
     "table_id": 10,
     "can_run_adhoc_query": true,
@@ -549,7 +549,7 @@
     "creator": {
         "email": "dbtmetabase@example.com",
         "first_name": "dbtmetabase",
-        "last_login": "2024-10-12T03:43:50.753203Z",
+        "last_login": "2024-11-02T04:41:42.402168Z",
         "is_qbnewb": false,
         "is_superuser": true,
         "id": 1,
