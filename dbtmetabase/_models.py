@@ -234,7 +234,7 @@ class ModelsMixin(metaclass=ABCMeta):
             )
 
         if order_fields:
-            success &= self.__export_model_column_order(
+            self.__export_model_column_order(
                 ctx=ctx,
                 model=model,
                 api_table=api_table,
@@ -254,7 +254,7 @@ class ModelsMixin(metaclass=ABCMeta):
         model: Model,
         api_table: Mapping,
         table_key: str,
-    ) -> bool:
+    ):
         """Exports model column order to Metabase field order."""
 
         api_ord = {}
@@ -295,14 +295,11 @@ class ModelsMixin(metaclass=ABCMeta):
                 if dbt_only:
                     details.append(f"missing in Metabase {dbt_only}")
 
-                _logger.error(
+                _logger.warning(
                     "Table field order '%s' mismatch: %s",
                     table_key,
                     ", ".join(details),
                 )
-                return False
-
-        return True
 
     def __export_column(
         self,
