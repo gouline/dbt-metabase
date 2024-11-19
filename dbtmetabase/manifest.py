@@ -26,6 +26,7 @@ _META_NS = "metabase"
 _COMMON_META_FIELDS = [
     "display_name",
     "visibility_type",
+    "description",
 ]
 # Must be covered by Column attributes
 _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
@@ -136,14 +137,17 @@ class Manifest:
         schema: str,
         relationship: Optional[Mapping],
     ) -> Column:
-        column = Column(
-            name=manifest_column.get("name", ""),
-            description=manifest_column.get("description"),
-            **self._scan_fields(
-                manifest_column.get("meta", {}),
+        
+        scanned_fields = self._scan_fields(
+            manifest_column.get("meta", {}),
                 fields=_COLUMN_META_FIELDS,
                 ns=_META_NS,
-            ),
+        )
+        
+        column = Column(
+            name=manifest_column.get("name", ""),
+            description=scanned_fields.get("description", manifest_column.get("description")),
+            **{key: value for key, value in scanned_fields.items() if key != "description"},
         )
 
         self._set_column_relationship(
