@@ -112,11 +112,11 @@ class Manifest:
         ]
 
         scanned_fields = self._scan_fields(
-                manifest_model.get("meta", {}),
-                fields=_MODEL_META_FIELDS,
-                ns=_META_NS,
+            manifest_model.get("meta", {}),
+            fields=_MODEL_META_FIELDS,
+            ns=_META_NS,
         )
-        
+
         return Model(
             database=database,
             schema=schema,
@@ -125,12 +125,18 @@ class Manifest:
             alias=manifest_model.get(
                 "alias", manifest_model.get("identifier", manifest_model["name"])
             ),
-            description=scanned_fields.get("description", manifest_model.get("description")),
+            description=scanned_fields.get(
+                "description", manifest_model.get("description")
+            ),
             columns=columns,
             unique_id=unique_id,
             source=source,
             tags=manifest_model.get("tags", []),
-            **{key: value for key, value in scanned_fields.items() if key != "description"},
+            **{
+                key: value
+                for key, value in scanned_fields.items()
+                if key != "description"
+            },
         )
 
     def _read_column(
@@ -139,17 +145,22 @@ class Manifest:
         schema: str,
         relationship: Optional[Mapping],
     ) -> Column:
-        
         scanned_fields = self._scan_fields(
             manifest_column.get("meta", {}),
-                fields=_COLUMN_META_FIELDS,
-                ns=_META_NS,
+            fields=_COLUMN_META_FIELDS,
+            ns=_META_NS,
         )
-        
+
         column = Column(
             name=manifest_column.get("name", ""),
-            description=scanned_fields.get("description", manifest_column.get("description")),
-            **{key: value for key, value in scanned_fields.items() if key != "description"},
+            description=scanned_fields.get(
+                "description", manifest_column.get("description")
+            ),
+            **{
+                key: value
+                for key, value in scanned_fields.items()
+                if key != "description"
+            },
         )
 
         self._set_column_relationship(
