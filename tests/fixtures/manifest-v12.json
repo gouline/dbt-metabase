@@ -36,7 +36,9 @@
                 "schema": null,
                 "database": null,
                 "tags": [],
-                "meta": {},
+                "meta": {
+                    "metabase.description": "This table has basic information about payments"
+                },
                 "group": null,
                 "materialized": "table",
                 "incremental_strategy": null,
@@ -62,7 +64,6 @@
                 "access": "protected"
             },
             "tags": [],
-            "description": "This table has basic information about payments",
             "columns": {
                 "payment_id": {
                     "name": "payment_id",
@@ -121,7 +122,9 @@
                     "tags": []
                 }
             },
-            "meta": {},
+            "meta": {
+                "metabase.description": "This table has basic information about payments"
+            },
             "group": null,
             "docs": {
                 "show": true,
@@ -193,7 +196,8 @@
                 "database": null,
                 "tags": [],
                 "meta": {
-                    "metabase.display_name": "clients"
+                    "metabase.display_name": "clients",
+                    "metabase.description": "Contains customer details and derived order facts"
                 },
                 "group": null,
                 "materialized": "table",
@@ -290,7 +294,8 @@
                 }
             },
             "meta": {
-                "metabase.display_name": "clients"
+                "metabase.display_name": "clients",
+                "metabase.description": "Contains customer details and derived order facts"
             },
             "group": null,
             "docs": {

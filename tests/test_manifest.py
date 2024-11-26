@@ -60,7 +60,7 @@ def test_v12():
                 group=Group.nodes,
                 name="customers",
                 alias="customers",
-                description="This table has basic information about a customer, as well as some derived facts based on a customer's orders",
+                description="Contains customer details and derived order facts",
                 display_name="clients",
                 unique_id="model.sandbox.customers",
                 columns=[
