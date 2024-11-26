@@ -111,6 +111,12 @@ class Manifest:
             for column in manifest_model.get("columns", {}).values()
         ]
 
+        scanned_fields = self._scan_fields(
+                manifest_model.get("meta", {}),
+                fields=_MODEL_META_FIELDS,
+                ns=_META_NS,
+        )
+        
         return Model(
             database=database,
             schema=schema,
@@ -119,16 +125,12 @@ class Manifest:
             alias=manifest_model.get(
                 "alias", manifest_model.get("identifier", manifest_model["name"])
             ),
-            description=manifest_model.get("description"),
+            description=scanned_fields.get("description", manifest_model.get("description")),
             columns=columns,
             unique_id=unique_id,
             source=source,
             tags=manifest_model.get("tags", []),
-            **self._scan_fields(
-                manifest_model.get("meta", {}),
-                fields=_MODEL_META_FIELDS,
-                ns=_META_NS,
-            ),
+            **{key: value for key, value in scanned_fields.items() if key != "description"},
         )
 
     def _read_column(
