@@ -87,7 +87,9 @@
                 "payment_method": {
                     "name": "payment_method",
                     "description": "",
-                    "meta": {},
+                    "meta": {
+                        "metabase.description": "The method used to complete a payment."
+                    },
                     "data_type": null,
                     "constraints": [],
                     "quote": null,

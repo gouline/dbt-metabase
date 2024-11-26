@@ -39,7 +39,7 @@ def test_v12():
                     ),
                     Column(
                         name="payment_method",
-                        description="",
+                        description="The method used to complete a payment.",
                     ),
                     Column(
                         name="order_id",
