@@ -7,6 +7,7 @@ import re
 from enum import Enum
 from pathlib import Path
 from typing import (
+    Any,
     Iterable,
     Mapping,
     MutableMapping,
@@ -117,6 +118,7 @@ class Manifest:
             ns=_META_NS,
         )
         description = meta.pop("description", manifest_model.get("description"))
+
         return Model(
             database=database,
             schema=schema,
@@ -144,7 +146,8 @@ class Manifest:
             fields=_COLUMN_META_FIELDS,
             ns=_META_NS,
         )
-        description = meta.get("description", manifest_column.get("description"))
+        description = meta.pop("description", manifest_column.get("description"))
+
         column = Column(
             name=manifest_column.get("name", ""),
             description=description,
@@ -325,12 +328,14 @@ class Manifest:
         )
 
     @staticmethod
-    def _scan_fields(t: Mapping, fields: Iterable[str], ns: str) -> Mapping:
+    def _scan_fields(
+        t: Mapping, fields: Iterable[str], ns: str
+    ) -> MutableMapping[str, Any]:
         """Reads meta fields from a schem object.
 
         Args:
             t (Mapping): Target to scan for fields.
-            fields (List): List of fields to accept.
+            fields (Iterable): List of fields to accept.
             ns (str): Field namespace (separated by .).
 
         Returns:
