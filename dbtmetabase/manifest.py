@@ -7,6 +7,7 @@ import re
 from enum import Enum
 from pathlib import Path
 from typing import (
+    Any,
     Iterable,
     Mapping,
     MutableMapping,
@@ -26,6 +27,7 @@ _META_NS = "metabase"
 _COMMON_META_FIELDS = [
     "display_name",
     "visibility_type",
+    "description",
 ]
 # Must be covered by Column attributes
 _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
@@ -110,6 +112,13 @@ class Manifest:
             for column in manifest_model.get("columns", {}).values()
         ]
 
+        meta = self._scan_fields(
+            manifest_model.get("meta", {}),
+            fields=_MODEL_META_FIELDS,
+            ns=_META_NS,
+        )
+        description = meta.pop("description", manifest_model.get("description"))
+
         return Model(
             database=database,
             schema=schema,
@@ -118,16 +127,12 @@ class Manifest:
             alias=manifest_model.get(
                 "alias", manifest_model.get("identifier", manifest_model["name"])
             ),
-            description=manifest_model.get("description"),
+            description=description,
             columns=columns,
             unique_id=unique_id,
             source=source,
             tags=manifest_model.get("tags", []),
-            **self._scan_fields(
-                manifest_model.get("meta", {}),
-                fields=_MODEL_META_FIELDS,
-                ns=_META_NS,
-            ),
+            **meta,
         )
 
     def _read_column(
@@ -136,14 +141,17 @@ class Manifest:
         schema: str,
         relationship: Optional[Mapping],
     ) -> Column:
+        meta = self._scan_fields(
+            manifest_column.get("meta", {}),
+            fields=_COLUMN_META_FIELDS,
+            ns=_META_NS,
+        )
+        description = meta.pop("description", manifest_column.get("description"))
+
         column = Column(
             name=manifest_column.get("name", ""),
-            description=manifest_column.get("description"),
-            **self._scan_fields(
-                manifest_column.get("meta", {}),
-                fields=_COLUMN_META_FIELDS,
-                ns=_META_NS,
-            ),
+            description=description,
+            **meta,
         )
 
         self._set_column_relationship(
@@ -320,12 +328,14 @@ class Manifest:
         )
 
     @staticmethod
-    def _scan_fields(t: Mapping, fields: Iterable[str], ns: str) -> Mapping:
+    def _scan_fields(
+        t: Mapping, fields: Iterable[str], ns: str
+    ) -> MutableMapping[str, Any]:
         """Reads meta fields from a schem object.
 
         Args:
             t (Mapping): Target to scan for fields.
-            fields (List): List of fields to accept.
+            fields (Iterable): List of fields to accept.
             ns (str): Field namespace (separated by .).
 
         Returns:

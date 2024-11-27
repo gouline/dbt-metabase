@@ -258,7 +258,7 @@ def test_v2():
                 group=Group.nodes,
                 name="orders",
                 alias="orders",
-                description="This table has basic information about orders, as well as some derived facts based on payments",
+                description="Basic and derived order information from payments",
                 unique_id="model.jaffle_shop.orders",
                 columns=[
                     Column(
@@ -278,7 +278,7 @@ def test_v2():
                     ),
                     Column(
                         name="status",
-                        description="Orders can be one of the following statuses:\n\n| status         | description                                                                                                            |\n|----------------|------------------------------------------------------------------------------------------------------------------------|\n| placed         | The order has been placed but has not yet left the warehouse                                                           |\n| shipped        | The order has ben shipped to the customer and is currently in transit                                                  |\n| completed      | The order has been received by the customer                                                                            |\n| return_pending | The customer has indicated that they would like to return the order, but it has not yet been received at the warehouse |\n| returned       | The order has been returned by the customer and received at the warehouse                                              |",
+                        description="Order status: placed, shipped, completed, return_pending, or returned.",
                     ),
                     Column(
                         name="amount",
