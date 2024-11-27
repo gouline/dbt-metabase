@@ -36,9 +36,7 @@
                 "schema": null,
                 "database": null,
                 "tags": [],
-                "meta": {
-                    "metabase.description": "This table has basic information about payments"
-                },
+                "meta": {},
                 "group": null,
                 "materialized": "table",
                 "incremental_strategy": null,
@@ -64,6 +62,7 @@
                 "access": "protected"
             },
             "tags": [],
+            "description": "This table has basic information about payments",
             "columns": {
                 "payment_id": {
                     "name": "payment_id",
@@ -87,9 +86,7 @@
                 "payment_method": {
                     "name": "payment_method",
                     "description": "",
-                    "meta": {
-                        "metabase.description": "The method used to complete a payment."
-                    },
+                    "meta": {},
                     "data_type": null,
                     "constraints": [],
                     "quote": null,
@@ -124,9 +121,7 @@
                     "tags": []
                 }
             },
-            "meta": {
-                "metabase.description": "This table has basic information about payments"
-            },
+            "meta": {},
             "group": null,
             "docs": {
                 "show": true,
@@ -198,8 +193,7 @@
                 "database": null,
                 "tags": [],
                 "meta": {
-                    "metabase.display_name": "clients",
-                    "metabase.description": "Contains customer details and derived order facts"
+                    "metabase.display_name": "clients"
                 },
                 "group": null,
                 "materialized": "table",
@@ -296,8 +290,7 @@
                 }
             },
             "meta": {
-                "metabase.display_name": "clients",
-                "metabase.description": "Contains customer details and derived order facts"
+                "metabase.display_name": "clients"
             },
             "group": null,
             "docs": {
