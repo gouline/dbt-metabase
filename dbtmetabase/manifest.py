@@ -125,9 +125,7 @@ class Manifest:
             alias=manifest_model.get(
                 "alias", manifest_model.get("identifier", manifest_model["name"])
             ),
-            description=scanned_fields.get(
-                "description", manifest_model.get("description")
-            ),
+            description=description,
             columns=columns,
             unique_id=unique_id,
             source=source,
