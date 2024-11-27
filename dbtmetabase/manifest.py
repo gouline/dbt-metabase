@@ -111,12 +111,12 @@ class Manifest:
             for column in manifest_model.get("columns", {}).values()
         ]
 
-        scanned_fields = self._scan_fields(
+        meta = self._scan_fields(
             manifest_model.get("meta", {}),
             fields=_MODEL_META_FIELDS,
             ns=_META_NS,
         )
-
+        description = meta.pop("description", manifest_model.get("description"))
         return Model(
             database=database,
             schema=schema,
@@ -132,11 +132,7 @@ class Manifest:
             unique_id=unique_id,
             source=source,
             tags=manifest_model.get("tags", []),
-            **{
-                key: value
-                for key, value in scanned_fields.items()
-                if key != "description"
-            },
+            **meta,
         )
 
     def _read_column(
@@ -145,22 +141,16 @@ class Manifest:
         schema: str,
         relationship: Optional[Mapping],
     ) -> Column:
-        scanned_fields = self._scan_fields(
+        meta = self._scan_fields(
             manifest_column.get("meta", {}),
             fields=_COLUMN_META_FIELDS,
             ns=_META_NS,
         )
-
+        description = meta.get("description", manifest_column.get("description"))
         column = Column(
             name=manifest_column.get("name", ""),
-            description=scanned_fields.get(
-                "description", manifest_column.get("description")
-            ),
-            **{
-                key: value
-                for key, value in scanned_fields.items()
-                if key != "description"
-            },
+            description=description,
+            **meta,
         )
 
         self._set_column_relationship(
