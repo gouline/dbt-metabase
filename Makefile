@@ -1,5 +1,6 @@
 .PHONY: dependencies
 dependencies:
+	SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 \
 	uv sync --no-install-project --all-extras --frozen
 
 .PHONY: upgrade

@@ -27,6 +27,8 @@ jobs:
         run: make dependencies
 
       - name: Build
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ github.event.release.tag_name }}
         run: make build
 
       - name: Publish a Python distribution to PyPI
