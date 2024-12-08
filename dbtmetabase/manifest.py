@@ -409,6 +409,10 @@ class Model:
             return f"source('{self.source}', '{self.name}')"
         return None
 
+    @property
+    def alias_path(self) -> str:
+        return ".".join([self.database, self.schema or DEFAULT_SCHEMA, self.alias])
+
     def format_description(
         self,
         append_tags: bool = False,
