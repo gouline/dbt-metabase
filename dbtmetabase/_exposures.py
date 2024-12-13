@@ -140,7 +140,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                         f"Visualization: {entity.get('display', 'Unknown').title()}"
                     )
 
-                    result = self.__extract_card_exposures(ctx, card=entity)
+                    result = self.__extract_card_exposures(ctx, entity)
                     depends.update(result["depends"])
                     native_query = result["native_query"]
 
@@ -168,12 +168,9 @@ class ExposuresMixin(metaclass=ABCMeta):
                         if "id" not in card:
                             continue
 
-                        depends.update(
-                            self.__extract_card_exposures(
-                                ctx,
-                                card=self.metabase.find_card(uid=card["id"]),
-                            )["depends"]
-                        )
+                        if card := self.metabase.find_card(uid=card["id"]):
+                            result = self.__extract_card_exposures(ctx, card)
+                            depends.update(result["depends"])
                 else:
                     _logger.warning("Unexpected collection item '%s'", item["model"])
                     continue
@@ -231,105 +228,91 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         return exposures
 
-    def __extract_card_exposures(
-        self,
-        ctx: __Context,
-        card: Optional[Mapping],
-    ) -> Mapping:
+    def __extract_card_exposures(self, ctx: __Context, card: Mapping) -> Mapping:
         """Extracts exposures from Metabase questions."""
 
         depends = set()
         native_query = ""
 
-        if card:
-            query = card.get("dataset_query", {})
-            if query.get("type") == "query":
-                # Metabase GUI derived query
-                query_source = query.get("query", {}).get(
-                    "source-table", card.get("table_id")
-                )
+        query = card.get("dataset_query", {})
+        if query.get("type") == "query":
+            # Metabase GUI derived query
+            query_source = query.get("query", {}).get(
+                "source-table", card.get("table_id")
+            )
 
-                if str(query_source).startswith("card__"):
+            if str(query_source).startswith("card__"):
+                # Handle questions based on other questions
+                if source_card := self.metabase.find_card(
+                    uid=query_source.split("__")[-1]
+                ):
+                    result = self.__extract_card_exposures(ctx, source_card)
+                    depends.update(result["depends"])
+            elif query_source in ctx.table_names:
+                # Normal question
+                source_table = ctx.table_names.get(query_source)
+                if source_table:
+                    source_table = source_table.lower()
+                    _logger.info("Extracted model '%s' from card", source_table)
+                    depends.add(source_table)
+
+            # Find models exposed through joins
+            for join in query.get("query", {}).get("joins", []):
+                join_source = join.get("source-table")
+
+                if str(join_source).startswith("card__"):
                     # Handle questions based on other questions
-                    depends.update(
-                        self.__extract_card_exposures(
-                            ctx,
-                            card=self.metabase.find_card(
-                                uid=query_source.split("__")[-1]
-                            ),
-                        )["depends"]
-                    )
-                elif query_source in ctx.table_names:
-                    # Normal question
-                    source_table = ctx.table_names.get(query_source)
-                    if source_table:
-                        source_table = source_table.lower()
-                        _logger.info("Extracted model '%s' from card", source_table)
-                        depends.add(source_table)
+                    if source_card := self.metabase.find_card(
+                        uid=join_source.split("__")[-1]
+                    ):
+                        result = self.__extract_card_exposures(ctx, source_card)
+                        depends.update(result["depends"])
 
-                # Find models exposed through joins
-                for join in query.get("query", {}).get("joins", []):
-                    join_source = join.get("source-table")
+                    continue
 
-                    if str(join_source).startswith("card__"):
-                        # Handle questions based on other questions
-                        depends.update(
-                            self.__extract_card_exposures(
-                                ctx,
-                                card=self.metabase.find_card(
-                                    uid=join_source.split("__")[-1]
-                                ),
-                            )["depends"]
-                        )
-                        continue
+                # Joined model parsed
+                joined_table = ctx.table_names.get(join_source)
+                if joined_table:
+                    joined_table = joined_table.lower()
+                    _logger.info("Extracted model '%s' from join", joined_table)
+                    depends.add(joined_table)
 
-                    # Joined model parsed
-                    joined_table = ctx.table_names.get(join_source)
-                    if joined_table:
-                        joined_table = joined_table.lower()
-                        _logger.info("Extracted model '%s' from join", joined_table)
-                        depends.add(joined_table)
+        elif query.get("type") == "native":
+            # Metabase native query
+            native_query = query["native"].get("query")
+            ctes: MutableSequence[str] = []
 
-            elif query.get("type") == "native":
-                # Metabase native query
-                native_query = query["native"].get("query")
-                ctes: MutableSequence[str] = []
+            # Parse common table expressions for exclusion
+            for matched_cte in re.findall(_CTE_PARSER, native_query):
+                ctes.extend(group.lower() for group in matched_cte if group)
 
-                # Parse common table expressions for exclusion
-                for matched_cte in re.findall(_CTE_PARSER, native_query):
-                    ctes.extend(group.lower() for group in matched_cte if group)
+            # Parse SQL for exposures through FROM or JOIN clauses
+            for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
+                # DATABASE.schema.table -> [database, schema, table]
+                parsed_model_path = [s.strip('"').lower() for s in sql_ref.split(".")]
 
-                # Parse SQL for exposures through FROM or JOIN clauses
-                for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
-                    # DATABASE.schema.table -> [database, schema, table]
-                    parsed_model_path = [
-                        s.strip('"').lower() for s in sql_ref.split(".")
-                    ]
+                # Scrub CTEs (qualified sql_refs can not reference CTEs)
+                if parsed_model_path[-1] in ctes and "." not in sql_ref:
+                    continue
 
-                    # Scrub CTEs (qualified sql_refs can not reference CTEs)
-                    if parsed_model_path[-1] in ctes and "." not in sql_ref:
-                        continue
+                # Missing schema -> use default schema
+                if len(parsed_model_path) < 2:
+                    parsed_model_path.insert(0, DEFAULT_SCHEMA.lower())
+                # Missing database -> use query's database
+                if len(parsed_model_path) < 3:
+                    database_name = ctx.database_names.get(query["database"], "")
+                    parsed_model_path.insert(0, database_name.lower())
 
-                    # Missing schema -> use default schema
-                    if len(parsed_model_path) < 2:
-                        parsed_model_path.insert(0, DEFAULT_SCHEMA.lower())
-                    # Missing database -> use query's database
-                    if len(parsed_model_path) < 3:
-                        database_name = ctx.database_names.get(query["database"], "")
-                        parsed_model_path.insert(0, database_name.lower())
+                # Fully-qualified database.schema.table
+                parsed_model = ".".join(parsed_model_path)
 
-                    # Fully-qualified database.schema.table
-                    parsed_model = ".".join(parsed_model_path)
+                # Verify this is one of our parsed refable models so exposures dont break the DAG
+                if not ctx.model_refs.get(parsed_model):
+                    continue
 
-                    # Verify this is one of our parsed refable models so exposures dont break the DAG
-                    if not ctx.model_refs.get(parsed_model):
-                        continue
-
-                    if parsed_model:
-                        _logger.info(
-                            "Extracted model '%s' from native query", parsed_model
-                        )
-                        depends.add(parsed_model)
+                if parsed_model:
+                    _logger.info("Extracted model '%s' from native query", parsed_model)
+                    depends.add(parsed_model)
 
         return {
             "depends": depends,
