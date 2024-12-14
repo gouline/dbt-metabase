@@ -78,16 +78,22 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         models = self.manifest.read_models()
 
+        def dbname(details: Mapping) -> str:
+            """Parse database name from Metabase database details."""
+            for key in ("dbname", "db", "catalog"):
+                if key in details:
+                    return details[key]
+            return ""
+
         ctx = self.__Context(
             model_refs={m.alias_path.lower(): m.ref for m in models if m.ref},
             database_names={
-                d["id"]: d["details"].get("dbname", d["name"])
-                for d in self.metabase.get_databases()
+                d["id"]: dbname(d["details"]) for d in self.metabase.get_databases()
             },
             table_names={
                 t["id"]: ".".join(
                     [
-                        t["db"]["details"].get("dbname", t["db"]["name"]),
+                        dbname(t["db"]["details"]),
                         t["schema"] or DEFAULT_SCHEMA,
                         t["name"],
                     ]
