@@ -15,6 +15,7 @@ from typing import (
     Sequence,
     Tuple,
 )
+from urllib.parse import unquote
 
 from dbtmetabase.metabase import Metabase
 
@@ -109,7 +110,11 @@ class ExposuresMixin(metaclass=ABCMeta):
             exclude_personal=not allow_personal_collections
         ):
             collection_name = collection["name"]
-            collection_slug = collection.get("slug", safe_name(collection["name"]))
+
+            if "slug" in collection:
+                collection_slug = unquote(collection["slug"])
+            else:
+                collection_slug = safe_name(collection["name"])
 
             if not collection_filter.match(collection_name):
                 _logger.debug("Skipping collection '%s'", collection["name"])
