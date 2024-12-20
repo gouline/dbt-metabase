@@ -155,28 +155,5 @@
         },
         "location": null,
         "model": "dashboard"
-    },
-    {
-        "description": null,
-        "collection_position": null,
-        "can_write": true,
-        "database_id": 2,
-        "collection_id": null,
-        "name": "Transactions",
-        "fully_parameterized": true,
-        "moderated_status": null,
-        "id": 33,
-        "display": "table",
-        "entity_id": "ZRX529pNYbPiCLCi8HvZ6",
-        "collection_preview": true,
-        "last-edit-info": {
-            "id": 1,
-            "last_name": null,
-            "first_name": "dbtmetabase",
-            "email": "dbtmetabase@example.com",
-            "timestamp": "2024-10-11T23:46:29.299411Z"
-        },
-        "location": null,
-        "model": "card"
     }
 ]

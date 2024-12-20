@@ -1,16 +1,7 @@
 from typing import MutableSequence, cast
 
-import pytest
-
 from dbtmetabase.manifest import Column
 from tests._mocks import MockDbtMetabase
-
-
-@pytest.fixture(name="core")
-def fixture_core() -> MockDbtMetabase:
-    c = MockDbtMetabase()
-    c._ModelsMixin__SYNC_PERIOD = 1  # type: ignore
-    return c
 
 
 def test_export(core: MockDbtMetabase):

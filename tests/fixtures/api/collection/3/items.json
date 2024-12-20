@@ -1,0 +1,25 @@
+[
+    {
+        "description": null,
+        "collection_position": null,
+        "can_write": true,
+        "database_id": 2,
+        "collection_id": 3,
+        "name": "Transactions",
+        "fully_parameterized": true,
+        "moderated_status": null,
+        "id": 33,
+        "display": "table",
+        "entity_id": "ZRX529pNYbPiCLCi8HvZ6",
+        "collection_preview": true,
+        "last-edit-info": {
+            "id": 1,
+            "last_name": null,
+            "first_name": "dbtmetabase",
+            "email": "dbtmetabase@example.com",
+            "timestamp": "2024-12-20T12:30:11.782155Z"
+        },
+        "location": null,
+        "model": "card"
+    }
+]

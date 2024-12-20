@@ -1,11 +1,4 @@
-import pytest
-
 from tests._mocks import MockMetabase
-
-
-@pytest.fixture(name="metabase")
-def fixture_metabase() -> MockMetabase:
-    return MockMetabase(url="http://localhost")
 
 
 def test_metabase_find_database(metabase: MockMetabase):
@@ -17,10 +10,10 @@ def test_metabase_find_database(metabase: MockMetabase):
 
 def test_metabase_get_collections(metabase: MockMetabase):
     excluded = metabase.get_collections(exclude_personal=True)
-    assert len(excluded) == 1
+    assert len(excluded) == 2
 
     included = metabase.get_collections(exclude_personal=False)
-    assert len(included) == 2
+    assert len(included) == 3
 
 
 def test_metabase_get_collection_items(metabase: MockMetabase):
