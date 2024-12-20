@@ -65,3 +65,69 @@ def test_exposures_grouping_type(core: MockDbtMetabase):
 
     for file in (fixtures_path / "dashboard").iterdir():
         _assert_exposures(file, output_path / "dashboard" / file.name)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        (
+            "SELECT * FROM database.schema.table0",
+            {"database.schema.table0"},
+        ),
+        (
+            "SELECT * FROM schema.table0",
+            {"database.schema.table0"},
+        ),
+        (
+            "SELECT * FROM table1",
+            {"database.public.table1"},
+        ),
+        (
+            'SELECT * FROM "schema".table0',
+            {"database.schema.table0"},
+        ),
+        (
+            'SELECT * FROM schema."table0"',
+            {"database.schema.table0"},
+        ),
+        (
+            'SELECT * FROM "schema"."table0"',
+            {"database.schema.table0"},
+        ),
+        (
+            "SELECT * FROM `schema.table0`",
+            {"database.schema.table0"},
+        ),
+    ],
+)
+def test_extract_exposures_native_depends(
+    core: MockDbtMetabase,
+    query: str,
+    expected: set,
+):
+    ctx = MockDbtMetabase._ExposuresMixin__Context(  # type: ignore
+        model_refs={
+            "database.schema.table0": "model0",
+            "database.public.table1": "model1",
+        },
+        database_names={1: "database"},
+        table_names={},
+    )
+    exposure = MockDbtMetabase._ExposuresMixin__Exposure(  # type: ignore
+        model="card",
+        uid="",
+        label="",
+    )
+    core._ExposuresMixin__exposure_card(  # type: ignore
+        ctx=ctx,
+        exposure=exposure,
+        card={
+            "dataset_query": {
+                "type": "native",
+                "database": 1,
+                "native": {"query": query},
+            }
+        },
+    )
+    assert expected == exposure.depends
+    assert query == exposure.native_query
