@@ -1,7 +1,7 @@
 {
     "description": "Dashboard is a dashboard is a dashboard",
     "archived": false,
-    "view_count": 118,
+    "view_count": 121,
     "collection_position": null,
     "dashcards": [
         {
@@ -14,7 +14,7 @@
                 "cache_invalidated_at": null,
                 "description": "Orders and customers",
                 "archived": false,
-                "view_count": 446,
+                "view_count": 458,
                 "collection_position": null,
                 "table_id": 10,
                 "result_metadata": [
@@ -653,7 +653,7 @@
                 "cache_invalidated_at": null,
                 "description": null,
                 "archived": false,
-                "view_count": 223,
+                "view_count": 229,
                 "collection_position": null,
                 "table_id": 10,
                 "result_metadata": [
@@ -1266,7 +1266,7 @@
                 "cache_invalidated_at": null,
                 "description": null,
                 "archived": false,
-                "view_count": 222,
+                "view_count": 228,
                 "collection_position": null,
                 "table_id": null,
                 "result_metadata": [

@@ -7,15 +7,6 @@ import yaml
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
 
 
-def setup_module():
-    TMP_PATH.mkdir(exist_ok=True)
-
-
-@pytest.fixture(name="core")
-def fixture_core() -> MockDbtMetabase:
-    return MockDbtMetabase()
-
-
 def _assert_exposures(expected_path: Path, actual_path: Path):
     with open(expected_path, encoding="utf-8") as f:
         expected = yaml.safe_load(f)
