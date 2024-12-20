@@ -299,6 +299,8 @@ class ExposuresMixin(metaclass=ABCMeta):
 
             # Parse SQL for exposures through FROM or JOIN clauses
             for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
+                sql_ref = sql_ref.strip("`")  # BigQuery uses backticks `dataset.table`
+
                 # DATABASE.schema.table -> [database, schema, table]
                 parsed_model_path = [s.strip('"').lower() for s in sql_ref.split(".")]
 
