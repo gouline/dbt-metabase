@@ -13,11 +13,11 @@ from .metabase import Metabase
 
 _logger = logging.getLogger(__name__)
 
+_SYNC_PERIOD = 5
+
 
 class ModelsMixin(metaclass=ABCMeta):
     """Abstraction for exporting models."""
-
-    __SYNC_PERIOD = 5
 
     DEFAULT_MODELS_SYNC_TIMEOUT = 30
 
@@ -57,7 +57,7 @@ class ModelsMixin(metaclass=ABCMeta):
             order_fields (bool, optional): Preserve column order in dbt project.
         """
 
-        ctx = self.__Context()
+        ctx = _Context()
         success = True
 
         database = self.metabase.find_database(name=metabase_database)
@@ -77,9 +77,9 @@ class ModelsMixin(metaclass=ABCMeta):
         deadline = int(time.time()) + sync_timeout
         synced = False
         while not synced:
-            time.sleep(self.__SYNC_PERIOD)
+            time.sleep(_SYNC_PERIOD)
 
-            tables = self.__get_tables(database["id"])
+            tables = self._get_metabase_tables(database["id"])
 
             synced = True
             for model in models:
@@ -124,7 +124,7 @@ class ModelsMixin(metaclass=ABCMeta):
             raise MetabaseStateError("Unable to sync models with Metabase")
 
         for model in models:
-            success &= self.__export_model(
+            success &= self._export_model(
                 ctx=ctx,
                 model=model,
                 append_tags=append_tags,
@@ -159,9 +159,9 @@ class ModelsMixin(metaclass=ABCMeta):
         if not success:
             raise MetabaseStateError("Non-critical errors encountered, see above")
 
-    def __export_model(
+    def _export_model(
         self,
-        ctx: __Context,
+        ctx: _Context,
         model: Model,
         append_tags: bool,
         docs_url: Optional[str],
@@ -250,7 +250,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
     def __export_model_column_order(
         self,
-        ctx: __Context,
+        ctx: _Context,
         model: Model,
         api_table: Mapping,
         table_key: str,
@@ -303,7 +303,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
     def __export_column(
         self,
-        ctx: __Context,
+        ctx: _Context,
         schema_name: str,
         model_name: str,
         column: Column,
@@ -430,7 +430,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
         return success
 
-    def __get_tables(self, database_id: str) -> Mapping[str, MutableMapping]:
+    def _get_metabase_tables(self, database_id: str) -> Mapping[str, MutableMapping]:
         tables = {}
 
         metadata = self.metabase.get_database_metadata(database_id)
@@ -461,8 +461,8 @@ class ModelsMixin(metaclass=ABCMeta):
 
         return tables
 
-    @staticmethod
     def __filtered_models(
+        self,
         models: Iterable[Model],
         database_filter: Optional[Filter],
         schema_filter: Optional[Filter],
@@ -479,25 +479,26 @@ class ModelsMixin(metaclass=ABCMeta):
 
         return list(filter(selected, models))
 
-    @dc.dataclass
-    class __Context:
-        tables: Mapping[str, MutableMapping] = dc.field(default_factory=dict)
-        updates: MutableMapping[str, MutableMapping] = dc.field(default_factory=dict)
 
-        def get_field(self, table_key: str, field_key: str) -> MutableMapping:
-            return self.tables.get(table_key, {}).get("fields", {}).get(field_key, {})
+@dc.dataclass
+class _Context:
+    tables: Mapping[str, MutableMapping] = dc.field(default_factory=dict)
+    updates: MutableMapping[str, MutableMapping] = dc.field(default_factory=dict)
 
-        def update(self, entity: MutableMapping, change: Mapping, label: str):
-            entity.update(change)
+    def get_field(self, table_key: str, field_key: str) -> MutableMapping:
+        return self.tables.get(table_key, {}).get("fields", {}).get(field_key, {})
 
-            key = f"{entity['kind']}.{entity['id']}"
-            update = self.updates.get(key, {})
-            update["kind"] = entity["kind"]
-            update["id"] = entity["id"]
-            update["label"] = label
+    def update(self, entity: MutableMapping, change: Mapping, label: str):
+        entity.update(change)
 
-            body = update.get("body", {})
-            body.update(change)
-            update["body"] = body
+        key = f"{entity['kind']}.{entity['id']}"
+        update = self.updates.get(key, {})
+        update["kind"] = entity["kind"]
+        update["id"] = entity["id"]
+        update["label"] = label
 
-            self.updates[key] = update
+        body = update.get("body", {})
+        body.update(change)
+        update["body"] = body
+
+        self.updates[key] = update

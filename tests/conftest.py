@@ -1,12 +1,13 @@
 import pytest
 
+import dbtmetabase._models
 from tests._mocks import TMP_PATH, MockDbtMetabase, MockMetabase
 
 
 @pytest.fixture(name="core")
 def fixture_core() -> MockDbtMetabase:
     c = MockDbtMetabase()
-    c._ModelsMixin__SYNC_PERIOD = 1  # type: ignore
+    dbtmetabase._models._SYNC_PERIOD = 1
     return c
 
 

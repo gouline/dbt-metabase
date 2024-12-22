@@ -88,7 +88,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     return details[key]
             return ""
 
-        ctx = self.__Context(
+        ctx = _Context(
             model_refs={m.alias_path.lower(): m.ref for m in models if m.ref},
             database_names={
                 d["id"]: dbname(d["details"]) for d in self.metabase.get_databases()
@@ -127,7 +127,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 uid=collection["id"],
                 models=("card", "dashboard"),
             ):
-                exposure = self.__Exposure(
+                exposure = _Exposure(
                     model=item["model"],
                     uid=item["id"],
                     label="Exposure [Unresolved Name]",
@@ -153,7 +153,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                         f"Visualization: {entity.get('display', 'Unknown').title()}"
                     )
 
-                    self.__exposure_card(ctx, exposure, entity)
+                    self._exposure_card(ctx, exposure, entity)
 
                     if average_query_time_ms := entity.get("average_query_time"):
                         average_query_time_s = average_query_time_ms / 1000
@@ -179,7 +179,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                             continue
 
                         if card := self.metabase.find_card(uid=card["id"]):
-                            self.__exposure_card(ctx, exposure, card)
+                            self._exposure_card(ctx, exposure, card)
                 else:
                     _logger.warning("Unexpected collection item '%s'", item["model"])
                     continue
@@ -236,7 +236,7 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         return exposures
 
-    def __exposure_card(self, ctx: __Context, exposure: __Exposure, card: Mapping):
+    def _exposure_card(self, ctx: _Context, exposure: _Exposure, card: Mapping):
         """Extracts exposures from Metabase questions."""
 
         dataset_query = card.get("dataset_query", {})
@@ -248,7 +248,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         else:
             _logger.warning("Unsupported card type '%s'", card_type)
 
-    def __exposure_query(self, ctx: __Context, exposure: __Exposure, card: Mapping):
+    def __exposure_query(self, ctx: _Context, exposure: _Exposure, card: Mapping):
         """Extracts exposures from Metabase GUI queries."""
 
         dataset_query = card.get("dataset_query", {})
@@ -259,7 +259,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             # Question based on another question
             source_card_uid = query_source.split("__")[-1]
             if source_card := self.metabase.find_card(uid=source_card_uid):
-                self.__exposure_card(ctx, exposure, source_card)
+                self._exposure_card(ctx, exposure, source_card)
 
         elif isinstance(query_source, int) and query_source in ctx.table_names:
             # Question based on table
@@ -274,7 +274,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 # Question based on another question
                 source_card_uid = join_source.split("__")[-1]
                 if source_card := self.metabase.find_card(uid=source_card_uid):
-                    self.__exposure_card(ctx, exposure, source_card)
+                    self._exposure_card(ctx, exposure, source_card)
 
                 continue
 
@@ -284,7 +284,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 exposure.depends.add(joined_table)
                 _logger.info("Extracted model '%s' from join", joined_table)
 
-    def __exposure_native(self, ctx: __Context, exposure: __Exposure, card: Mapping):
+    def __exposure_native(self, ctx: _Context, exposure: _Exposure, card: Mapping):
         """Extracts exposures from Metabase native queries."""
 
         dataset_query = card.get("dataset_query", {})
@@ -410,8 +410,8 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         return exposure
 
-    @staticmethod
     def __write_exposures(
+        self,
         exposures: Iterable[Mapping],
         output_path: str,
         output_grouping: Optional[str],
@@ -448,24 +448,26 @@ class ExposuresMixin(metaclass=ABCMeta):
                     stream=f,
                 )
 
-    @dc.dataclass
-    class __Context:
-        model_refs: Mapping[str, str]
-        database_names: Mapping[int, str]
-        table_names: Mapping[int, str]
 
-    @dc.dataclass
-    class __Exposure:
-        model: str
-        uid: str
-        label: str
-        name: str = ""
-        description: str = ""
-        created_at: str = ""
-        header: str = ""
-        creator_name: str = ""
-        creator_email: str = ""
-        average_query_time: Optional[str] = None
-        last_used_at: Optional[str] = None
-        native_query: Optional[str] = None
-        depends: Set[str] = dc.field(default_factory=set)
+@dc.dataclass
+class _Context:
+    model_refs: Mapping[str, str]
+    database_names: Mapping[int, str]
+    table_names: Mapping[int, str]
+
+
+@dc.dataclass
+class _Exposure:
+    model: str
+    uid: str
+    label: str
+    name: str = ""
+    description: str = ""
+    created_at: str = ""
+    header: str = ""
+    creator_name: str = ""
+    creator_email: str = ""
+    average_query_time: Optional[str] = None
+    last_used_at: Optional[str] = None
+    native_query: Optional[str] = None
+    depends: Set[str] = dc.field(default_factory=set)

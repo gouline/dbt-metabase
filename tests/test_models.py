@@ -80,7 +80,7 @@ def test_build_lookups(core: MockDbtMetabase):
         "INVENTORY.SKUS": {"SKU_ID", "PRODUCT"},
     }
 
-    actual_tables = core._ModelsMixin__get_tables(database_id="2")  # type: ignore
+    actual_tables = core._get_metabase_tables(database_id="2")
 
     assert set(actual_tables.keys()) == set(expected.keys())
 
