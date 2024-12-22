@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 try:
-    from ._version import __version__ as version  # type: ignore
+    from ._version import __version__ as version
 
     __version__ = version
 except ModuleNotFoundError:

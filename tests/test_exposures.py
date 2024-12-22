@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from dbtmetabase._exposures import _Context, _Exposure
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
 
 
@@ -96,7 +97,7 @@ def test_extract_exposures_native_depends(
     query: str,
     expected: set,
 ):
-    ctx = MockDbtMetabase._ExposuresMixin__Context(  # type: ignore
+    ctx = _Context(
         model_refs={
             "database.schema.table0": "model0",
             "database.public.table1": "model1",
@@ -104,12 +105,12 @@ def test_extract_exposures_native_depends(
         database_names={1: "database"},
         table_names={},
     )
-    exposure = MockDbtMetabase._ExposuresMixin__Exposure(  # type: ignore
+    exposure = _Exposure(
         model="card",
         uid="",
         label="",
     )
-    core._ExposuresMixin__exposure_card(  # type: ignore
+    core._exposure_card(
         ctx=ctx,
         exposure=exposure,
         card={
