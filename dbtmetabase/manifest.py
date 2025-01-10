@@ -42,7 +42,8 @@ _MODEL_META_FIELDS = _COMMON_META_FIELDS + [
     "caveats",
 ]
 
-# Default model schema (only schema in BigQuery)
+# Default values for non-standard sources
+DEFAULT_DATABASE = ""
 DEFAULT_SCHEMA = "PUBLIC"
 
 # Foreign key constraint: "schema.model (column)" / "model (column)"
@@ -411,7 +412,13 @@ class Model:
 
     @property
     def alias_path(self) -> str:
-        return ".".join([self.database, self.schema or DEFAULT_SCHEMA, self.alias])
+        return ".".join(
+            [
+                self.database or DEFAULT_DATABASE,
+                self.schema or DEFAULT_SCHEMA,
+                self.alias,
+            ]
+        )
 
     def format_description(
         self,

@@ -28,8 +28,8 @@ class Filter:
         self.include = self._norm_arg(include)
         self.exclude = self._norm_arg(exclude)
 
-    def match(self, item: str) -> bool:
-        item = self._norm_item(item)
+    def match(self, item: Optional[str]) -> bool:
+        item = self._norm_item(item) if item else ""
 
         for exclude in self.exclude:
             if fnmatch.fnmatch(item, exclude):
