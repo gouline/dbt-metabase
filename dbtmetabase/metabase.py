@@ -122,7 +122,12 @@ class Metabase:
 
     def get_tables(self) -> Sequence[Mapping]:
         """Retrieves all tables for all databases."""
-        return list(self._api("get", "/api/table"))
+        return list(
+            filter(
+                lambda x: "details" in x["db"],  # exclude internal
+                self._api("get", "/api/table"),
+            )
+        )
 
     def get_collections(self, exclude_personal: bool) -> Sequence[Mapping]:
         """Retrieves all collections and optionally filters out personal collections."""

@@ -22,7 +22,7 @@ services:
     restart: always
 
   metabase:
-    image: metabase/metabase:v0.50.29
+    image: metabase/metabase:v0.52.8
     environment:
       - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
       - MB_DB_FILE=/metabase-data/metabase.db
