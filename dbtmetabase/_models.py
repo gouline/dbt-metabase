@@ -409,6 +409,8 @@ class ModelsMixin(metaclass=ABCMeta):
         settings = api_field.get("settings") or {}
         if settings.get("number_style") != column.number_style and column.number_style:
             settings["number_style"] = column.number_style
+        if settings.get("decimals") != column.decimals and column.decimals:
+            settings["decimals"] = column.decimals
 
         if settings:
             body_field["settings"] = settings

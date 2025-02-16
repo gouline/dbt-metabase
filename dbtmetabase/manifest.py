@@ -35,6 +35,7 @@ _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "has_field_values",
     "coercion_strate`gy",
     "number_style",
+    "decimals",
 ]
 # Must be covered by Model attributes
 _MODEL_META_FIELDS = _COMMON_META_FIELDS + [
@@ -375,6 +376,7 @@ class Column:
     has_field_values: Optional[str] = None
     coercion_strategy: Optional[str] = None
     number_style: Optional[str] = None
+    decimals: Optional[int] = None
 
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None
