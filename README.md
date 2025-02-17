@@ -200,6 +200,7 @@ In addition to foreign keys, semantic types and visibility types, Metabase also 
         metabase.has_field_values: list
         metabase.coercion_strategy: keyword
         metabase.number_style: decimal
+        metabase.decimals: 3
 ```
 
 See [Metabase documentation](https://www.metabase.com/docs/latest/api) for details and accepted values.
