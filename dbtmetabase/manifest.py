@@ -49,6 +49,8 @@ DEFAULT_SCHEMA = "PUBLIC"
 
 # Foreign key constraint: "schema.model (column)" / "model (column)"
 _CONSTRAINT_FK_PARSER = re.compile(r"(?P<model>.+)\s+\((?P<column>.+)\)")
+# Ref parser: "ref('model')"
+_REF_PARSER = re.compile(r"ref\('(?P<model>.+)'\)")
 
 
 class Manifest:
@@ -290,17 +292,33 @@ class Manifest:
                     column.semantic_type = "type/PK"
 
             elif constraint["type"] == "foreign_key":
-                constraint_expr = constraint.get("expression", "")
-                constraint_fk = _CONSTRAINT_FK_PARSER.search(constraint_expr)
-                if constraint_fk:
-                    fk_target_table = constraint_fk.group("model")
-                    fk_target_field = constraint_fk.group("column")
-                else:
-                    _logger.warning(
-                        "Unparsable '%s' foreign key constraint: %s",
-                        column.name,
-                        constraint_expr,
-                    )
+                # Constraint: expression
+                if constraint_expr := constraint.get("expression"):
+                    constraint_fk = _CONSTRAINT_FK_PARSER.search(constraint_expr)
+                    if constraint_fk:
+                        fk_target_table = constraint_fk.group("model")
+                        fk_target_field = constraint_fk.group("column")
+                    else:
+                        _logger.warning(
+                            "Unparsable '%s' foreign key constraint: %s",
+                            column.name,
+                            constraint_expr,
+                        )
+
+                # Constraint: to + to_columns
+                elif constraint_to := constraint.get("to"):
+                    constraint_fk = _REF_PARSER.search(constraint_to)
+                    constraint_to_columns = constraint.get("to_columns", [])
+                    if constraint_fk and len(constraint_to_columns) == 1:
+                        fk_target_table = constraint_fk.group("model")
+                        fk_target_field = constraint_to_columns[0]
+                    else:
+                        _logger.warning(
+                            "Unparsable '%s' foreign key constraint: %s, %s",
+                            column.name,
+                            constraint_to,
+                            constraint_to_columns,
+                        )
 
         # Precedence 3: Meta fields
         meta = manifest_column.get("meta", {})
