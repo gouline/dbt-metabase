@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "dbt-metabase"
 description = "dbt + Metabase integration."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "PyYAML>=5.4.1",
     "requests>=2.26.0",
@@ -51,7 +51,7 @@ dev-dependencies = [
     "mypy>=1.7.1",
     "pytest>=8.3.1",
     "molot~=1.0.0",
-    "dbt-postgres~=1.8.1",
+    "dbt-postgres~=1.9.0",
     "python-dotenv~=1.0.1",
     "types-requests",
     "types-PyYAML",

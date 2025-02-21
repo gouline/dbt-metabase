@@ -110,7 +110,8 @@ models:
         description: Foreign key to the orders table
         constraints:
           - type: foreign_key
-            expression: orders (order_id)
+            to: ref('orders')
+            to_columns: [order_id]
         data_tests:
           - not_null
       
