@@ -1,6 +1,5 @@
 # dbt-metabase
 
-[![GitHub Actions](https://github.com/gouline/dbt-metabase/actions/workflows/master.yml/badge.svg)](https://github.com/gouline/dbt-metabase/actions/workflows/master.yml)
 [![PyPI](https://img.shields.io/pypi/v/dbt-metabase)](https://pypi.org/project/dbt-metabase/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gouline/dbt-metabase/blob/master/LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
