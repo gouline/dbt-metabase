@@ -411,6 +411,8 @@ class ModelsMixin(metaclass=ABCMeta):
             settings["number_style"] = column.number_style
         if settings.get("decimals") != column.decimals and column.decimals:
             settings["decimals"] = column.decimals
+        if settings.get("currency") != column.currency and column.currency:
+            settings["currency"] = column.currency
 
         if settings:
             body_field["settings"] = settings
