@@ -36,6 +36,7 @@ _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "coercion_strate`gy",
     "number_style",
     "decimals",
+    "currency",
 ]
 # Must be covered by Model attributes
 _MODEL_META_FIELDS = _COMMON_META_FIELDS + [
@@ -395,6 +396,7 @@ class Column:
     coercion_strategy: Optional[str] = None
     number_style: Optional[str] = None
     decimals: Optional[int] = None
+    currency: Optional[str] = None
 
     fk_target_table: Optional[str] = None
     fk_target_field: Optional[str] = None
