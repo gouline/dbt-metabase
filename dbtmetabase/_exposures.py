@@ -83,7 +83,13 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         def dbname(details: Mapping) -> str:
             """Parse database name from Metabase database details."""
-            for key in ("dbname", "db", "project-id", "catalog"):
+            for key in (
+                "dbname",
+                "db",
+                "project-id",
+                "project-id-from-credentials",
+                "catalog",
+            ):
                 if key in details:
                     return details[key]
             return ""
