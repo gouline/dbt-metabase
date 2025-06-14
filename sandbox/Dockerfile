@@ -3,7 +3,7 @@ FROM python:3.12-slim-bullseye
 RUN apt-get update && \
     apt-get install -y gcc libpq-dev
 
-COPY --from=ghcr.io/astral-sh/uv:0.4.0 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.7.13 /uv /bin/uv
 
 WORKDIR /app
 
