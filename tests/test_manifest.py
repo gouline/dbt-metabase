@@ -412,17 +412,17 @@ def _assert_models_equal(
     for i, first_model in enumerate(first):
         second_model = second[i]
         assert first_model.name == second_model.name, "wrong model"
-        assert len(first_model.columns) == len(
-            second_model.columns
-        ), f"mismatched column count in {first_model.name}"
+        assert len(first_model.columns) == len(second_model.columns), (
+            f"mismatched column count in {first_model.name}"
+        )
         for j, first_column in enumerate(first_model.columns):
             second_column = second_model.columns[j]
-            assert (
-                first_column.name == second_column.name
-            ), f"wrong column in model {first_model.name}"
-            assert (
-                first_column == second_column
-            ), f"mismatched column {first_model.name}.{first_column.name}"
+            assert first_column.name == second_column.name, (
+                f"wrong column in model {first_model.name}"
+            )
+            assert first_column == second_column, (
+                f"mismatched column {first_model.name}.{first_column.name}"
+            )
         assert first_model == second_model, f"mismatched model {first_model.name}"
 
     assert first == second
