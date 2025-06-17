@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from operator import itemgetter
 from pathlib import Path
 from typing import (
+    Any,
     Iterable,
     Mapping,
     MutableMapping,
@@ -387,7 +388,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             + f"Created On: __{created_at}__"
         )
 
-        exposure = {
+        exposure: dict[str, Any] = {
             "name": name,
             "label": label,
             "description": safe_description(
@@ -409,7 +410,10 @@ class ExposuresMixin(metaclass=ABCMeta):
         if last_used_at:
             meta["last_used_at"] = last_used_at
         if meta:
-            exposure["meta"] = meta
+            exposure["config"] = {
+                **exposure.get("config", {}),
+                "meta": meta,
+            }
 
         if tags:
             exposure["tags"] = list(tags)

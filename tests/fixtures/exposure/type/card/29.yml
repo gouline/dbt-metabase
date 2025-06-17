@@ -15,6 +15,7 @@ exposures:
     depends_on:
       - ref('stg_orders')
       - ref('stg_payments')
-    meta:
-      average_query_time: '0:00.191'
-      last_used_at: '2024-10-12T03:43:09.869884Z'
+    config:
+      meta:
+        average_query_time: '0:00.191'
+        last_used_at: '2024-10-12T03:43:09.869884Z'
