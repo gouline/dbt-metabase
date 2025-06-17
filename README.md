@@ -107,9 +107,10 @@ Native [relationship tests](https://docs.getdbt.com/reference/resource-propertie
 ```yaml
 - name: country_id
   description: FK to User's country in the dim_countries table.
-  meta:
-    metabase.fk_target_table: analytics_dims.dim_countries
-    metabase.fk_target_field: id
+  config:
+    meta:
+      metabase.fk_target_table: analytics_dims.dim_countries
+      metabase.fk_target_field: id
 ```
 
 You can provide `fk_target_table` as `schema_name.table_name` or just `table_name` to use the current schema. If your model has an alias, provide that alias rather than the original name.
@@ -121,8 +122,9 @@ Now that we have foreign keys configured, let's tell Metabase that `email` colum
 ```yaml
 - name: email
   description: User's email address.
-  meta:
-    metabase.semantic_type: type/Email
+  config:
+    meta:
+      metabase.semantic_type: type/Email
 ```
 
 Once you run `dbt-metabase models` again, you will notice that `email` column is now marked as "Email".
@@ -159,9 +161,10 @@ Here is how you would hide that email column:
 ```yaml
 - name: email
   description: User's email address.
-  meta:
-    metabase.semantic_type: type/Email
-    metabase.visibility_type: sensitive
+  config:
+    meta:
+      metabase.semantic_type: type/Email
+      metabase.visibility_type: sensitive
 ```
 
 Below are the visibility types supported for columns:
@@ -185,21 +188,23 @@ In addition to foreign keys, semantic types and visibility types, Metabase also 
 
 ```yaml
 - name: model_name
-  meta:
-    metabase.display_name: another_model_name
-    metabase.visibility_type: normal
-    metabase.points_of_interest: Relevant records.
-    metabase.caveats: Sensitive information about users.
+  config:
+    meta:
+      metabase.display_name: another_model_name
+      metabase.visibility_type: normal
+      metabase.points_of_interest: Relevant records.
+      metabase.caveats: Sensitive information about users.
   columns:
     - name: column_name
-      meta:
-        metabase.display_name: another_column_name
-        metabase.visibility_type: sensitive
-        metabase.semantic_type: type/Number
-        metabase.has_field_values: list
-        metabase.coercion_strategy: keyword
-        metabase.number_style: decimal
-        metabase.decimals: 3
+      config:
+        meta:
+          metabase.display_name: another_column_name
+          metabase.visibility_type: sensitive
+          metabase.semantic_type: type/Number
+          metabase.has_field_values: list
+          metabase.coercion_strategy: keyword
+          metabase.number_style: decimal
+          metabase.decimals: 3
 ```
 
 See [Metabase documentation](https://www.metabase.com/docs/latest/api) for details and accepted values.

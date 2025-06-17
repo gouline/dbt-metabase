@@ -401,6 +401,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "build" },
+    { name = "dbt-core" },
     { name = "dbt-postgres" },
     { name = "molot" },
     { name = "mypy" },
@@ -423,6 +424,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "build", specifier = ">=1.0.3" },
+    { name = "dbt-core", specifier = "~=1.10.1" },
     { name = "dbt-postgres", specifier = "~=1.9.0" },
     { name = "molot", specifier = "~=1.0.0" },
     { name = "mypy", specifier = ">=1.7.1" },

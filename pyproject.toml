@@ -51,6 +51,7 @@ dev-dependencies = [
     "mypy>=1.7.1",
     "pytest>=8.3.1",
     "molot~=1.0.0",
+    "dbt-core~=1.10.1",
     "dbt-postgres~=1.9.0",
     "python-dotenv~=1.0.1",
     "types-requests",
