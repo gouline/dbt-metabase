@@ -410,10 +410,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         if last_used_at:
             meta["last_used_at"] = last_used_at
         if meta:
-            exposure["config"] = {
-                **exposure.get("config", {}),
-                "meta": meta,
-            }
+            exposure.setdefault("config", {})["meta"] = meta
 
         if tags:
             exposure["tags"] = list(tags)
