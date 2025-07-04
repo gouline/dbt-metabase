@@ -82,28 +82,27 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         models = self.manifest.read_models()
 
-        def dbname(details: Mapping) -> str:
-            """Parse database name from Metabase database details."""
-            for key in (
-                "dbname",
-                "db",
-                "project-id",
-                "project-id-from-credentials",
-                "catalog",
-            ):
-                if key in details:
-                    return details[key]
-            return ""
+        def dbname(db: Mapping) -> str:
+            """Parse database name from Metabase database."""
+            if details := db.get("details"):
+                for key in (
+                    "dbname",
+                    "db",
+                    "project-id",
+                    "project-id-from-credentials",
+                    "catalog",
+                ):
+                    if key in details:
+                        return details[key]
+            return db.get("name", "")
 
         ctx = _Context(
             model_refs={m.alias_path.lower(): m.ref for m in models if m.ref},
-            database_names={
-                d["id"]: dbname(d["details"]) for d in self.metabase.get_databases()
-            },
+            database_names={d["id"]: dbname(d) for d in self.metabase.get_databases()},
             table_names={
                 t["id"]: ".".join(
                     [
-                        dbname(t["db"]["details"]),
+                        dbname(t["db"]),
                         t["schema"] or DEFAULT_SCHEMA,
                         t["name"],
                     ]
@@ -209,6 +208,17 @@ class ExposuresMixin(metaclass=ABCMeta):
                 counts[exposure.name] = count + 1
                 exposure.name = exposure.name + (f"_{count}" if count > 0 else "")
 
+                depends = []
+                for depend in exposure.depends:
+                    if resolved_depend := ctx.model_refs.get(depend.lower()):
+                        depends.append(resolved_depend)
+                    else:
+                        _logger.warning(
+                            "Exposure '%s' depends on unknown model: '%s'",
+                            exposure.name,
+                            depend,
+                        )
+
                 exposures.append(
                     {
                         "id": item["id"],
@@ -227,13 +237,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                             last_used_at=exposure.last_used_at,
                             average_query_time=exposure.average_query_time,
                             native_query=exposure.native_query,
-                            depends_on=sorted(
-                                [
-                                    ctx.model_refs[depend.lower()]
-                                    for depend in exposure.depends
-                                    if depend.lower() in ctx.model_refs
-                                ]
-                            ),
+                            depends_on=sorted(depends),
                             tags=tags,
                         ),
                     }
