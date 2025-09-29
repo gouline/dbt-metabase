@@ -28,7 +28,7 @@ check-lint:
 
 .PHONY: check-type
 check-type:
-	uv run mypy dbtmetabase
+	uv run pyright dbtmetabase
 
 .PHONY: check
 check: check-lint check-type

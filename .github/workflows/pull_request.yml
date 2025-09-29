@@ -32,7 +32,7 @@ jobs:
       - name: Lint check (ruff)
         run: make check-lint
 
-      - name: Type check (mypy)
+      - name: Type check (pyright)
         run: make check-type
 
       - name: Test
