@@ -19,7 +19,9 @@ build: clean ## Build the project
 
 .PHONY: clean
 clean: ## Clean build artifacts
-	rm -rf build dist
+	rm -rf build dist *.egg-info .pytest_cache .mypy_cache .ruff_cache
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -name "*.pyc" -delete
 
 .PHONY: fix
 fix: ## Fix code formatting and linting issues

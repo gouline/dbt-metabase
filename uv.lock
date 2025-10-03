@@ -497,16 +497,12 @@ dependencies = [
     { name = "rich" },
 ]
 
-[package.optional-dependencies]
-databricks = [
-    { name = "databricks-sql-connector" },
-    { name = "dbt-databricks" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "build" },
+    { name = "databricks-sql-connector" },
     { name = "dbt-core" },
+    { name = "dbt-databricks" },
     { name = "dbt-postgres" },
     { name = "molot" },
     { name = "mypy" },
@@ -522,18 +518,17 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
-    { name = "databricks-sql-connector", marker = "extra == 'databricks'", specifier = ">=3.5.0,<4.0.0" },
-    { name = "dbt-databricks", marker = "extra == 'databricks'", specifier = "~=1.9.0" },
     { name = "pyyaml", specifier = ">=5.4.1" },
     { name = "requests", specifier = ">=2.26.0" },
     { name = "rich", specifier = ">=12.0.0" },
 ]
-provides-extras = ["databricks"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "build", specifier = ">=1.0.3" },
+    { name = "databricks-sql-connector", specifier = ">=3.5.0,<4.0.0" },
     { name = "dbt-core", specifier = "~=1.10.1" },
+    { name = "dbt-databricks", specifier = "~=1.9.0" },
     { name = "dbt-postgres", specifier = "~=1.9.0" },
     { name = "molot", specifier = "~=1.0.0" },
     { name = "mypy", specifier = ">=1.7.1" },

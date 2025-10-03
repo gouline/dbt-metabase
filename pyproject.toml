@@ -41,6 +41,8 @@ dev = [
     "molot~=1.0.0",
     "dbt-core~=1.10.1",
     "dbt-postgres~=1.9.0",
+    "dbt-databricks~=1.9.0",
+    "databricks-sql-connector>=3.5.0,<4.0.0",
     "python-dotenv~=1.0.1",
     "types-requests",
     "types-PyYAML",
@@ -58,9 +60,6 @@ packages = ["dbtmetabase"]
 [tool.setuptools_scm]
 version_file = "dbtmetabase/_version.py"
 
-[project.optional-dependencies]
-databricks = ["dbt-databricks~=1.9.0", "databricks-sql-connector>=3.5.0,<4.0.0"]
-
 [tool.uv]
 dev-dependencies = [
     "build>=1.0.3",
@@ -71,6 +70,8 @@ dev-dependencies = [
     "molot~=1.0.0",
     "dbt-core~=1.10.1",
     "dbt-postgres~=1.9.0",
+    "dbt-databricks~=1.9.0",
+    "databricks-sql-connector>=3.5.0,<4.0.0",
     "python-dotenv~=1.0.1",
     "types-requests",
     "types-PyYAML",
