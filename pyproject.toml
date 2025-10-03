@@ -60,28 +60,6 @@ packages = ["dbtmetabase"]
 [tool.setuptools_scm]
 version_file = "dbtmetabase/_version.py"
 
-[tool.uv]
-dev-dependencies = [
-    "build>=1.0.3",
-    "twine>=4.0.2",
-    "ruff>=0.5.5",
-    "mypy>=1.7.1",
-    "pytest>=8.3.1",
-    "molot~=1.0.0",
-    "dbt-core~=1.10.1",
-    "dbt-postgres~=1.9.0",
-    "dbt-databricks~=1.9.0",
-    "databricks-sql-connector>=3.5.0,<4.0.0",
-    "python-dotenv~=1.0.1",
-    "types-requests",
-    "types-PyYAML",
-]
-
-[tool.mypy]
-check_untyped_defs = true
-ignore_missing_imports = true
-python_version = "3.8"
-
 [tool.ruff.lint]
 select = [
     "E",      # pycodestyle errors
