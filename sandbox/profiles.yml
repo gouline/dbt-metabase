@@ -9,3 +9,10 @@ default:
       password: "{{ env_var('POSTGRES_PASSWORD') }}"
       dbname: "{{ env_var('POSTGRES_DB') }}"
       schema: "{{ env_var('POSTGRES_SCHEMA') }}"
+    databricks:
+      type: databricks
+      catalog: "{{ env_var('DATABRICKS_CATALOG') }}"
+      schema: "{{ env_var('DATABRICKS_SCHEMA') }}"
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"

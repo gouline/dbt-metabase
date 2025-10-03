@@ -42,13 +42,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-  
+
   app:
     build:
       context: .
       additional_contexts:
         root: ..
-    command: init
+    command: ${TARGET_COMMAND:-init}
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
@@ -61,6 +61,13 @@ services:
       - MB_PASSWORD=${MB_PASSWORD:-}
       - MB_PORT=${MB_PORT:-}
       - MB_HOST=metabase
+      # Databricks environment variables (optional)
+      - DATABRICKS_HOST=${DATABRICKS_HOST:-}
+      - DATABRICKS_HTTP_PATH=${DATABRICKS_HTTP_PATH:-}
+      - DATABRICKS_TOKEN=${DATABRICKS_TOKEN:-}
+      - DATABRICKS_CATALOG=${DATABRICKS_CATALOG:-}
+      - DATABRICKS_SCHEMA=${DATABRICKS_SCHEMA:-}
+      - DATABRICKS_MB_DB_NAME=${DATABRICKS_MB_DB_NAME:-}
     networks:
       - common
     volumes:

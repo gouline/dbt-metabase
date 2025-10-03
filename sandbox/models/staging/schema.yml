@@ -2,8 +2,13 @@ version: 2
 
 sources:
   - name: inventory
+    database: "{% if target.name == 'databricks' %}{{ target.catalog }}{% endif %}"
+    schema: "{{ env_var('DATABRICKS_SCHEMA') if target.name == 'databricks' else 'inventory' }}"
     tables:
       - name: skus
+        columns:
+          - name: sku_id
+            description: Primary key for SKU table
 
 models:
   - name: stg_customers
@@ -26,7 +31,8 @@ models:
       - name: status
         data_tests:
           - accepted_values:
-              values: ["placed", "shipped", "completed", "return_pending", "returned"]
+              values:
+                ["placed", "shipped", "completed", "return_pending", "returned"]
       - name: order_date
       - name: customer_id
       - name: sku_id
