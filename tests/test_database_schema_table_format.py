@@ -10,10 +10,11 @@ class TestDatabaseSchemaTableFormat:
     """Test database.schema.table format support in dbt-metabase."""
 
     def test_get_metabase_tables_with_multicatalog(self):
-        """Test _get_metabase_tables handles Databricks multi-catalog format."""
+        """Test _get_metabase_tables handles multi-catalog format."""
 
-        # Create a concrete implementation of ModelsMixin for testing
         class TestModelsMixin(ModelsMixin):
+            """Test implementation of ModelsMixin."""
+
             @property
             def manifest(self):
                 return None
@@ -24,7 +25,6 @@ class TestDatabaseSchemaTableFormat:
 
         mixin = TestModelsMixin()
 
-        # Mock metabase client
         mock_metabase = Mock()
         mock_metabase.get_database_metadata.return_value = {
             "tables": [
@@ -32,14 +32,14 @@ class TestDatabaseSchemaTableFormat:
                     "id": 1,
                     "name": "my_model",
                     "schema": "bronze",
-                    "db": "my_catalog.bronze",  # Databricks multi-catalog format
+                    "db": "my_catalog.bronze",  # Multi-catalog format
                     "fields": [{"id": 1, "name": "id"}, {"id": 2, "name": "name"}],
                 },
                 {
                     "id": 2,
                     "name": "other_model",
                     "schema": "silver",
-                    "db": "my_catalog.silver",  # Databricks multi-catalog format
+                    "db": "my_catalog.silver",  # Multi-catalog format
                     "fields": [{"id": 3, "name": "id"}, {"id": 4, "name": "value"}],
                 },
                 {
@@ -144,12 +144,6 @@ class TestDatabaseSchemaTableFormat:
     def test_foreign_key_resolution_with_multicatalog(self):
         """Test foreign key resolution works with multi-catalog table references."""
 
-        # This would be tested in integration, but we can verify the logic
-        # The key change is in the foreign key resolution where we try:
-        # 1. Direct table name lookup
-        # 2. If not found and current table has catalog, try with catalog prefix
-
-        # Mock context with multi-catalog tables
         from dbtmetabase._models import _Context
 
         ctx = _Context()
@@ -160,11 +154,8 @@ class TestDatabaseSchemaTableFormat:
             },
         }
 
-        # Test field lookup with multi-catalog support
-        # Direct lookup should work
         field = ctx.get_field("MY_CATALOG.BRONZE.USERS", "ID")
         assert field["id"] == 1
 
-        # Cross-catalog reference should work
         field = ctx.get_field("MY_CATALOG.SILVER.ORDERS", "USER_ID")
         assert field["id"] == 2

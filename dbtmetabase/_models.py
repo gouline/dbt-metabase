@@ -353,14 +353,13 @@ class ModelsMixin(metaclass=ABCMeta):
             fk_target_field_label = f"{fk_target_table_name}.{fk_target_field_name}"
 
             if fk_target_table_name and fk_target_field_name:
-                # PostgreSQL-first: try standard schema.table format
+                # Try standard schema.table format
                 fk_target_field = ctx.get_field(
                     table_key=fk_target_table_name,
                     field_key=fk_target_field_name,
                 )
 
-                # Databricks fallback: try catalog.schema.table format
-                # Only when PostgreSQL fails AND multi-catalog context
+                # Fallback for multi-catalog connections: try catalog.schema.table format
                 if (
                     not fk_target_field
                     and "." in table_key
@@ -510,7 +509,7 @@ class ModelsMixin(metaclass=ABCMeta):
             # Check if table has database/catalog information
             database_name = None
 
-            # For Databricks multi-catalog: table["db"] contains "catalog.schema"
+            # For multi-catalog connections: table["db"] contains "catalog.schema"
             if table.get("db") and "." in str(table["db"]):
                 db_parts = str(table["db"]).split(".")
                 if len(db_parts) >= 2:
