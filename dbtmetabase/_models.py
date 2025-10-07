@@ -83,12 +83,12 @@ class ModelsMixin(metaclass=ABCMeta):
 
             synced = True
             for model in models:
-                # Try schema.table format first (most common)
+                # Try schema.table format first
                 schema_table_key = f"{model.schema.upper()}.{model.alias.upper()}"
                 table = tables.get(schema_table_key)
                 table_key = schema_table_key
 
-                # Fallback to database.schema.table format for multi-catalog databases
+                # Fallback for multi-catalog connections: try catalog.schema.table format
                 if not table and model.database:
                     database_schema_table_key = model.alias_path.upper()
                     table = tables.get(database_schema_table_key)
@@ -176,13 +176,12 @@ class ModelsMixin(metaclass=ABCMeta):
 
         success = True
 
-        # PostgreSQL-first approach: try schema.table format (standard)
+        # Try schema.table format first
         schema_table_key = f"{model.schema.upper()}.{model.alias.upper()}"
         api_table = ctx.tables.get(schema_table_key)
         table_key = schema_table_key
 
-        # Databricks fallback: try database.schema.table for multi-catalog
-        # Only activates when PostgreSQL format fails AND model has database
+        # Fallback for multi-catalog connections: try catalog.schema.table format
         if not api_table and model.database:
             database_schema_table_key = model.alias_path.upper()
             api_table = ctx.tables.get(database_schema_table_key)
