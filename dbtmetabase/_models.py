@@ -388,10 +388,7 @@ class ModelsMixin(metaclass=ABCMeta):
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         _logger.info(
-                            "Field '%s' will be updated as primary key "
-                            "for foreign key '%s'",
-                            fk_target_field_label,
-                            column_label,
+                            f"Field '{fk_target_field_label}' will be updated as primary key for foreign key '{column_label}'"
                         )
                         ctx.update(
                             entity=fk_target_field,
