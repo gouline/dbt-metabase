@@ -58,7 +58,7 @@ install: build
 sandbox-up:
 	( cd sandbox && docker compose up --build --attach app )
 
-.PHONY: sandbox-up
+.PHONY: sandbox-down
 sandbox-down:
 	( cd sandbox && docker compose down )
 
