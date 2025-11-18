@@ -9,8 +9,8 @@ from dbtmetabase.manifest import Column, Group, Model
 class TestDatabaseSchemaTableFormat:
     """Test database.schema.table format support in dbt-metabase."""
 
-    def test_get_metabase_tables_with_multicatalog(self):
-        """Test _get_metabase_tables handles multi-catalog format."""
+    def test_get_metabase_tables_with_multidatabase(self):
+        """Test _get_metabase_tables handles multi-database format."""
 
         class TestModelsMixin(ModelsMixin):
             """Test implementation of ModelsMixin."""
@@ -32,21 +32,21 @@ class TestDatabaseSchemaTableFormat:
                     "id": 1,
                     "name": "my_model",
                     "schema": "bronze",
-                    "db": "my_catalog.bronze",  # Multi-catalog format
+                    "db": "my_database.bronze",  # Multi-database format
                     "fields": [{"id": 1, "name": "id"}, {"id": 2, "name": "name"}],
                 },
                 {
                     "id": 2,
                     "name": "other_model",
                     "schema": "silver",
-                    "db": "my_catalog.silver",  # Multi-catalog format
+                    "db": "my_database.silver",  # Multi-database format
                     "fields": [{"id": 3, "name": "id"}, {"id": 4, "name": "value"}],
                 },
                 {
                     "id": 3,
                     "name": "legacy_model",
                     "schema": "public",
-                    "db": "legacy_db",  # Non multi-catalog format (no dot)
+                    "db": "legacy_db",  # Non multi-database format
                     "fields": [{"id": 5, "name": "id"}],
                 },
             ]
@@ -57,26 +57,26 @@ class TestDatabaseSchemaTableFormat:
         # Test the method
         tables = mixin._get_metabase_tables("test_db_id")
 
-        # Verify multi-catalog tables are keyed correctly
-        assert "MY_CATALOG.BRONZE.MY_MODEL" in tables
-        assert "MY_CATALOG.SILVER.OTHER_MODEL" in tables
+        # Verify multi-database tables are keyed correctly
+        assert "MY_DATABASE.BRONZE.MY_MODEL" in tables
+        assert "MY_DATABASE.SILVER.OTHER_MODEL" in tables
 
         # Verify regular database format works (database prefix)
         assert "LEGACY_DB.PUBLIC.LEGACY_MODEL" in tables
 
         # Verify table structure is preserved
-        bronze_table = tables["MY_CATALOG.BRONZE.MY_MODEL"]
+        bronze_table = tables["MY_DATABASE.BRONZE.MY_MODEL"]
         assert bronze_table["name"] == "my_model"
         assert bronze_table["schema"] == "BRONZE"
         assert "ID" in bronze_table["fields"]
         assert "NAME" in bronze_table["fields"]
 
-    def test_model_matching_with_multicatalog(self):
-        """Test that dbt models match correctly with multi-catalog table keys."""
+    def test_model_matching_with_multidatabase(self):
+        """Test that dbt models match correctly with multi-database table keys."""
 
         # Mock tables as they would be returned by _get_metabase_tables
         mock_tables = {
-            "MY_CATALOG.BRONZE.MY_MODEL": {
+            "MY_DATABASE.BRONZE.MY_MODEL": {
                 "id": 1,
                 "name": "my_model",
                 "schema": "BRONZE",
@@ -93,7 +93,7 @@ class TestDatabaseSchemaTableFormat:
         # Test dbt models
         models = [
             Model(
-                database="my_catalog",
+                database="my_database",
                 schema="bronze",
                 group=Group.nodes,
                 name="my_model",
@@ -116,7 +116,7 @@ class TestDatabaseSchemaTableFormat:
             model_name = model.alias.upper()
             database_name = model.database.upper() if model.database else ""
 
-            # Try multi-catalog format first
+            # Try multi-database format first
             table_key = (
                 f"{database_name}.{schema_name}.{model_name}"
                 if database_name
@@ -124,7 +124,7 @@ class TestDatabaseSchemaTableFormat:
             )
             table = mock_tables.get(table_key)
 
-            # Fallback to schema.table format if multi-catalog format not found
+            # Fallback to schema.table format if multi-database format not found
             if not table and database_name:
                 table_key = f"{schema_name}.{model_name}"
                 table = mock_tables.get(table_key)
@@ -133,29 +133,29 @@ class TestDatabaseSchemaTableFormat:
             assert table is not None, f"Model {model.name} should match a table"
 
             if model.database:
-                # Multi-catalog model should match with catalog prefix
+                # Multi-database model should match with database prefix
                 expected_key = f"{database_name}.{schema_name}.{model_name}"
                 assert table_key == expected_key
             else:
-                # Legacy model should match without catalog prefix
+                # Legacy model should match without database prefix
                 expected_key = f"{schema_name}.{model_name}"
                 assert table_key == expected_key
 
-    def test_foreign_key_resolution_with_multicatalog(self):
-        """Test foreign key resolution works with multi-catalog table references."""
+    def test_foreign_key_resolution_with_multidatabase(self):
+        """Test foreign key resolution works with multi-database table references."""
 
         from dbtmetabase._models import _Context
 
         ctx = _Context()
         ctx.tables = {
-            "MY_CATALOG.BRONZE.USERS": {"fields": {"ID": {"id": 1, "name": "id"}}},
-            "MY_CATALOG.SILVER.ORDERS": {
+            "MY_DATABASE.BRONZE.USERS": {"fields": {"ID": {"id": 1, "name": "id"}}},
+            "MY_DATABASE.SILVER.ORDERS": {
                 "fields": {"USER_ID": {"id": 2, "name": "user_id"}}
             },
         }
 
-        field = ctx.get_field("MY_CATALOG.BRONZE.USERS", "ID")
+        field = ctx.get_field("MY_DATABASE.BRONZE.USERS", "ID")
         assert field["id"] == 1
 
-        field = ctx.get_field("MY_CATALOG.SILVER.ORDERS", "USER_ID")
+        field = ctx.get_field("MY_DATABASE.SILVER.ORDERS", "USER_ID")
         assert field["id"] == 2

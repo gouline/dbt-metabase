@@ -83,12 +83,11 @@ class ModelsMixin(metaclass=ABCMeta):
 
             synced = True
             for model in models:
-                # Try schema.table format first
                 schema_table_key = f"{model.schema.upper()}.{model.alias.upper()}"
                 table = tables.get(schema_table_key)
                 table_key = schema_table_key
 
-                # Fallback for multi-catalog connections: try catalog.schema.table format
+                # Fallback for multi-database connections: try database.schema.table format
                 if not table and model.database:
                     database_schema_table_key = model.alias_path.upper()
                     table = tables.get(database_schema_table_key)
@@ -181,13 +180,13 @@ class ModelsMixin(metaclass=ABCMeta):
         api_table = ctx.tables.get(schema_table_key)
         table_key = schema_table_key
 
-        # Fallback for multi-catalog connections: try catalog.schema.table format
+        # Fallback for multi-database connections: try database.schema.table format
         if not api_table and model.database:
             database_schema_table_key = model.alias_path.upper()
             api_table = ctx.tables.get(database_schema_table_key)
             if api_table:
                 _logger.debug(
-                    "Using multi-catalog format for table: %s",
+                    "Using multi-database format for table: %s",
                     database_schema_table_key,
                 )
                 table_key = database_schema_table_key
@@ -358,18 +357,16 @@ class ModelsMixin(metaclass=ABCMeta):
                     field_key=fk_target_field_name,
                 )
 
-                # Fallback for multi-catalog connections: try catalog.schema.table format
+                # Fallback for multi-database connections: try database.schema.table format
                 if (
                     not fk_target_field
                     and "." in table_key
                     and fk_target_table_name.count(".") < 2
                 ):
                     catalog_part = table_key.split(".")[0]
-                    fk_target_table_name = (
-                        f"{catalog_part}.{fk_target_table_name}"
-                    )
+                    fk_target_table_name = f"{catalog_part}.{fk_target_table_name}"
                     _logger.debug(
-                        "Trying multi-catalog FK: %s -> %s",
+                        "Trying multi-database FK: %s -> %s",
                         fk_target_table_name,
                         fk_target_table_with_catalog,
                     )
@@ -505,7 +502,7 @@ class ModelsMixin(metaclass=ABCMeta):
             # Check if table has database/catalog information
             database_name = None
 
-            # For multi-catalog connections: table["db"] contains "catalog.schema"
+            # For multi-database connections: table["db"] contains "database.schema"
             if table.get("db") and "." in str(table["db"]):
                 db_parts = str(table["db"]).split(".")
                 if len(db_parts) >= 2:
