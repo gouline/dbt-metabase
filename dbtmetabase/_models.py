@@ -365,7 +365,7 @@ class ModelsMixin(metaclass=ABCMeta):
                     and fk_target_table_name.count(".") < 2
                 ):
                     catalog_part = table_key.split(".")[0]
-                    fk_target_table_with_catalog = (
+                    fk_target_table_name = (
                         f"{catalog_part}.{fk_target_table_name}"
                     )
                     _logger.debug(
@@ -514,13 +514,10 @@ class ModelsMixin(metaclass=ABCMeta):
             elif table.get("db") and "." not in str(table["db"]):
                 database_name = str(table["db"]).upper()
 
-            # Create table key with database prefix when available
             if database_name:
-                table_key = f"{database_name}.{schema_name}.{table_name}"
-            else:
-                table_key = f"{schema_name}.{table_name}"
+                schema_name = f"{database_name}.{schema_name}"
 
-            tables[table_key] = new_table
+            tables[f"{schema_name}.{table_name}"] = new_table
 
         return tables
 
