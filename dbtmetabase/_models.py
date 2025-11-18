@@ -89,7 +89,6 @@ class ModelsMixin(metaclass=ABCMeta):
                 table_key = schema_table_key
 
                 # Fallback for multi-database connections: try database.schema.table format
-                # Fallback for multi-database connections: try database.schema.table format
                 if not table and model.database:
                     database_schema_table_key = model.alias_path.upper()
                     if table := tables.get(database_schema_table_key):
@@ -183,7 +182,6 @@ class ModelsMixin(metaclass=ABCMeta):
         api_table = ctx.tables.get(schema_table_key)
         table_key = schema_table_key
 
-        # Fallback for multi-database connections: try database.schema.table format
         # Fallback for multi-database connections: try database.schema.table format
         if not api_table and model.database:
             database_schema_table_key = model.alias_path.upper()
@@ -362,15 +360,12 @@ class ModelsMixin(metaclass=ABCMeta):
                 )
 
                 # Fallback for multi-database connections: try database.schema.table format
-                if (
-                    not fk_target_field
-                    and "." in table_key
-                    and fk_target_table_name.count(".") < 2
-                ):
+                if not fk_target_field and fk_target_table_name.count(".") < 2:
                     database_part = table_key.split(".")[0]
-                    fk_target_table_name = f"{database_part}.{fk_target_table_name}"
+                    fk_target_table_with_database = (
+                        f"{database_part}.{fk_target_table_name}"
+                    )
                     _logger.debug(
-                        "Trying multi-database FK: %s -> %s",
                         "Trying multi-database FK: %s -> %s",
                         fk_target_table_name,
                         fk_target_table_with_database,
@@ -380,17 +375,14 @@ class ModelsMixin(metaclass=ABCMeta):
                         field_key=fk_target_field_name,
                     )
 
-                if not fk_target_field:
-                    _logger.warning(
-                        "FK resolution failed for %s.%s",
-                        fk_target_table_name,
-                        fk_target_field_name,
-                    )
                 if fk_target_field:
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
                         _logger.info(
-                            f"Field '{fk_target_field_label}' will be updated as primary key for foreign key '{column_label}'"
+                            "Field '%s' will be updated as primary key "
+                            "for foreign key '%s'",
+                            fk_target_field_label,
+                            column_label,
                         )
                         ctx.update(
                             entity=fk_target_field,
@@ -398,6 +390,11 @@ class ModelsMixin(metaclass=ABCMeta):
                             label=fk_target_field_label,
                         )
                 else:
+                    _logger.warning(
+                        "FK resolution failed for %s.%s",
+                        fk_target_table_name,
+                        fk_target_field_name,
+                    )
                     _logger.error(
                         "Field '%s' referenced as foreign key '%s' not found",
                         fk_target_field_label,
@@ -507,15 +504,15 @@ class ModelsMixin(metaclass=ABCMeta):
             # Check if table has database information
             database_name = None
 
-            # For multi-database connections: table["db"] contains "database.schema"
-            # For multi-database connections: table["db"] contains "database.schema"
-            if table.get("db") and "." in str(table["db"]):
+            # Extract database name from table["db"]
+            if table.get("db"):
                 db_parts = str(table["db"]).split(".")
                 if len(db_parts) >= 2:
+                    # Multi-database connections: "database.schema" format
                     database_name = db_parts[0].upper()
-            # For other databases: use table["db"] directly if it doesn't contain schema
-            elif table.get("db") and "." not in str(table["db"]):
-                database_name = str(table["db"]).upper()
+                else:
+                    # Single database: just the database name
+                    database_name = str(table["db"]).upper()
 
             if database_name:
                 schema_name = f"{database_name}.{schema_name}"
