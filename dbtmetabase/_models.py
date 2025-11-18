@@ -83,10 +83,12 @@ class ModelsMixin(metaclass=ABCMeta):
 
             synced = True
             for model in models:
+                schema_name = model.schema.upper()
                 schema_table_key = f"{model.schema.upper()}.{model.alias.upper()}"
                 table = tables.get(schema_table_key)
                 table_key = schema_table_key
 
+                # Fallback for multi-database connections: try database.schema.table format
                 # Fallback for multi-database connections: try database.schema.table format
                 if not table and model.database:
                     database_schema_table_key = model.alias_path.upper()
@@ -95,7 +97,9 @@ class ModelsMixin(metaclass=ABCMeta):
                         table_key = database_schema_table_key
 
                 if not table:
-                    _logger.warning("Table '%s' not found", table_key)
+                    _logger.warning(
+                        "Table '%s' not in schema '%s'", table_key, schema_name
+                    )
                     synced = False
                     continue
 
@@ -180,6 +184,7 @@ class ModelsMixin(metaclass=ABCMeta):
         api_table = ctx.tables.get(schema_table_key)
         table_key = schema_table_key
 
+        # Fallback for multi-database connections: try database.schema.table format
         # Fallback for multi-database connections: try database.schema.table format
         if not api_table and model.database:
             database_schema_table_key = model.alias_path.upper()
@@ -363,15 +368,16 @@ class ModelsMixin(metaclass=ABCMeta):
                     and "." in table_key
                     and fk_target_table_name.count(".") < 2
                 ):
-                    catalog_part = table_key.split(".")[0]
-                    fk_target_table_name = f"{catalog_part}.{fk_target_table_name}"
+                    database_part = table_key.split(".")[0]
+                    fk_target_table_name = f"{database_part}.{fk_target_table_name}"
                     _logger.debug(
                         "Trying multi-database FK: %s -> %s",
+                        "Trying multi-database FK: %s -> %s",
                         fk_target_table_name,
-                        fk_target_table_with_catalog,
+                        fk_target_table_with_database,
                     )
                     fk_target_field = ctx.get_field(
-                        table_key=fk_target_table_with_catalog,
+                        table_key=fk_target_table_with_database,
                         field_key=fk_target_field_name,
                     )
 
@@ -499,9 +505,10 @@ class ModelsMixin(metaclass=ABCMeta):
             table_name = table["name"].upper()
 
             # Handle database.schema.table format when database info is available
-            # Check if table has database/catalog information
+            # Check if table has database information
             database_name = None
 
+            # For multi-database connections: table["db"] contains "database.schema"
             # For multi-database connections: table["db"] contains "database.schema"
             if table.get("db") and "." in str(table["db"]):
                 db_parts = str(table["db"]).split(".")
