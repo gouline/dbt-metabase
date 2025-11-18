@@ -92,8 +92,7 @@ class ModelsMixin(metaclass=ABCMeta):
                 # Fallback for multi-database connections: try database.schema.table format
                 if not table and model.database:
                     database_schema_table_key = model.alias_path.upper()
-                    table = tables.get(database_schema_table_key)
-                    if table:
+                    if table := tables.get(database_schema_table_key):
                         table_key = database_schema_table_key
 
                 if not table:
