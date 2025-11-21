@@ -69,8 +69,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('groups')
-              field: id
+              arguments:
+                to: ref('groups')
+                field: id
 
   - name: stg_groups
     description: User groups.
