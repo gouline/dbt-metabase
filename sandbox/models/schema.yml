@@ -31,7 +31,7 @@ models:
         config:
           meta:
             metabase.display_name: order_count
-            metabase.semantic_type: null
+            metabase.semantic_type: type/Quantity
 
       - name: customer_lifetime_value
         description: Total value (AUD) of a customer's orders
@@ -66,7 +66,8 @@ models:
       - name: status
         data_tests:
           - accepted_values:
-              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+              arguments:
+                values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
 
       - name: amount
         description: Total amount (AUD) of the order
@@ -107,7 +108,8 @@ models:
       - name: payment_method
         data_tests:
           - accepted_values:
-              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+              arguments:
+                values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
       
       - name: order_id
         description: Foreign key to the orders table
