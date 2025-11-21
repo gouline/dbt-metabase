@@ -182,9 +182,18 @@ class ModelsMixin(metaclass=ABCMeta):
         api_table = ctx.tables.get(schema_table_key)
         table_key = schema_table_key
 
+        _logger.debug(
+            "Looking for model: database=%s, schema=%s, alias=%s",
+            model.database,
+            model.schema,
+            model.alias,
+        )
+        _logger.debug("Trying schema.table key: %s", schema_table_key)
+
         # Fallback for multi-database connections: try database.schema.table format
         if not api_table and model.database:
             database_schema_table_key = model.alias_path.upper()
+            _logger.debug("Trying multi-database key: %s", database_schema_table_key)
             api_table = ctx.tables.get(database_schema_table_key)
             if api_table:
                 _logger.debug(
@@ -192,6 +201,10 @@ class ModelsMixin(metaclass=ABCMeta):
                     database_schema_table_key,
                 )
                 table_key = database_schema_table_key
+            else:
+                _logger.debug(
+                    "Multi-database key not found: %s", database_schema_table_key
+                )
 
         if not api_table:
             _logger.error("Table '%s' does not exist", table_key)
