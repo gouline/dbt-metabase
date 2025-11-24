@@ -84,7 +84,8 @@ class ModelsMixin(metaclass=ABCMeta):
             synced = True
             for model in models:
                 schema_name = model.schema.upper()
-                schema_table_key = f"{model.schema.upper()}.{model.alias.upper()}"
+                model_name = model.alias.upper()
+                schema_table_key = f"{schema_name}.{model_name}"
                 table = tables.get(schema_table_key)
                 table_key = schema_table_key
 
@@ -177,8 +178,10 @@ class ModelsMixin(metaclass=ABCMeta):
 
         success = True
 
-        # Try schema.table format first
-        schema_table_key = f"{model.schema.upper()}.{model.alias.upper()}"
+        schema_name = model.schema.upper()
+        model_name = model.alias.upper()
+        schema_table_key = f"{schema_name}.{model_name}"
+
         api_table = ctx.tables.get(schema_table_key)
         table_key = schema_table_key
 
