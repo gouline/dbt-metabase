@@ -196,10 +196,6 @@ class ModelsMixin(metaclass=ABCMeta):
             _logger.debug("Trying multi-database key: %s", database_schema_table_key)
             api_table = ctx.tables.get(database_schema_table_key)
             if api_table:
-                _logger.debug(
-                    "Using multi-database format for table: %s",
-                    database_schema_table_key,
-                )
                 table_key = database_schema_table_key
             else:
                 _logger.debug(
@@ -366,7 +362,6 @@ class ModelsMixin(metaclass=ABCMeta):
             fk_target_field_label = f"{fk_target_table_name}.{fk_target_field_name}"
 
             if fk_target_table_name and fk_target_field_name:
-                # Try standard schema.table format
                 fk_target_field = ctx.get_field(
                     table_key=fk_target_table_name,
                     field_key=fk_target_field_name,
@@ -403,11 +398,6 @@ class ModelsMixin(metaclass=ABCMeta):
                             label=fk_target_field_label,
                         )
                 else:
-                    _logger.warning(
-                        "FK resolution failed for %s.%s",
-                        fk_target_table_name,
-                        fk_target_field_name,
-                    )
                     _logger.error(
                         "Field '%s' referenced as foreign key '%s' not found",
                         fk_target_field_label,
