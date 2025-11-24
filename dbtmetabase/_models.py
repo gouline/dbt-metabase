@@ -511,14 +511,14 @@ class ModelsMixin(metaclass=ABCMeta):
             database_name = None
 
             # Extract database name from table["db"]
-            if table.get("db"):
-                db_parts = str(table["db"]).split(".")
+            if table_db := table.get("db"):
+                db_parts = str(table_db).split(".")
                 if len(db_parts) >= 2:
                     # Multi-database connections: "database.schema" format
                     database_name = db_parts[0].upper()
                 else:
                     # Single database: just the database name
-                    database_name = str(table["db"]).upper()
+                    database_name = str(table_db).upper()
 
             if database_name:
                 schema_name = f"{database_name}.{schema_name}"
