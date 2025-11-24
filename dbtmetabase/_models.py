@@ -85,9 +85,16 @@ class ModelsMixin(metaclass=ABCMeta):
             for model in models:
                 schema_name = model.schema.upper()
                 model_name = model.alias.upper()
-                table_key = f"{schema_name}.{model_name}"
+                schema_table_key = f"{schema_name}.{model_name}"
+                table = tables.get(schema_table_key)
+                table_key = schema_table_key
 
-                table = tables.get(table_key)
+                # Fallback for multi-database connections: try database.schema.table format
+                if not table and model.database:
+                    database_schema_table_key = model.alias_path.upper()
+                    if table := tables.get(database_schema_table_key):
+                        table_key = database_schema_table_key
+
                 if not table:
                     _logger.warning(
                         "Table '%s' not in schema '%s'", table_key, schema_name
@@ -173,9 +180,31 @@ class ModelsMixin(metaclass=ABCMeta):
 
         schema_name = model.schema.upper()
         model_name = model.alias.upper()
-        table_key = f"{schema_name}.{model_name}"
+        schema_table_key = f"{schema_name}.{model_name}"
 
-        api_table = ctx.tables.get(table_key)
+        api_table = ctx.tables.get(schema_table_key)
+        table_key = schema_table_key
+
+        _logger.debug(
+            "Looking for model: database=%s, schema=%s, alias=%s",
+            model.database,
+            model.schema,
+            model.alias,
+        )
+        _logger.debug("Trying schema.table key: %s", schema_table_key)
+
+        # Fallback for multi-database connections: try database.schema.table format
+        if not api_table and model.database:
+            database_schema_table_key = model.alias_path.upper()
+            _logger.debug("Trying multi-database key: %s", database_schema_table_key)
+            api_table = ctx.tables.get(database_schema_table_key)
+            if api_table:
+                table_key = database_schema_table_key
+            else:
+                _logger.debug(
+                    "Multi-database key not found: %s", database_schema_table_key
+                )
+
         if not api_table:
             _logger.error("Table '%s' does not exist", table_key)
             return False
@@ -228,8 +257,7 @@ class ModelsMixin(metaclass=ABCMeta):
         for column in model.columns:
             success &= self.__export_column(
                 ctx,
-                schema_name=schema_name,
-                model_name=model_name,
+                table_key=table_key,
                 column=column,
             )
 
@@ -304,17 +332,15 @@ class ModelsMixin(metaclass=ABCMeta):
     def __export_column(
         self,
         ctx: _Context,
-        schema_name: str,
-        model_name: str,
+        table_key: str,
         column: Column,
     ) -> bool:
         """Exports one dbt column to Metabase database schema."""
 
         success = True
 
-        table_key = f"{schema_name}.{model_name}"
         column_name = column.name.upper()
-        column_label = f"{schema_name}.{model_name}.{column_name}"
+        column_label = f"{table_key}.{column_name}"
 
         api_field = ctx.get_field(table_key, column_name)
         if not api_field:
@@ -343,6 +369,23 @@ class ModelsMixin(metaclass=ABCMeta):
                     table_key=fk_target_table_name,
                     field_key=fk_target_field_name,
                 )
+
+                # Fallback for multi-database connections: try database.schema.table format
+                if not fk_target_field and fk_target_table_name.count(".") < 2:
+                    database_part = table_key.split(".")[0]
+                    fk_target_table_with_database = (
+                        f"{database_part}.{fk_target_table_name}"
+                    )
+                    _logger.debug(
+                        "Trying multi-database FK: %s -> %s",
+                        fk_target_table_name,
+                        fk_target_table_with_database,
+                    )
+                    fk_target_field = ctx.get_field(
+                        table_key=fk_target_table_with_database,
+                        field_key=fk_target_field_name,
+                    )
+
                 if fk_target_field:
                     fk_target_field_id = fk_target_field.get("id")
                     if fk_target_field.get(semantic_type_key) != "type/PK":
@@ -461,6 +504,24 @@ class ModelsMixin(metaclass=ABCMeta):
 
             schema_name = table["schema"].upper()
             table_name = table["name"].upper()
+
+            # Handle database.schema.table format when database info is available
+            # Check if table has database information
+            database_name = None
+
+            # Extract database name from table["db"]
+            if table_db := table.get("db"):
+                db_parts = str(table_db).split(".")
+                if len(db_parts) >= 2:
+                    # Multi-database connections: "database.schema" format
+                    database_name = db_parts[0].upper()
+                else:
+                    # Single database: just the database name
+                    database_name = str(table_db).upper()
+
+            if database_name:
+                schema_name = f"{database_name}.{schema_name}"
+
             tables[f"{schema_name}.{table_name}"] = new_table
 
         return tables
