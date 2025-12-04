@@ -251,6 +251,14 @@ class ExposuresMixin(metaclass=ABCMeta):
         """Extracts exposures from Metabase questions."""
 
         dataset_query = card.get("dataset_query", {})
+
+        # Check for newer MBQL5 format
+        lib_type = dataset_query.get("lib/type")
+        if lib_type == "mbql/query":
+            self.__exposure_mbql5_query(ctx, exposure, card)
+            return
+
+        # Fall back to legacy format detection
         card_type = dataset_query.get("type")
         if card_type == "query":
             self.__exposure_query(ctx, exposure, card)
@@ -295,6 +303,75 @@ class ExposuresMixin(metaclass=ABCMeta):
                 exposure.depends.add(joined_table)
                 _logger.info("Extracted model '%s' from join", joined_table)
 
+    def __exposure_mbql5_query(self, ctx: _Context, exposure: _Exposure, card: Mapping):
+        """Extracts exposures from Metabase MBQL 5 queries."""
+
+        dataset_query = card.get("dataset_query", {})
+        stages = dataset_query.get("stages", [])
+
+        for stage in stages:
+            self.__exposure_mbql5_stage(ctx, exposure, card, stage)
+
+    def __exposure_mbql5_stage(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    ):
+        """Dispatches MBQL 5 stage processing based on stage type.
+
+        MBQL 5 queries use a stages-based format with lib/type props for each stage:
+        - "mbql/query" for the top-level query
+        - "mbql.stage/mbql" for GUI/structured query stages
+        - "mbql.stage/native" for native SQL query stages
+        """
+
+        stage_type = stage.get("lib/type")
+
+        if stage_type == "mbql.stage/mbql":
+            self.__exposure_mbql5_stage_mbql(ctx, exposure, card, stage)
+        elif stage_type == "mbql.stage/native":
+            self.__exposure_mbql5_stage_native(ctx, exposure, card, stage)
+        else:
+            _logger.debug("Unknown MBQL 5 stage type '%s'", stage_type)
+
+    def __exposure_mbql5_stage_mbql(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    ):
+        """Extracts exposures from an MBQL 5 GUI stage."""
+
+        # Extract source-table or source-card
+        source_table: Optional[int] = stage.get("source-table")
+        source_card: Optional[int] = stage.get("source-card")
+
+        if source_card is not None:
+            # Stage based on another card/question
+            if found_card := self.metabase.find_card(uid=str(source_card)):
+                self._exposure_card(ctx, exposure, found_card)
+
+        elif source_table is not None and source_table in ctx.table_names:
+            # Stage based on a table
+            table_name = ctx.table_names[source_table].lower()
+            exposure.depends.add(table_name)
+            _logger.info("Extracted model '%s' from MBQL 5 stage", table_name)
+
+        # Process joins within the stage
+        # MBQL 5 joins have their own nested stages array with the same structure as top-level stages
+        for join in stage.get("joins", []):
+            for join_stage in join.get("stages", []):
+                self.__exposure_mbql5_stage(ctx, exposure, card, join_stage)
+
+    def __exposure_mbql5_stage_native(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    ):
+        """Extracts exposures from an MBQL 5 native stage."""
+
+        dataset_query = card.get("dataset_query", {})
+        database = dataset_query.get("database")
+        native_query = stage.get("native")
+
+        if not native_query or not database:
+            return
+
+        self.__exposure_native_query(ctx, exposure, database, native_query)
+
     def __exposure_native(self, ctx: _Context, exposure: _Exposure, card: Mapping):
         """Extracts exposures from Metabase native queries."""
 
@@ -302,6 +379,14 @@ class ExposuresMixin(metaclass=ABCMeta):
         database = dataset_query["database"]
         native_query = dataset_query["native"]["query"]
 
+        if not native_query or not database:
+            return
+
+        self.__exposure_native_query(ctx, exposure, database, native_query)
+
+    def __exposure_native_query(
+        self, ctx: _Context, exposure: _Exposure, database: int, native_query: str
+    ):
         # Parse common table expressions for exclusion
         ctes: MutableSequence[str] = []
         for matched_cte in re.findall(_CTE_PARSER, native_query):

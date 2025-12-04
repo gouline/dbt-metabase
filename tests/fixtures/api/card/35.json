@@ -1,0 +1,128 @@
+{
+  "cache_invalidated_at": null,
+  "description": "MBQL 5 query with joins",
+  "archived": false,
+  "view_count": 10,
+  "collection_position": null,
+  "table_id": 10,
+  "can_run_adhoc_query": true,
+  "result_metadata": [],
+  "creator": {
+    "email": "dbtmetabase@example.com",
+    "first_name": "dbtmetabase",
+    "last_login": "2024-12-20T12:30:47.814008Z",
+    "is_qbnewb": false,
+    "is_superuser": true,
+    "id": 1,
+    "last_name": null,
+    "date_joined": "2024-06-19T11:49:37.507897Z",
+    "common_name": "dbtmetabase"
+  },
+  "initially_published_at": null,
+  "can_write": true,
+  "database_id": 2,
+  "enable_embedding": false,
+  "collection_id": null,
+  "query_type": "query",
+  "name": "Orders + Customers (MBQL 5)",
+  "last_query_start": "2024-12-20T12:30:05.862314Z",
+  "dashboard_count": 0,
+  "last_used_at": "2024-12-20T12:30:05.932096Z",
+  "type": "question",
+  "average_query_time": 100.0,
+  "creator_id": 1,
+  "moderation_reviews": [],
+  "updated_at": "2024-12-20T12:30:11.735631Z",
+  "made_public_by_id": null,
+  "embedding_params": null,
+  "cache_ttl": null,
+  "dataset_query": {
+    "lib/type": "mbql/query",
+    "stages": [
+      {
+        "lib/type": "mbql.stage/mbql",
+        "source-table": 10,
+        "fields": [
+          [
+            "field",
+            {
+              "base-type": "type/Integer",
+              "lib/uuid": "a1b2c3d4-0000-0000-0000-000000000001"
+            },
+            84
+          ],
+          [
+            "field",
+            {
+              "base-type": "type/Integer",
+              "lib/uuid": "a1b2c3d4-0000-0000-0000-000000000002"
+            },
+            79
+          ]
+        ],
+        "joins": [
+          {
+            "alias": "Customers",
+            "fields": "all",
+            "conditions": [
+              [
+                "=",
+                { "lib/uuid": "a1b2c3d4-0000-0000-0000-000000000003" },
+                [
+                  "field",
+                  {
+                    "base-type": "type/Integer",
+                    "lib/uuid": "a1b2c3d4-0000-0000-0000-000000000004"
+                  },
+                  79
+                ],
+                [
+                  "field",
+                  {
+                    "base-type": "type/Integer",
+                    "join-alias": "Customers",
+                    "lib/uuid": "a1b2c3d4-0000-0000-0000-000000000005"
+                  },
+                  94
+                ]
+              ]
+            ],
+            "lib/type": "mbql/join",
+            "stages": [{ "lib/type": "mbql.stage/mbql", "source-table": 12 }],
+            "lib/options": {
+              "lib/uuid": "a1b2c3d4-0000-0000-0000-000000000006"
+            }
+          }
+        ]
+      }
+    ],
+    "database": 2,
+    "lib.convert/converted?": true
+  },
+  "id": 35,
+  "parameter_mappings": [],
+  "display": "table",
+  "entity_id": "Mbql5Join1234567890abc",
+  "collection_preview": true,
+  "last-edit-info": {
+    "id": 1,
+    "email": "dbtmetabase@example.com",
+    "first_name": "dbtmetabase",
+    "last_name": null,
+    "timestamp": "2024-12-20T12:30:11.782155Z"
+  },
+  "visualization_settings": {},
+  "collection": {
+    "metabase.models.collection.root/is-root?": true,
+    "authority_level": null,
+    "name": "Our analytics",
+    "is_personal": false,
+    "id": "root",
+    "can_write": true
+  },
+  "metabase_version": "v0.50.5 (48f6978)",
+  "parameters": [],
+  "created_at": "2024-12-20T12:30:05.862314Z",
+  "parameter_usage_count": 0,
+  "public_uuid": null
+}
