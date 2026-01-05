@@ -20,6 +20,7 @@ SANDBOX_ENV = dotenv_values(Path().parent / "sandbox" / ".env")
 class MockMetabase(Metabase):
     def __init__(self, url: str, record: bool = False):
         self.record = record
+        self.api_calls: list[Dict[str, Any]] = []
 
         api_key = "dummy"
         username = None
@@ -50,6 +51,8 @@ class MockMetabase(Metabase):
         params: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> Union[Mapping, Sequence]:
+        self.api_calls.append({"method": method, "path": path, "kwargs": kwargs})
+
         result = {}
         path_toks = f"{path.lstrip('/')}.json".split("/")
         json_path = Path.joinpath(FIXTURES_PATH, *path_toks)

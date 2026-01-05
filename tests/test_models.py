@@ -86,3 +86,30 @@ def test_build_lookups(core: MockDbtMetabase):
 
     for table, columns in expected.items():
         assert set(actual_tables[table]["fields"].keys()) == columns, f"table: {table}"
+
+
+def test_column_decimals_zero(core: MockDbtMetabase):
+    """Test that decimals=0 is sent to Metabase API."""
+    core._manifest.read_models()
+    column = core._manifest.find_column("customers", "customer_id")
+    assert column is not None
+
+    column.decimals = 0
+    column.number_style = "decimal"
+
+    core.export_models(
+        metabase_database="dbtmetabase",
+        skip_sources=True,
+        sync_timeout=1,
+        order_fields=False,
+    )
+
+    found = False
+    for call in core._metabase.api_calls:
+        if call["method"] == "put" and "json" in call["kwargs"]:
+            data = call["kwargs"]["json"]
+            if data.get("settings", {}).get("decimals") == 0:
+                found = True
+                break
+
+    assert found, "decimals=0 should be in API call"
