@@ -1,7 +1,8 @@
 import functools
 import logging
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import Any, cast
 
 import click
 import yaml
@@ -22,8 +23,8 @@ def _click_list_option_kwargs() -> Mapping[str, Any]:
     def callback(
         ctx: click.Context,
         param: click.Option,
-        value: Union[str, List[str]],
-    ) -> Optional[List[str]]:
+        value: str | list[str],
+    ) -> list[str] | None:
         if value is None:
             return None
 
@@ -173,11 +174,11 @@ def _add_setup(func: Callable) -> Callable:
         metabase_api_key: str,
         metabase_username: str,
         metabase_password: str,
-        metabase_session_id: Optional[str],
+        metabase_session_id: str | None,
         skip_verify: bool,
-        cert: Optional[str],
+        cert: str | None,
         http_timeout: int,
-        http_headers: Sequence[Tuple[str, str]],
+        http_headers: Sequence[tuple[str, str]],
         verbose: bool,
         **kwargs,
     ):
@@ -304,16 +305,16 @@ def _add_setup(func: Callable) -> Callable:
 )
 def models(
     metabase_database: str,
-    include_databases: Optional[Sequence[str]],
-    exclude_databases: Optional[Sequence[str]],
-    include_schemas: Optional[Sequence[str]],
-    exclude_schemas: Optional[Sequence[str]],
-    include_models: Optional[Sequence[str]],
-    exclude_models: Optional[Sequence[str]],
+    include_databases: Sequence[str] | None,
+    exclude_databases: Sequence[str] | None,
+    include_schemas: Sequence[str] | None,
+    exclude_schemas: Sequence[str] | None,
+    include_models: Sequence[str] | None,
+    exclude_models: Sequence[str] | None,
     skip_sources: bool,
     sync_timeout: int,
     append_tags: bool,
-    docs_url: Optional[str],
+    docs_url: str | None,
     order_fields: bool,
     core: DbtMetabase,
 ):
@@ -387,9 +388,9 @@ def models(
 )
 def exposures(
     output_path: str,
-    output_grouping: Optional[str],
-    include_collections: Optional[Sequence[str]],
-    exclude_collections: Optional[Sequence[str]],
+    output_grouping: str | None,
+    include_collections: Sequence[str] | None,
+    exclude_collections: Sequence[str] | None,
     allow_personal_collections: bool,
     exclude_unverified: bool,
     tags: Sequence[str],

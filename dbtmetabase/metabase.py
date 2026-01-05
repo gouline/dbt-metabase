@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -13,15 +14,15 @@ class Metabase:
     def __init__(
         self,
         url: str,
-        api_key: Optional[str],
-        username: Optional[str],
-        password: Optional[str],
-        session_id: Optional[str],
+        api_key: str | None,
+        username: str | None,
+        password: str | None,
+        session_id: str | None,
         skip_verify: bool,
-        cert: Optional[Union[str, Tuple[str, str]]],
+        cert: str | tuple[str, str] | None,
         http_timeout: int,
-        http_headers: Optional[dict],
-        http_adapter: Optional[HTTPAdapter],
+        http_headers: dict | None,
+        http_adapter: HTTPAdapter | None,
     ):
         self.url = url.rstrip("/")
 
@@ -64,9 +65,9 @@ class Metabase:
         self,
         method: str,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         **kwargs,
-    ) -> Union[Mapping, Sequence]:
+    ) -> Mapping | Sequence:
         """Raw API call."""
 
         if params:
@@ -99,7 +100,7 @@ class Metabase:
         """Retrieves all databases."""
         return list(self._api("get", "/api/database"))
 
-    def find_database(self, name: str) -> Optional[Mapping]:
+    def find_database(self, name: str) -> Mapping | None:
         """Finds database by name attribute or returns none."""
         for api_database in self.get_databases():
             if api_database["name"].upper() == name.upper():
@@ -158,7 +159,7 @@ class Metabase:
         results = list(filter(lambda x: x["model"] in models, results))
         return results
 
-    def find_card(self, uid: str) -> Optional[Mapping]:
+    def find_card(self, uid: str) -> Mapping | None:
         """Retrieves card (known as question in Metabase UI)."""
         try:
             return dict(self._api("get", f"/api/card/{uid}"))
@@ -172,7 +173,7 @@ class Metabase:
         """Formats URL link to a card (known as question in Metabase UI)."""
         return f"{self.url}/card/{uid}"
 
-    def find_dashboard(self, uid: str) -> Optional[Mapping]:
+    def find_dashboard(self, uid: str) -> Mapping | None:
         """Retrieves dashboard."""
         try:
             return dict(self._api("get", f"/api/dashboard/{uid}"))
@@ -186,7 +187,7 @@ class Metabase:
         """Formats URL link to a dashboard."""
         return f"{self.url}/dashboard/{uid}"
 
-    def find_user(self, uid: str) -> Optional[Mapping]:
+    def find_user(self, uid: str) -> Mapping | None:
         """Finds user by ID or returns none."""
         try:
             return dict(self._api("get", f"/api/user/{uid}"))

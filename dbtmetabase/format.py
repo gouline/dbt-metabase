@@ -3,9 +3,10 @@ from __future__ import annotations
 import fnmatch
 import logging
 import re
+from collections.abc import MutableSequence, Sequence
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, MutableSequence, Optional, Sequence, TextIO
+from typing import Any, TextIO
 
 import yaml
 from rich.logging import RichHandler
@@ -16,8 +17,8 @@ class Filter:
 
     def __init__(
         self,
-        include: Optional[Sequence[str]] = None,
-        exclude: Optional[Sequence[str]] = None,
+        include: Sequence[str] | None = None,
+        exclude: Sequence[str] | None = None,
     ):
         """Inclusion/exclusion filtering.
 
@@ -28,7 +29,7 @@ class Filter:
         self.include = self._norm_arg(include)
         self.exclude = self._norm_arg(exclude)
 
-    def match(self, item: Optional[str]) -> bool:
+    def match(self, item: str | None) -> bool:
         item = self._norm_item(item) if item else ""
 
         for exclude in self.exclude:
@@ -44,7 +45,7 @@ class Filter:
         return True
 
     @staticmethod
-    def _norm_arg(arg: Optional[Sequence[str]]) -> Sequence[str]:
+    def _norm_arg(arg: Sequence[str] | None) -> Sequence[str]:
         if isinstance(arg, str):
             arg = [arg]
         return [Filter._norm_item(x) for x in arg or []]
@@ -88,7 +89,7 @@ def dump_yaml(data: Any, stream: TextIO):
     )
 
 
-def setup_logging(level: int, path: Optional[Path] = None):
+def setup_logging(level: int, path: Path | None = None):
     """Basic logger configuration for the CLI.
 
     Args:
@@ -129,7 +130,7 @@ def setup_logging(level: int, path: Optional[Path] = None):
     )
 
 
-def safe_name(text: Optional[str]) -> str:
+def safe_name(text: str | None) -> str:
     """Sanitizes a human-readable "friendly" name to a safe string.
 
     For example, "Joe's Collection" becomes "joe_s_collection".
@@ -143,7 +144,7 @@ def safe_name(text: Optional[str]) -> str:
     return re.sub(r"[^\w]", "_", text or "").lower()
 
 
-def safe_description(text: Optional[str]) -> str:
+def safe_description(text: str | None) -> str:
     """Sanitizes a human-readable long text, such as description.
 
     Args:

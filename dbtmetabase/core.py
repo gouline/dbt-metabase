@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional, Tuple, Union
 
 from requests.adapters import HTTPAdapter
 
@@ -21,17 +20,17 @@ class DbtMetabase(ModelsMixin, ExposuresMixin):
 
     def __init__(
         self,
-        manifest_path: Union[str, Path],
+        manifest_path: str | Path,
         metabase_url: str,
-        metabase_api_key: Optional[str] = None,
-        metabase_username: Optional[str] = None,
-        metabase_password: Optional[str] = None,
-        metabase_session_id: Optional[str] = None,
+        metabase_api_key: str | None = None,
+        metabase_username: str | None = None,
+        metabase_password: str | None = None,
+        metabase_session_id: str | None = None,
         skip_verify: bool = False,
-        cert: Optional[Union[str, Tuple[str, str]]] = None,
+        cert: str | tuple[str, str] | None = None,
         http_timeout: int = DEFAULT_HTTP_TIMEOUT,
-        http_headers: Optional[dict] = None,
-        http_adapter: Optional[HTTPAdapter] = None,
+        http_headers: dict | None = None,
+        http_adapter: HTTPAdapter | None = None,
     ):
         """dbt + Metabase integration.
 

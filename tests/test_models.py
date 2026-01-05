@@ -1,4 +1,5 @@
-from typing import MutableSequence, cast
+from collections.abc import MutableSequence
+from typing import cast
 
 from dbtmetabase.manifest import Column
 from tests._mocks import MockDbtMetabase

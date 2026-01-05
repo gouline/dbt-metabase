@@ -4,7 +4,8 @@ import dataclasses as dc
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from typing import Any, Iterable, Mapping, MutableMapping, Optional
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import Any
 
 from .errors import MetabaseStateError
 from .format import Filter, NullValue, safe_name
@@ -34,13 +35,13 @@ class ModelsMixin(metaclass=ABCMeta):
     def export_models(
         self,
         metabase_database: str,
-        database_filter: Optional[Filter] = None,
-        schema_filter: Optional[Filter] = None,
-        model_filter: Optional[Filter] = None,
+        database_filter: Filter | None = None,
+        schema_filter: Filter | None = None,
+        model_filter: Filter | None = None,
         skip_sources: bool = False,
         sync_timeout: int = DEFAULT_MODELS_SYNC_TIMEOUT,
         append_tags: bool = False,
-        docs_url: Optional[str] = None,
+        docs_url: str | None = None,
         order_fields: bool = False,
     ):
         """Exports dbt models to Metabase database schema.
@@ -171,7 +172,7 @@ class ModelsMixin(metaclass=ABCMeta):
         ctx: _Context,
         model: Model,
         append_tags: bool,
-        docs_url: Optional[str],
+        docs_url: str | None,
         order_fields: bool,
     ) -> bool:
         """Exports one dbt model to Metabase database schema."""
@@ -422,7 +423,7 @@ class ModelsMixin(metaclass=ABCMeta):
         if api_field["fk_target_field_id"] and not fk_target_field_id:
             fk_target_field_id = api_field["fk_target_field_id"]
 
-        body_field: MutableMapping[str, Optional[Any]] = {}
+        body_field: MutableMapping[str, Any | None] = {}
 
         # Update if specified, otherwise reset one that had been set
         api_display_name = api_field.get("display_name")
@@ -529,9 +530,9 @@ class ModelsMixin(metaclass=ABCMeta):
     def __filtered_models(
         self,
         models: Iterable[Model],
-        database_filter: Optional[Filter],
-        schema_filter: Optional[Filter],
-        model_filter: Optional[Filter],
+        database_filter: Filter | None,
+        schema_filter: Filter | None,
+        model_filter: Filter | None,
         skip_sources: bool,
     ) -> Iterable[Model]:
         def selected(m: Model) -> bool:

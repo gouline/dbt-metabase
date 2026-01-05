@@ -66,8 +66,8 @@ def test_dump_yaml():
             },
             stream=f,
         )
-    with open(output_path, "r", encoding="utf-8") as f:
+    with open(output_path, encoding="utf-8") as f:
         actual = f.read()
-    with open(fixture_path, "r", encoding="utf-8") as f:
+    with open(fixture_path, encoding="utf-8") as f:
         expected = f.read()
     assert actual == expected
