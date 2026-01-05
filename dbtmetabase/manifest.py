@@ -44,8 +44,6 @@ DEFAULT_SCHEMA = "PUBLIC"
 
 # Foreign key constraint: "schema.model (column)" / "model (column)"
 _CONSTRAINT_FK_PARSER = re.compile(r"(?P<model>.+)\s+\((?P<column>.+)\)")
-# Ref parser: "ref('model')"
-_REF_PARSER = re.compile(r"ref\('(?P<model>.+)'\)")
 
 
 class Manifest:
@@ -302,10 +300,11 @@ class Manifest:
 
                 # Constraint: to + to_columns
                 elif constraint_to := constraint.get("to"):
-                    constraint_fk = _REF_PARSER.search(constraint_to)
+                    constraint_to_path = constraint_to.split(".")
                     constraint_to_columns = constraint.get("to_columns", [])
-                    if constraint_fk and len(constraint_to_columns) == 1:
-                        fk_target_table = constraint_fk.group("model")
+                    if len(constraint_to_path) <= 3 and len(constraint_to_columns) == 1:
+                        # "project"."schema"."model" -> "schema"."model"
+                        fk_target_table = ".".join(constraint_to_path[-2:])
                         fk_target_field = constraint_to_columns[0]
                     else:
                         _logger.warning(
