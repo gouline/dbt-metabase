@@ -4,19 +4,11 @@ import dataclasses as dc
 import logging
 import re
 from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence, Sequence
 from operator import itemgetter
 from pathlib import Path
 from typing import (
     Any,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
 )
 from urllib.parse import unquote
 
@@ -55,11 +47,11 @@ class ExposuresMixin(metaclass=ABCMeta):
     def extract_exposures(
         self,
         output_path: str = DEFAULT_EXPOSURES_OUTPUT_PATH,
-        output_grouping: Optional[str] = None,
-        collection_filter: Optional[Filter] = None,
+        output_grouping: str | None = None,
+        collection_filter: Filter | None = None,
         allow_personal_collections: bool = False,
         exclude_unverified: bool = False,
-        tags: Optional[Sequence[str]] = None,
+        tags: Sequence[str] | None = None,
     ) -> Iterable[Mapping]:
         """Extract dbt exposures from Metabase.
 
@@ -273,7 +265,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         dataset_query = card.get("dataset_query", {})
         query = dataset_query.get("query", {})
 
-        query_source: Union[str, int] = query.get("source-table", card.get("table_id"))
+        query_source: str | int = query.get("source-table", card.get("table_id"))
         if isinstance(query_source, str) and query_source.startswith("card__"):
             # Question based on another question
             source_card_uid = query_source.split("__")[-1]
@@ -288,7 +280,7 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         # Find models in joins
         for join in query.get("joins", []):
-            join_source: Union[str, int] = join.get("source-table")
+            join_source: str | int = join.get("source-table")
             if isinstance(join_source, str) and join_source.startswith("card__"):
                 # Question based on another question
                 source_card_uid = join_source.split("__")[-1]
@@ -338,8 +330,8 @@ class ExposuresMixin(metaclass=ABCMeta):
         """Extracts exposures from an MBQL 5 GUI stage."""
 
         # Extract source-table or source-card
-        source_table: Optional[int] = stage.get("source-table")
-        source_card: Optional[int] = stage.get("source-card")
+        source_table: int | None = stage.get("source-table")
+        source_card: int | None = stage.get("source-card")
 
         if source_card is not None:
             # Stage based on another card/question
@@ -437,11 +429,11 @@ class ExposuresMixin(metaclass=ABCMeta):
         created_at: str,
         creator_name: str,
         creator_email: str,
-        last_used_at: Optional[str],
-        average_query_time: Optional[str],
-        native_query: Optional[str],
+        last_used_at: str | None,
+        average_query_time: str | None,
+        native_query: str | None,
         depends_on: Iterable[str],
-        tags: Optional[Sequence[str]],
+        tags: Sequence[str] | None,
     ) -> Mapping:
         """Builds dbt exposure representation (see https://docs.getdbt.com/reference/exposure-properties)."""
 
@@ -510,13 +502,13 @@ class ExposuresMixin(metaclass=ABCMeta):
         self,
         exposures: Iterable[Mapping],
         output_path: str,
-        output_grouping: Optional[str],
+        output_grouping: str | None,
     ):
         """Write exposures to output files."""
 
-        grouped: MutableMapping[Tuple[str, ...], MutableSequence[Mapping]] = {}
+        grouped: MutableMapping[tuple[str, ...], MutableSequence[Mapping]] = {}
         for exposure in exposures:
-            group: Tuple[str, ...] = ("exposures",)
+            group: tuple[str, ...] = ("exposures",)
             if output_grouping == "collection":
                 group = (exposure["collection"],)
             elif output_grouping == "type":
@@ -563,7 +555,7 @@ class _Exposure:
     header: str = ""
     creator_name: str = ""
     creator_email: str = ""
-    average_query_time: Optional[str] = None
-    last_used_at: Optional[str] = None
-    native_query: Optional[str] = None
-    depends: Set[str] = dc.field(default_factory=set)
+    average_query_time: str | None = None
+    last_used_at: str | None = None
+    native_query: str | None = None
+    depends: set[str] = dc.field(default_factory=set)

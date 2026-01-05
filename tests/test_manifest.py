@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from operator import attrgetter
-from typing import Sequence
 
 from dbtmetabase.manifest import Column, Group, Manifest, Model
 from tests._mocks import FIXTURES_PATH, MockManifest

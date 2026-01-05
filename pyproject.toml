@@ -68,8 +68,9 @@ select = [
     "B",      # flake8-bugbear
     "C4",     # flake8-comprehensions
     "FIX001", # flake8-fixme
+    "UP",     # pyupgrade
 ]
 ignore = [
-    "E501", # line-too-long 
+    "E501", # line-too-long
     "F403", # undefined-local-with-import-star
 ]
