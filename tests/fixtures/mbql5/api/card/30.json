@@ -1,0 +1,122 @@
+{
+    "cache_invalidated_at": null,
+    "description": "Dummy 1",
+    "archived": false,
+    "view_count": 50,
+    "collection_position": null,
+    "source_card_id": null,
+    "table_id": null,
+    "can_run_adhoc_query": true,
+    "result_metadata": [
+        {
+            "display_name": "?column?",
+            "field_ref": [
+                "field",
+                "?column?",
+                {
+                    "base-type": "type/Integer"
+                }
+            ],
+            "name": "?column?",
+            "base_type": "type/Integer",
+            "effective_type": "type/Integer",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 1,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1,
+                        "q1": 1,
+                        "q3": 1,
+                        "max": 1,
+                        "sd": null,
+                        "avg": 1
+                    }
+                }
+            }
+        }
+    ],
+    "dependency_analysis_version": 0,
+    "creator": {
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_login": "2026-01-06T11:50:28.048449Z",
+        "is_qbnewb": false,
+        "is_superuser": true,
+        "id": 1,
+        "last_name": null,
+        "tenant_id": null,
+        "date_joined": "2024-06-19T11:49:37.507897Z",
+        "common_name": "dbtmetabase"
+    },
+    "initially_published_at": null,
+    "can_write": true,
+    "card_schema": 22,
+    "database_id": 2,
+    "enable_embedding": false,
+    "collection_id": null,
+    "query_type": "native",
+    "name": "Dummy",
+    "last_query_start": "2024-06-20T05:56:57.283068Z",
+    "is_remote_synced": false,
+    "dashboard_count": 0,
+    "document_id": null,
+    "last_used_at": "2024-10-12T03:43:09.869884Z",
+    "dashboard": null,
+    "type": "question",
+    "average_query_time": 28.0,
+    "creator_id": 1,
+    "can_restore": false,
+    "moderation_reviews": [],
+    "updated_at": "2024-06-20T05:57:05.732801Z",
+    "made_public_by_id": null,
+    "embedding_params": null,
+    "cache_ttl": null,
+    "dataset_query": {
+        "lib/type": "mbql/query",
+        "stages": [
+            {
+                "lib/type": "mbql.stage/native",
+                "native": "select 1;"
+            }
+        ],
+        "database": 2,
+        "lib.convert/converted?": true
+    },
+    "id": 30,
+    "legacy_query": "{\"database\":2,\"type\":\"native\",\"native\":{\"template-tags\":{},\"query\":\"select 1;\"}}",
+    "parameter_mappings": [],
+    "can_manage_db": true,
+    "display": "table",
+    "archived_directly": false,
+    "entity_id": "32PjfPIi_tmY3317kwVnd",
+    "collection_preview": true,
+    "last-edit-info": {
+        "id": 1,
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_name": null,
+        "timestamp": "2024-06-20T05:57:05.744383Z"
+    },
+    "visualization_settings": {
+        "table.pivot_column": "?column?"
+    },
+    "collection": {
+        "metabase.collections.models.collection.root/is-root?": true,
+        "authority_level": null,
+        "name": "Our analytics",
+        "is_personal": false,
+        "id": "root",
+        "can_write": true
+    },
+    "metabase_version": "v0.50.5 (48f6978)",
+    "parameters": [],
+    "dashboard_id": null,
+    "created_at": "2024-06-20T05:56:33.051625Z",
+    "parameter_usage_count": 0,
+    "public_uuid": null,
+    "can_delete": false
+}

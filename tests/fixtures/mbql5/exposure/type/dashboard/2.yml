@@ -1,0 +1,28 @@
+version: 2
+exposures:
+  - name: the_dashboard
+    label: The Dashboard
+    description: '### Dashboard Cards: 3
+
+
+      Dashboard is a dashboard is a dashboard
+
+
+      #### Metadata
+
+
+      Metabase ID: __2__
+
+
+      Created On: __2024-06-19T11:57:43.675681Z__'
+    type: dashboard
+    url: http://localhost:3000/dashboard/2
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
+      - ref('stg_orders')
+      - ref('stg_payments')

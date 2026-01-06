@@ -1,0 +1,192 @@
+version: 2
+exposures:
+  - name: completed_orders_cte_sql
+    label: Completed Orders CTE SQL
+    description: "### Visualization: Table\n\nCTE SQL\n\n#### Query\n\n```\nwith completed_orders\
+      \ as (\n    select * from Orders where status = 'completed'\n)\nselect * from\
+      \ completed_orders\n```\n\n#### Metadata\n\nMetabase ID: __32__\n\nCreated On:\
+      \ __2024-06-20T06:01:34.470497Z__"
+    type: analysis
+    url: http://localhost:3000/card/32
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('orders')
+    config:
+      meta:
+        last_used_at: '2024-10-12T03:43:09.869884Z'
+  - name: dummy
+    label: Dummy
+    description: '### Visualization: Table
+
+
+      Dummy 1
+
+
+      #### Query
+
+
+      ```
+
+      select 1;
+
+      ```
+
+
+      #### Metadata
+
+
+      Metabase ID: __30__
+
+
+      Created On: __2024-06-20T05:56:33.051625Z__'
+    type: analysis
+    url: http://localhost:3000/card/30
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on: []
+    config:
+      meta:
+        average_query_time: '0:00.028'
+        last_used_at: '2024-10-12T03:43:09.869884Z'
+  - name: dummy_1
+    label: Dummy
+    description: '### Visualization: Table
+
+
+      Dummy 2
+
+
+      #### Query
+
+
+      ```
+
+      select 2;
+
+      ```
+
+
+      #### Metadata
+
+
+      Metabase ID: __31__
+
+
+      Created On: __2024-06-20T05:56:45.033599Z__'
+    type: analysis
+    url: http://localhost:3000/card/31
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on: []
+    config:
+      meta:
+        average_query_time: '0:00.024'
+        last_used_at: '2024-10-12T03:43:09.869884Z'
+  - name: orders___customers
+    label: Orders + Customers
+    description: '### Visualization: Table
+
+
+      Orders and customers
+
+
+      #### Metadata
+
+
+      Metabase ID: __27__
+
+
+      Created On: __2024-06-19T11:57:35.85999Z__'
+    type: analysis
+    url: http://localhost:3000/card/27
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
+    config:
+      meta:
+        average_query_time: '0:00.187'
+        last_used_at: '2025-01-30T09:52:27.789583Z'
+  - name: orders___customers__filtered_by_status_is_completed
+    label: Orders + Customers, Filtered by Status is completed
+    description: '### Visualization: Table
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase ID: __28__
+
+
+      Created On: __2024-06-19T11:58:35.060527Z__'
+    type: analysis
+    url: http://localhost:3000/card/28
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
+    config:
+      meta:
+        average_query_time: '0:00.433'
+        last_used_at: '2025-01-30T09:52:27.789583Z'
+  - name: returned_order_count_sql
+    label: Returned Order Count SQL
+    description: "### Visualization: Scalar\n\nNo description provided in Metabase\n\
+      \n#### Query\n\n```\nselect\n    count(*)\nfrom STG_payments as p\n    left\
+      \ join STG_orders as o on p.order_id = o.order_id\nwhere o.status = 'returned'\n\
+      ;\n```\n\n#### Metadata\n\nMetabase ID: __29__\n\nCreated On: __2024-06-19T12:03:01.905927Z__"
+    type: analysis
+    url: http://localhost:3000/card/29
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('stg_orders')
+      - ref('stg_payments')
+    config:
+      meta:
+        average_query_time: '0:00.317'
+        last_used_at: '2025-01-30T09:52:27.789583Z'
+  - name: the_dashboard
+    label: The Dashboard
+    description: '### Dashboard Cards: 3
+
+
+      Dashboard is a dashboard is a dashboard
+
+
+      #### Metadata
+
+
+      Metabase ID: __2__
+
+
+      Created On: __2024-06-19T11:57:43.675681Z__'
+    type: dashboard
+    url: http://localhost:3000/dashboard/2
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
+      - ref('stg_orders')
+      - ref('stg_payments')

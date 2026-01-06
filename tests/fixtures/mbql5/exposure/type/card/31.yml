@@ -1,0 +1,38 @@
+version: 2
+exposures:
+  - name: dummy_1
+    label: Dummy
+    description: '### Visualization: Table
+
+
+      Dummy 2
+
+
+      #### Query
+
+
+      ```
+
+      select 2;
+
+      ```
+
+
+      #### Metadata
+
+
+      Metabase ID: __31__
+
+
+      Created On: __2024-06-20T05:56:45.033599Z__'
+    type: analysis
+    url: http://localhost:3000/card/31
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on: []
+    config:
+      meta:
+        average_query_time: '0:00.024'
+        last_used_at: '2024-10-12T03:43:09.869884Z'

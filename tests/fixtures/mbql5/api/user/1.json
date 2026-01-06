@@ -1,0 +1,27 @@
+{
+    "email": "dbtmetabase@example.com",
+    "first_name": "dbtmetabase",
+    "locale": null,
+    "structured_attributes": {},
+    "last_login": "2026-01-06T11:50:28.048449Z",
+    "is_active": true,
+    "user_group_memberships": [
+        {
+            "id": 1
+        },
+        {
+            "id": 2
+        }
+    ],
+    "is_qbnewb": false,
+    "jwt_attributes": null,
+    "updated_at": "2026-01-06T11:50:28.048449Z",
+    "is_superuser": true,
+    "login_attributes": null,
+    "id": 1,
+    "last_name": null,
+    "tenant_id": null,
+    "date_joined": "2024-06-19T11:49:37.507897Z",
+    "sso_source": null,
+    "common_name": "dbtmetabase"
+}

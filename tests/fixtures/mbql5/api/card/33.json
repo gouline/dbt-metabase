@@ -1,0 +1,237 @@
+{
+    "cache_invalidated_at": null,
+    "description": null,
+    "archived": false,
+    "view_count": 23,
+    "collection_position": null,
+    "source_card_id": null,
+    "table_id": 18,
+    "can_run_adhoc_query": true,
+    "result_metadata": [
+        {
+            "description": "This is a unique identifier for a payment",
+            "semantic_type": "type/PK",
+            "coercion_strategy": null,
+            "name": "payment_id",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                111,
+                null
+            ],
+            "effective_type": "type/Integer",
+            "id": 111,
+            "visibility_type": "normal",
+            "display_name": "Payment ID",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 113,
+                    "nil%": 0.0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1.0,
+                        "q1": 28.75,
+                        "q3": 85.25,
+                        "max": 113.0,
+                        "sd": 32.76097144469315,
+                        "avg": 57.0
+                    }
+                }
+            },
+            "base_type": "type/Integer"
+        },
+        {
+            "description": null,
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "payment_method",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                113,
+                null
+            ],
+            "effective_type": "type/Text",
+            "id": 113,
+            "visibility_type": "normal",
+            "display_name": "Payment Method",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 4,
+                    "nil%": 0.0
+                },
+                "type": {
+                    "type/Text": {
+                        "percent-json": 0.0,
+                        "percent-url": 0.0,
+                        "percent-email": 0.0,
+                        "percent-state": 0.0,
+                        "average-length": 10.79646017699115
+                    }
+                }
+            },
+            "base_type": "type/Text"
+        },
+        {
+            "description": "Foreign key to the orders table",
+            "semantic_type": "type/FK",
+            "coercion_strategy": null,
+            "name": "order_id",
+            "settings": null,
+            "fk_target_field_id": 84,
+            "field_ref": [
+                "field",
+                112,
+                null
+            ],
+            "effective_type": "type/Integer",
+            "id": 112,
+            "visibility_type": "normal",
+            "display_name": "Order ID",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 99,
+                    "nil%": 0.0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1.0,
+                        "q1": 24.904857366030992,
+                        "q3": 75.25,
+                        "max": 99.0,
+                        "sd": 28.540193317267853,
+                        "avg": 50.0353982300885
+                    }
+                }
+            },
+            "base_type": "type/Integer"
+        },
+        {
+            "description": null,
+            "semantic_type": "type/Category",
+            "coercion_strategy": null,
+            "name": "amount",
+            "settings": null,
+            "fk_target_field_id": null,
+            "field_ref": [
+                "field",
+                114,
+                null
+            ],
+            "effective_type": "type/Integer",
+            "id": 114,
+            "visibility_type": "normal",
+            "display_name": "Amount",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 30,
+                    "nil%": 0.0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0.0,
+                        "q1": 6.064037815689349,
+                        "q3": 22.787918451395115,
+                        "max": 30.0,
+                        "sd": 9.198368733518729,
+                        "avg": 14.79646017699115
+                    }
+                }
+            },
+            "base_type": "type/Integer"
+        }
+    ],
+    "dependency_analysis_version": 0,
+    "creator": {
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_login": "2026-01-06T11:50:28.048449Z",
+        "is_qbnewb": false,
+        "is_superuser": true,
+        "id": 1,
+        "last_name": null,
+        "tenant_id": null,
+        "date_joined": "2024-06-19T11:49:37.507897Z",
+        "common_name": "dbtmetabase"
+    },
+    "initially_published_at": null,
+    "can_write": true,
+    "card_schema": 22,
+    "database_id": 2,
+    "enable_embedding": false,
+    "collection_id": 3,
+    "query_type": "query",
+    "name": "Transactions",
+    "last_query_start": "2024-12-20T12:30:05.862314Z",
+    "is_remote_synced": false,
+    "dashboard_count": 0,
+    "document_id": null,
+    "last_used_at": "2024-12-20T12:30:05.932096Z",
+    "dashboard": null,
+    "type": "question",
+    "average_query_time": 134.33333333333334,
+    "creator_id": 1,
+    "can_restore": false,
+    "moderation_reviews": [],
+    "updated_at": "2024-12-20T12:30:11.735631Z",
+    "made_public_by_id": null,
+    "embedding_params": null,
+    "cache_ttl": null,
+    "dataset_query": {
+        "lib/type": "mbql/query",
+        "stages": [
+            {
+                "lib/type": "mbql.stage/mbql",
+                "source-table": 18
+            }
+        ],
+        "database": 2,
+        "lib.convert/converted?": true
+    },
+    "id": 33,
+    "legacy_query": "{\"database\":2,\"type\":\"query\",\"query\":{\"source-table\":18}}",
+    "parameter_mappings": [],
+    "can_manage_db": true,
+    "display": "table",
+    "archived_directly": false,
+    "entity_id": "ZRX529pNYbPiCLCi8HvZ6",
+    "collection_preview": true,
+    "last-edit-info": {
+        "id": 1,
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_name": null,
+        "timestamp": "2024-12-20T12:30:11.782155Z"
+    },
+    "visualization_settings": {
+        "table.cell_column": "payment_id"
+    },
+    "collection": {
+        "authority_level": null,
+        "description": null,
+        "archived": false,
+        "slug": "%D0%BA%D0%BE%D0%BB%D0%BB%D0%B5%D0%BA%D1%86%D0%B8%D1%8F",
+        "archive_operation_id": null,
+        "name": "\u041a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u044f",
+        "personal_owner_id": null,
+        "type": null,
+        "is_sample": false,
+        "id": 3,
+        "archived_directly": null,
+        "entity_id": "4Zdu-bk8RhwuFiEiRXuOH",
+        "location": "/",
+        "namespace": null,
+        "is_personal": false,
+        "created_at": "2024-12-20T12:29:39.063908Z"
+    },
+    "metabase_version": "v0.50.5 (48f6978)",
+    "parameters": [],
+    "dashboard_id": null,
+    "created_at": "2024-10-11T23:46:29.272117Z",
+    "parameter_usage_count": 0,
+    "public_uuid": null,
+    "can_delete": false
+}

@@ -19,8 +19,9 @@ SANDBOX_ENV = dotenv_values(Path().parent / "sandbox" / ".env")
 
 
 class MockMetabase(Metabase):
-    def __init__(self, url: str, record: bool = False):
+    def __init__(self, url: str, record: bool = False, prefix: str = "mbql5"):
         self.record = record
+        self.prefix = prefix
         self.api_calls: list[dict[str, Any]] = []
 
         api_key = "dummy"
@@ -56,7 +57,7 @@ class MockMetabase(Metabase):
 
         result = {}
         path_toks = f"{path.lstrip('/')}.json".split("/")
-        json_path = Path.joinpath(FIXTURES_PATH, *path_toks)
+        json_path = Path.joinpath(FIXTURES_PATH / self.prefix, *path_toks)
 
         if self.record:
             is_auth = path == "/api/session"

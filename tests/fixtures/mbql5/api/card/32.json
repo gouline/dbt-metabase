@@ -1,0 +1,358 @@
+{
+    "cache_invalidated_at": null,
+    "description": "CTE SQL",
+    "archived": false,
+    "view_count": 41,
+    "collection_position": null,
+    "source_card_id": null,
+    "table_id": null,
+    "can_run_adhoc_query": true,
+    "result_metadata": [
+        {
+            "display_name": "order_id",
+            "field_ref": [
+                "field",
+                "order_id",
+                {
+                    "base-type": "type/Integer"
+                }
+            ],
+            "name": "order_id",
+            "base_type": "type/Integer",
+            "effective_type": "type/Integer",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 67,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 2,
+                        "q1": 21.25,
+                        "q3": 56.75,
+                        "max": 76,
+                        "sd": 21.08874820298452,
+                        "avg": 38.701492537313435
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "customer_id",
+            "field_ref": [
+                "field",
+                "customer_id",
+                {
+                    "base-type": "type/Integer"
+                }
+            ],
+            "name": "customer_id",
+            "base_type": "type/Integer",
+            "effective_type": "type/Integer",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 48,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 1,
+                        "q1": 24.625,
+                        "q3": 69.7752551286084,
+                        "max": 99,
+                        "sd": 28.40534122698791,
+                        "avg": 46.985074626865675
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "order_date",
+            "field_ref": [
+                "field",
+                "order_date",
+                {
+                    "base-type": "type/Date"
+                }
+            ],
+            "name": "order_date",
+            "base_type": "type/Date",
+            "effective_type": "type/Date",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 48,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/DateTime": {
+                        "earliest": "2018-01-02T00:00:00Z",
+                        "latest": "2018-03-20T00:00:00Z"
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "status",
+            "field_ref": [
+                "field",
+                "status",
+                {
+                    "base-type": "type/Text"
+                }
+            ],
+            "name": "status",
+            "base_type": "type/Text",
+            "effective_type": "type/Text",
+            "semantic_type": "type/Category",
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 1,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Text": {
+                        "percent-json": 0,
+                        "percent-url": 0,
+                        "percent-email": 0,
+                        "percent-state": 0,
+                        "average-length": 9
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "credit_card_amount",
+            "field_ref": [
+                "field",
+                "credit_card_amount",
+                {
+                    "base-type": "type/BigInteger"
+                }
+            ],
+            "name": "credit_card_amount",
+            "base_type": "type/BigInteger",
+            "effective_type": "type/BigInteger",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 23,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0.04114159559085226,
+                        "q3": 18.914213562373096,
+                        "max": 30,
+                        "sd": 10.838625503455733,
+                        "avg": 9.35820895522388
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "coupon_amount",
+            "field_ref": [
+                "field",
+                "coupon_amount",
+                {
+                    "base-type": "type/BigInteger"
+                }
+            ],
+            "name": "coupon_amount",
+            "base_type": "type/BigInteger",
+            "effective_type": "type/BigInteger",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 9,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 0.45220794454572616,
+                        "max": 26,
+                        "sd": 6.053134245386682,
+                        "avg": 1.8955223880597014
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "bank_transfer_amount",
+            "field_ref": [
+                "field",
+                "bank_transfer_amount",
+                {
+                    "base-type": "type/BigInteger"
+                }
+            ],
+            "name": "bank_transfer_amount",
+            "base_type": "type/BigInteger",
+            "effective_type": "type/BigInteger",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 16,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 3.775255128608411,
+                        "max": 26,
+                        "sd": 6.7730209474362155,
+                        "avg": 3.626865671641791
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "gift_card_amount",
+            "field_ref": [
+                "field",
+                "gift_card_amount",
+                {
+                    "base-type": "type/BigInteger"
+                }
+            ],
+            "name": "gift_card_amount",
+            "base_type": "type/BigInteger",
+            "effective_type": "type/BigInteger",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 7,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 0,
+                        "q3": 2.5479849964495047,
+                        "max": 28,
+                        "sd": 5.306226341936319,
+                        "avg": 1.5820895522388059
+                    }
+                }
+            }
+        },
+        {
+            "display_name": "amount",
+            "field_ref": [
+                "field",
+                "amount",
+                {
+                    "base-type": "type/BigInteger"
+                }
+            ],
+            "name": "amount",
+            "base_type": "type/BigInteger",
+            "effective_type": "type/BigInteger",
+            "semantic_type": null,
+            "fingerprint": {
+                "global": {
+                    "distinct-count": 30,
+                    "nil%": 0
+                },
+                "type": {
+                    "type/Number": {
+                        "min": 0,
+                        "q1": 8.085786437626904,
+                        "q3": 23.806287056638602,
+                        "max": 58,
+                        "sd": 10.43352457692227,
+                        "avg": 16.46268656716418
+                    }
+                }
+            }
+        }
+    ],
+    "dependency_analysis_version": 0,
+    "creator": {
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_login": "2026-01-06T11:50:28.048449Z",
+        "is_qbnewb": false,
+        "is_superuser": true,
+        "id": 1,
+        "last_name": null,
+        "tenant_id": null,
+        "date_joined": "2024-06-19T11:49:37.507897Z",
+        "common_name": "dbtmetabase"
+    },
+    "initially_published_at": null,
+    "can_write": true,
+    "card_schema": 22,
+    "database_id": 2,
+    "enable_embedding": false,
+    "collection_id": null,
+    "query_type": "native",
+    "name": "Completed Orders CTE SQL",
+    "last_query_start": null,
+    "is_remote_synced": false,
+    "dashboard_count": 0,
+    "document_id": null,
+    "last_used_at": "2024-10-12T03:43:09.869884Z",
+    "dashboard": null,
+    "type": "question",
+    "average_query_time": null,
+    "creator_id": 1,
+    "can_restore": false,
+    "moderation_reviews": [],
+    "updated_at": "2024-06-20T06:01:34.470497Z",
+    "made_public_by_id": null,
+    "embedding_params": null,
+    "cache_ttl": null,
+    "dataset_query": {
+        "lib/type": "mbql/query",
+        "stages": [
+            {
+                "lib/type": "mbql.stage/native",
+                "native": "with completed_orders as (\n\n    select * from Orders where status = 'completed'\n\n)\n\nselect * from completed_orders"
+            }
+        ],
+        "database": 2,
+        "lib.convert/converted?": true
+    },
+    "id": 32,
+    "legacy_query": "{\"database\":2,\"type\":\"native\",\"native\":{\"template-tags\":{},\"query\":\"with completed_orders as (\\n\\n    select * from Orders where status = 'completed'\\n\\n)\\n\\nselect * from completed_orders\"}}",
+    "parameter_mappings": [],
+    "can_manage_db": true,
+    "display": "table",
+    "archived_directly": false,
+    "entity_id": "6jo5ucWZF4jBmf8OmRajs",
+    "collection_preview": true,
+    "last-edit-info": {
+        "id": 1,
+        "email": "dbtmetabase@example.com",
+        "first_name": "dbtmetabase",
+        "last_name": null,
+        "timestamp": "2024-06-20T06:01:34.486033Z"
+    },
+    "visualization_settings": {
+        "table.pivot_column": "status",
+        "table.cell_column": "order_id"
+    },
+    "collection": {
+        "metabase.collections.models.collection.root/is-root?": true,
+        "authority_level": null,
+        "name": "Our analytics",
+        "is_personal": false,
+        "id": "root",
+        "can_write": true
+    },
+    "metabase_version": "v0.50.5 (48f6978)",
+    "parameters": [],
+    "dashboard_id": null,
+    "created_at": "2024-06-20T06:01:34.470497Z",
+    "parameter_usage_count": 0,
+    "public_uuid": null,
+    "can_delete": false
+}

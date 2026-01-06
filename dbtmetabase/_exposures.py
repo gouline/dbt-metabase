@@ -243,23 +243,80 @@ class ExposuresMixin(metaclass=ABCMeta):
         """Extracts exposures from Metabase questions."""
 
         dataset_query = card.get("dataset_query", {})
+        if dataset_query.get("lib/type") == "mbql/query":
+            # MBQL 5 format
+            for stage in dataset_query.get("stages", []):
+                self.__exposure_mbql5_stage(ctx, exposure, card, stage)
+        else:
+            # Legacy (MBQL 4) format
+            card_type = dataset_query.get("type")
+            if card_type == "query":
+                self.__exposure_legacy_query(ctx, exposure, card)
+            elif card_type == "native":
+                self.__exposure_legacy_native(ctx, exposure, card)
+            else:
+                _logger.warning("Unsupported card type '%s'", card_type)
 
-        # Check for newer MBQL5 format
-        lib_type = dataset_query.get("lib/type")
-        if lib_type == "mbql/query":
-            self.__exposure_mbql5_query(ctx, exposure, card)
+    def __exposure_mbql5_stage(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    ):
+        """MBQL 5 queries use a stages-based format with lib/type props for each stage:
+        - "mbql/query" for the top-level query
+        - "mbql.stage/mbql" for GUI/structured query stages
+        - "mbql.stage/native" for native SQL query stages
+        """
+
+        stage_type = stage.get("lib/type")
+        if stage_type == "mbql.stage/mbql":
+            self.__exposure_mbql5_query(ctx, exposure, card, stage)
+        elif stage_type == "mbql.stage/native":
+            self.__exposure_mbql5_native(ctx, exposure, card, stage)
+        else:
+            _logger.debug("Unknown MBQL 5 stage type '%s'", stage_type)
+
+    def __exposure_mbql5_query(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    ):
+        """Extracts exposures from an MBQL 5 GUI stage."""
+
+        # Extract source-table or source-card
+        source_table: int | None = stage.get("source-table")
+        source_card: int | None = stage.get("source-card")
+
+        if source_card is not None:
+            # Stage based on another card/question
+            if found_card := self.metabase.find_card(uid=str(source_card)):
+                self._exposure_card(ctx, exposure, found_card)
+
+        elif source_table is not None and source_table in ctx.table_names:
+            # Stage based on a table
+            table_name = ctx.table_names[source_table].lower()
+            exposure.depends.add(table_name)
+            _logger.info("Extracted model '%s' from MBQL 5 stage", table_name)
+
+        # Process joins within the stage
+        # MBQL 5 joins have their own nested stages array with the same structure as top-level stages
+        for join in stage.get("joins", []):
+            for join_stage in join.get("stages", []):
+                self.__exposure_mbql5_stage(ctx, exposure, card, join_stage)
+
+    def __exposure_mbql5_native(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    ):
+        """Extracts exposures from an MBQL 5 native stage."""
+
+        dataset_query = card.get("dataset_query", {})
+        database = dataset_query.get("database")
+        native_query = stage.get("native")
+
+        if not native_query or not database:
             return
 
-        # Fall back to legacy format detection
-        card_type = dataset_query.get("type")
-        if card_type == "query":
-            self.__exposure_query(ctx, exposure, card)
-        elif card_type == "native":
-            self.__exposure_native(ctx, exposure, card)
-        else:
-            _logger.warning("Unsupported card type '%s'", card_type)
+        self.__exposure_native_query(ctx, exposure, database, native_query)
 
-    def __exposure_query(self, ctx: _Context, exposure: _Exposure, card: Mapping):
+    def __exposure_legacy_query(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping
+    ):
         """Extracts exposures from Metabase GUI queries."""
 
         dataset_query = card.get("dataset_query", {})
@@ -295,80 +352,13 @@ class ExposuresMixin(metaclass=ABCMeta):
                 exposure.depends.add(joined_table)
                 _logger.info("Extracted model '%s' from join", joined_table)
 
-    def __exposure_mbql5_query(self, ctx: _Context, exposure: _Exposure, card: Mapping):
-        """Extracts exposures from Metabase MBQL 5 queries."""
-
-        dataset_query = card.get("dataset_query", {})
-        stages = dataset_query.get("stages", [])
-
-        for stage in stages:
-            self.__exposure_mbql5_stage(ctx, exposure, card, stage)
-
-    def __exposure_mbql5_stage(
-        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
+    def __exposure_legacy_native(
+        self, ctx: _Context, exposure: _Exposure, card: Mapping
     ):
-        """Dispatches MBQL 5 stage processing based on stage type.
-
-        MBQL 5 queries use a stages-based format with lib/type props for each stage:
-        - "mbql/query" for the top-level query
-        - "mbql.stage/mbql" for GUI/structured query stages
-        - "mbql.stage/native" for native SQL query stages
-        """
-
-        stage_type = stage.get("lib/type")
-
-        if stage_type == "mbql.stage/mbql":
-            self.__exposure_mbql5_stage_mbql(ctx, exposure, card, stage)
-        elif stage_type == "mbql.stage/native":
-            self.__exposure_mbql5_stage_native(ctx, exposure, card, stage)
-        else:
-            _logger.debug("Unknown MBQL 5 stage type '%s'", stage_type)
-
-    def __exposure_mbql5_stage_mbql(
-        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
-    ):
-        """Extracts exposures from an MBQL 5 GUI stage."""
-
-        # Extract source-table or source-card
-        source_table: int | None = stage.get("source-table")
-        source_card: int | None = stage.get("source-card")
-
-        if source_card is not None:
-            # Stage based on another card/question
-            if found_card := self.metabase.find_card(uid=str(source_card)):
-                self._exposure_card(ctx, exposure, found_card)
-
-        elif source_table is not None and source_table in ctx.table_names:
-            # Stage based on a table
-            table_name = ctx.table_names[source_table].lower()
-            exposure.depends.add(table_name)
-            _logger.info("Extracted model '%s' from MBQL 5 stage", table_name)
-
-        # Process joins within the stage
-        # MBQL 5 joins have their own nested stages array with the same structure as top-level stages
-        for join in stage.get("joins", []):
-            for join_stage in join.get("stages", []):
-                self.__exposure_mbql5_stage(ctx, exposure, card, join_stage)
-
-    def __exposure_mbql5_stage_native(
-        self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
-    ):
-        """Extracts exposures from an MBQL 5 native stage."""
-
-        dataset_query = card.get("dataset_query", {})
-        database = dataset_query.get("database")
-        native_query = stage.get("native")
-
-        if not native_query or not database:
-            return
-
-        self.__exposure_native_query(ctx, exposure, database, native_query)
-
-    def __exposure_native(self, ctx: _Context, exposure: _Exposure, card: Mapping):
         """Extracts exposures from Metabase native queries."""
 
         dataset_query = card.get("dataset_query", {})
-        database = dataset_query["database"]
+        database = dataset_query.get("database")
         native_query = dataset_query["native"]["query"]
 
         if not native_query or not database:

@@ -1,0 +1,19 @@
+version: 2
+exposures:
+  - name: completed_orders_cte_sql
+    label: Completed Orders CTE SQL
+    description: "### Visualization: Table\n\nCTE SQL\n\n#### Query\n\n```\nwith completed_orders\
+      \ as (\n    select * from Orders where status = 'completed'\n)\nselect * from\
+      \ completed_orders\n```\n\n#### Metadata\n\nMetabase ID: __32__\n\nCreated On:\
+      \ __2024-06-20T06:01:34.470497Z__"
+    type: analysis
+    url: http://localhost:3000/card/32
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('orders')
+    config:
+      meta:
+        last_used_at: '2024-10-12T03:43:09.869884Z'
