@@ -1,0 +1,29 @@
+version: 2
+exposures:
+  - name: transactions
+    label: Transactions
+    description: '### Visualization: Table
+
+
+      No description provided in Metabase
+
+
+      #### Metadata
+
+
+      Metabase ID: __33__
+
+
+      Created On: __2024-10-11T23:46:29.272117Z__'
+    type: analysis
+    url: http://localhost:3000/card/33
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('payments')
+    config:
+      meta:
+        average_query_time: '0:00.134'
+        last_used_at: '2024-12-20T12:30:05.932096Z'

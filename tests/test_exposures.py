@@ -1,11 +1,12 @@
 from operator import itemgetter
 from pathlib import Path
+from typing import cast
 
 import pytest
 import yaml
 
 from dbtmetabase._exposures import _Context, _Exposure
-from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase
+from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase, MockMetabase
 
 
 def _assert_exposures(expected_path: Path, actual_path: Path):
@@ -17,9 +18,12 @@ def _assert_exposures(expected_path: Path, actual_path: Path):
     assert actual["exposures"] == sorted(expected["exposures"], key=itemgetter("name"))
 
 
-def test_exposures_default(core: MockDbtMetabase):
-    fixtures_path = FIXTURES_PATH / "exposure" / "default"
-    output_path = TMP_PATH / "exposure" / "default"
+@pytest.mark.parametrize("prefix", ["mbql4", "mbql5"])
+def test_exposures_default(core: MockDbtMetabase, prefix: str):
+    cast(MockMetabase, core.metabase).prefix = prefix
+
+    fixtures_path = FIXTURES_PATH / prefix / "exposure" / "default"
+    output_path = TMP_PATH / prefix / "exposure" / "default"
     core.extract_exposures(
         output_path=str(output_path),
         output_grouping=None,
@@ -32,9 +36,12 @@ def test_exposures_default(core: MockDbtMetabase):
     )
 
 
-def test_exposures_collection_grouping(core: MockDbtMetabase):
-    fixtures_path = FIXTURES_PATH / "exposure" / "collection"
-    output_path = TMP_PATH / "exposure" / "collection"
+@pytest.mark.parametrize("prefix", ["mbql4", "mbql5"])
+def test_exposures_collection_grouping(core: MockDbtMetabase, prefix: str):
+    cast(MockMetabase, core.metabase).prefix = prefix
+
+    fixtures_path = FIXTURES_PATH / prefix / "exposure" / "collection"
+    output_path = TMP_PATH / prefix / "exposure" / "collection"
     core.extract_exposures(
         output_path=str(output_path),
         output_grouping="collection",
@@ -44,9 +51,12 @@ def test_exposures_collection_grouping(core: MockDbtMetabase):
         _assert_exposures(file, output_path / file.name)
 
 
-def test_exposures_grouping_type(core: MockDbtMetabase):
-    fixtures_path = FIXTURES_PATH / "exposure" / "type"
-    output_path = TMP_PATH / "exposure" / "type"
+@pytest.mark.parametrize("prefix", ["mbql4", "mbql5"])
+def test_exposures_grouping_type(core: MockDbtMetabase, prefix: str):
+    cast(MockMetabase, core.metabase).prefix = prefix
+
+    fixtures_path = FIXTURES_PATH / prefix / "exposure" / "type"
+    output_path = TMP_PATH / prefix / "exposure" / "type"
     core.extract_exposures(
         output_path=str(output_path),
         output_grouping="type",
@@ -123,116 +133,3 @@ def test_extract_exposures_native_depends(
     )
     assert expected == exposure.depends
     assert query == exposure.native_query
-
-
-def test_mbql5_query_basic(core: MockDbtMetabase):
-    """Test MBQL 5 query with a simple source-table (34)."""
-
-    ctx = _Context(
-        model_refs={
-            "database.public.orders": "ref('orders')",
-        },
-        database_names={2: "database"},
-        table_names={10: "database.public.orders"},
-    )
-    exposure = _Exposure(
-        model="card",
-        uid="34",
-        label="Orders Count by Month (MBQL 5)",
-    )
-    card = core.metabase.find_card("34")
-    assert card is not None
-    core._exposure_card(ctx=ctx, exposure=exposure, card=card)
-    assert {"database.public.orders"} == exposure.depends
-
-
-def test_mbql5_query_with_source_card(core: MockDbtMetabase):
-    """Test MBQL 5 query that references another card via source-card (38 -> 34)."""
-
-    ctx = _Context(
-        model_refs={
-            "database.public.orders": "ref('orders')",
-        },
-        database_names={2: "database"},
-        table_names={10: "database.public.orders"},
-    )
-    exposure = _Exposure(
-        model="card",
-        uid="38",
-        label="Orders Filtered (MBQL 5 source-card)",
-    )
-    # Card 38 references card 34 via source-card, which references table 10
-    card = core.metabase.find_card("38")
-    assert card is not None
-    core._exposure_card(ctx=ctx, exposure=exposure, card=card)
-    assert {"database.public.orders"} == exposure.depends
-
-
-def test_mbql5_query_with_joins(core: MockDbtMetabase):
-    """Test MBQL 5 query with joins (35)."""
-
-    ctx = _Context(
-        model_refs={
-            "database.public.orders": "ref('orders')",
-            "database.public.customers": "ref('customers')",
-        },
-        database_names={2: "database"},
-        table_names={
-            10: "database.public.orders",
-            12: "database.public.customers",
-        },
-    )
-    exposure = _Exposure(
-        model="card",
-        uid="35",
-        label="Orders + Customers (MBQL 5)",
-    )
-    card = core.metabase.find_card("35")
-    assert card is not None
-    core._exposure_card(ctx=ctx, exposure=exposure, card=card)
-    assert {"database.public.orders", "database.public.customers"} == exposure.depends
-
-
-def test_mbql5_native_query(core: MockDbtMetabase):
-    """Test MBQL 5 native (SQL) query stage (36)."""
-
-    ctx = _Context(
-        model_refs={
-            "database.public.orders": "ref('orders')",
-        },
-        database_names={2: "database"},
-        table_names={},
-    )
-    exposure = _Exposure(
-        model="card",
-        uid="36",
-        label="Orders SQL (MBQL 5)",
-    )
-    card = core.metabase.find_card("36")
-    assert card is not None
-    core._exposure_card(ctx=ctx, exposure=exposure, card=card)
-    assert {"database.public.orders"} == exposure.depends
-    assert (
-        "SELECT * FROM public.orders WHERE status = 'completed'"
-        == exposure.native_query
-    )
-
-
-def test_mbql5_multi_stage_query(core: MockDbtMetabase):
-    """Test MBQL 5 query with multiple stages (card 37)."""
-    ctx = _Context(
-        model_refs={
-            "database.public.orders": "ref('orders')",
-        },
-        database_names={2: "database"},
-        table_names={10: "database.public.orders"},
-    )
-    exposure = _Exposure(
-        model="card",
-        uid="37",
-        label="High Volume Orders (MBQL 5 Multi-Stage)",
-    )
-    card = core.metabase.find_card("37")
-    assert card is not None
-    core._exposure_card(ctx=ctx, exposure=exposure, card=card)
-    assert {"database.public.orders"} == exposure.depends

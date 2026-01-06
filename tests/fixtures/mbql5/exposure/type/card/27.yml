@@ -1,0 +1,30 @@
+version: 2
+exposures:
+  - name: orders___customers
+    label: Orders + Customers
+    description: '### Visualization: Table
+
+
+      Orders and customers
+
+
+      #### Metadata
+
+
+      Metabase ID: __27__
+
+
+      Created On: __2024-06-19T11:57:35.85999Z__'
+    type: analysis
+    url: http://localhost:3000/card/27
+    maturity: medium
+    owner:
+      name: dbtmetabase
+      email: dbtmetabase@example.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
+    config:
+      meta:
+        average_query_time: '0:00.187'
+        last_used_at: '2025-01-30T09:52:27.789583Z'
