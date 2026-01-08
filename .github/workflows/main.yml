@@ -6,7 +6,7 @@ on:
       - main
   release:
     types:
-      - released
+      - published
 
 jobs:
   build:
