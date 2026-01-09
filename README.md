@@ -11,7 +11,7 @@ If dbt is your source of truth for database schemas and you use Metabase as your
 
 ## Requirements
 
-Requires Python 3.8 or above.
+Requires Python 3.10 or above.
 
 For development, you will need [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
 
