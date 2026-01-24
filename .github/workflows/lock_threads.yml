@@ -16,3 +16,4 @@ jobs:
       - uses: dessant/lock-threads@v6
         with:
           issue-inactive-days: '30'
+          pr-inactive-days: '30'
