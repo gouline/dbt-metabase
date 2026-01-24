@@ -437,14 +437,18 @@ class ModelsMixin(metaclass=ABCMeta):
             body_field["coercion_strategy"] = column.coercion_strategy
 
         settings = api_field.get("settings") or {}
+        settings_updated = False
         if settings.get("number_style") != column.number_style and column.number_style:
             settings["number_style"] = column.number_style
+            settings_updated = True
         if settings.get("decimals") != column.decimals and column.decimals is not None:
             settings["decimals"] = column.decimals
+            settings_updated = True
         if settings.get("currency") != column.currency and column.currency:
             settings["currency"] = column.currency
+            settings_updated = True
 
-        if settings:
+        if settings_updated:
             body_field["settings"] = settings
 
         # Allow explicit null type to override detected one
