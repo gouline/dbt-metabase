@@ -20,10 +20,17 @@ from .manifest import DEFAULT_SCHEMA, Manifest
 
 _RESOURCE_VERSION = 2
 
-# Extracting table in `from` and `join` clauses (won't recognize some valid SQL, e.g. `from "table with spaces"`)
-_EXPOSURE_PARSER = re.compile(r"[FfJj][RrOo][OoIi][MmNn]\s+([\w.\"`]+)")
+# Extract table references in FROM/JOIN clauses.
+# Won't recognize some valid SQL, e.g. `from "table with spaces"`.
+_EXPOSURE_PARSER = re.compile(
+    r"\b(?:from|join)\s+(?P<table>[\w.\"`]+)",
+    re.IGNORECASE,
+)
+
+# Extract CTE names from `WITH ... AS (...)` and subsequent `), ... AS (...)`.
 _CTE_PARSER = re.compile(
-    r"[Ww][Ii][Tt][Hh]\s+\b(\w+)\b\s+as|[)]\s*[,]\s*\b(\w+)\b\s+as"
+    r"(?:\bwith|\)\s*,)\s*(?P<cte>\w+)\s+as",
+    re.IGNORECASE,
 )
 
 _logger = logging.getLogger(__name__)
@@ -370,13 +377,15 @@ class ExposuresMixin(metaclass=ABCMeta):
         self, ctx: _Context, exposure: _Exposure, database: int, native_query: str
     ):
         # Parse common table expressions for exclusion
-        ctes: MutableSequence[str] = []
-        for matched_cte in re.findall(_CTE_PARSER, native_query):
-            ctes.extend(group.lower() for group in matched_cte if group)
+        ctes: MutableSequence[str] = [
+            matched_cte.group("cte").lower()
+            for matched_cte in _CTE_PARSER.finditer(native_query)
+        ]
 
         # Parse SQL for exposures through FROM or JOIN clauses
-        for sql_ref in re.findall(_EXPOSURE_PARSER, native_query):
-            sql_ref = sql_ref.strip("`")  # BigQuery uses backticks `dataset.table`
+        for matched_sql_ref in _EXPOSURE_PARSER.finditer(native_query):
+            sql_ref = matched_sql_ref.group("table").strip("`")
+            # BigQuery uses backticks `dataset.table`
 
             # DATABASE.schema.table -> [database, schema, table]
             parsed_model_path = [s.strip('"').lower() for s in sql_ref.split(".")]
