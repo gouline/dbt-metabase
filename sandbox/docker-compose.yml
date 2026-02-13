@@ -2,7 +2,7 @@ name: dbt-metabase-sandbox
 
 services:
   postgres:
-    image: postgres:16.4
+    image: postgres:18
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
@@ -22,7 +22,7 @@ services:
     restart: always
 
   metabase:
-    image: metabase/metabase:v0.57.x
+    image: metabase/metabase:v0.58.x
     environment:
       - MB_SETUP_TOKEN=${MB_SETUP_TOKEN:-}
       - MB_DB_FILE=/metabase-data/metabase.db
@@ -42,13 +42,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-  
+
   app:
     build:
       context: .
       additional_contexts:
         root: ..
-    command: init
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
