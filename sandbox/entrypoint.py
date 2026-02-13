@@ -1,39 +1,30 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import logging
+import os
+import subprocess
 
 import requests
-from molot import envarg, envarg_int, evaluate, shell, target
 
-POSTGRES_HOST = envarg("POSTGRES_HOST")
-POSTGRES_PORT = envarg_int("POSTGRES_PORT")
-POSTGRES_DB = envarg("POSTGRES_DB")
-POSTGRES_USER = envarg("POSTGRES_USER")
-POSTGRES_PASSWORD = envarg("POSTGRES_PASSWORD")
-MB_HOST = envarg("MB_HOST")
-MB_PORT = envarg_int("MB_PORT")
-MB_SETUP_TOKEN = envarg("MB_SETUP_TOKEN")
-MB_USER = envarg("MB_USER")
-MB_PASSWORD = envarg("MB_PASSWORD")
-MB_NAME = envarg("MB_NAME", "dbtmetabase")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+MB_HOST = os.getenv("MB_HOST")
+MB_PORT = os.getenv("MB_PORT")
+MB_SETUP_TOKEN = os.getenv("MB_SETUP_TOKEN")
+MB_USER = os.getenv("MB_USER")
+MB_PASSWORD = os.getenv("MB_PASSWORD")
+MB_NAME = os.getenv("MB_NAME", "dbtmetabase")
 
 MB_API_URL = f"http://{MB_HOST}:{MB_PORT}/api"
 
 
-@target(
-    description="initial setup",
-    depends=["dbt_run", "metabase_setup"],
-)
-def init():
-    pass
-
-
-@target(description="run dbt project")
 def dbt_run():
-    shell("dbt seed --profiles-dir .")
-    shell("dbt run --profiles-dir .")
+    subprocess.run("dbt seed --profiles-dir .", shell=True)
+    subprocess.run("dbt run --profiles-dir .", shell=True)
 
 
-@target(description="set up Metabase user and database")
 def metabase_setup():
     setup_resp = requests.post(
         url=f"{MB_API_URL}/setup",
@@ -154,4 +145,6 @@ def metabase_setup():
     ).raise_for_status()
 
 
-evaluate()
+if __name__ == "__main__":
+    dbt_run()
+    metabase_setup()

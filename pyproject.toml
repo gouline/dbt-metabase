@@ -37,7 +37,6 @@ dev = [
     "ruff>=0.14.5",
     "pyright>=1.1.407",
     "pytest>=9.0.1",
-    "molot~=1.0.3",
     "dbt-core~=1.11.2",
     "dbt-postgres~=1.10.0",
     "python-dotenv~=1.2.1",
