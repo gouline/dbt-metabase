@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from operator import attrgetter
 
+import pytest
+
 from dbtmetabase.manifest import Column, Group, Manifest, Model
 from tests._mocks import FIXTURES_PATH, MockManifest
 
@@ -398,6 +400,46 @@ def test_v2():
             ),
         ],
     )
+
+
+@pytest.mark.parametrize(
+    ("constraint_to", "expected_table"),
+    [
+        ("ref('orders')", "public.orders"),
+        ('"project"."public"."orders"', "public.orders"),
+        ('"public"."orders"', "public.orders"),
+        ("`project`.`public`.`orders`", "public.orders"),
+        ("`public`.`orders`", "public.orders"),
+        ("project.public.orders", "public.orders"),
+        ("public.orders", "public.orders"),
+    ],
+)
+def test_set_column_relationship_parses_constraint_to_formats(
+    constraint_to: str, expected_table: str
+):
+    manifest = Manifest(FIXTURES_PATH / "manifest-v12.json")
+    column = Column(name="order_id")
+    manifest_column = {
+        "name": "order_id",
+        "constraints": [
+            {
+                "type": "foreign_key",
+                "to": constraint_to,
+                "to_columns": ["id"],
+            }
+        ],
+    }
+
+    manifest._set_column_relationship(
+        manifest_column=manifest_column,
+        column=column,
+        schema="public",
+        relationship=None,
+    )
+
+    assert column.semantic_type == "type/FK"
+    assert column.fk_target_table == expected_table
+    assert column.fk_target_field == "id"
 
 
 def _assert_models_equal(
