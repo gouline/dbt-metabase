@@ -473,13 +473,16 @@ class ModelsMixin(metaclass=ABCMeta):
 
         metadata = self.metabase.get_database_metadata(database_id)
 
-        bigquery_schema = metadata.get("details", {}).get("dataset-id")
+        default_schema = DEFAULT_SCHEMA
+        engine = metadata.get("engine", "")
+        if "bigquery" in engine:
+            default_schema = metadata.get("details", {}).get("dataset-id")
+        elif "athena" in engine:
+            default_schema = metadata.get("details", {}).get("dbname")
 
         for table in metadata.get("tables", []):
             # table[schema] is null for bigquery datasets
-            table["schema"] = (
-                table.get("schema") or bigquery_schema or DEFAULT_SCHEMA
-            ).upper()
+            table["schema"] = (table.get("schema") or default_schema).upper()
 
             fields = {}
             for field in table.get("fields", []):
