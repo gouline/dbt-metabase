@@ -44,6 +44,8 @@ DEFAULT_SCHEMA = "PUBLIC"
 
 # Foreign key constraint: "schema.model (column)" / "model (column)"
 _CONSTRAINT_FK_PARSER = re.compile(r"(?P<model>.+)\s+\((?P<column>.+)\)")
+# Ref parser: "ref('model')"
+_REF_PARSER = re.compile(r"ref\('(?P<model>.+)'\)")
 
 
 class Manifest:
@@ -287,10 +289,10 @@ class Manifest:
             elif constraint["type"] == "foreign_key":
                 # Constraint: expression
                 if constraint_expr := constraint.get("expression"):
-                    constraint_fk = _CONSTRAINT_FK_PARSER.search(constraint_expr)
-                    if constraint_fk:
-                        fk_target_table = constraint_fk.group("model")
-                        fk_target_field = constraint_fk.group("column")
+                    constraint_to_ref = _CONSTRAINT_FK_PARSER.search(constraint_expr)
+                    if constraint_to_ref:
+                        fk_target_table = constraint_to_ref.group("model")
+                        fk_target_field = constraint_to_ref.group("column")
                     else:
                         _logger.warning(
                             "Unparsable '%s' foreign key constraint: %s",
@@ -299,12 +301,16 @@ class Manifest:
                         )
 
                 # Constraint: to + to_columns
-                elif constraint_to := constraint.get("to"):
-                    constraint_to_path = constraint_to.split(".")
-                    constraint_to_columns = constraint.get("to_columns", [])
-                    if len(constraint_to_path) <= 3 and len(constraint_to_columns) == 1:
+                elif (constraint_to := constraint.get("to")) and (
+                    constraint_to_columns := constraint.get("to_columns")
+                ):
+                    if ref := _REF_PARSER.search(constraint_to):
+                        # ref('model') -> model
+                        fk_target_table = ref.group("model")
+                        fk_target_field = constraint_to_columns[0]
+                    elif (path := constraint_to.split(".")) and len(path) <= 3:
                         # "project"."schema"."model" -> "schema"."model"
-                        fk_target_table = ".".join(constraint_to_path[-2:])
+                        fk_target_table = ".".join(path[-2:])
                         fk_target_field = constraint_to_columns[0]
                     else:
                         _logger.warning(
@@ -332,7 +338,7 @@ class Manifest:
             fk_target_table_path.insert(0, schema)
 
         column.semantic_type = "type/FK"
-        column.fk_target_table = ".".join([x.strip('"') for x in fk_target_table_path])
+        column.fk_target_table = ".".join([x.strip('"`') for x in fk_target_table_path])
         column.fk_target_field = fk_target_field.strip('"')
         _logger.debug(
             "Relation from '%s' to '%s.%s'",
