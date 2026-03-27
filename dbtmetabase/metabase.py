@@ -199,7 +199,7 @@ class Metabase:
                 _logger.warning("User '%s' not found", uid)
                 return None
             elif error.response.status_code == 403:
-                _logger.warning("No permission to fetch user '%s', skipping creator info", uid)
+                _logger.warning("User '%s' not accessible", uid)
                 return None
             elif (
                 error.response.status_code == 400
