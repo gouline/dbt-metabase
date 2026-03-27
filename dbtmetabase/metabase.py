@@ -167,6 +167,9 @@ class Metabase:
             if error.response.status_code == 404:
                 _logger.warning("Card '%s' not found", uid)
                 return None
+            elif error.response.status_code == 403:
+                _logger.warning("Card '%s' not accessible", uid)
+                return None
             raise
 
     def format_card_url(self, uid: str) -> str:
@@ -194,6 +197,9 @@ class Metabase:
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == 404:
                 _logger.warning("User '%s' not found", uid)
+                return None
+            elif error.response.status_code == 403:
+                _logger.warning("User '%s' not accessible", uid)
                 return None
             elif (
                 error.response.status_code == 400
