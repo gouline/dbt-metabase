@@ -2,7 +2,7 @@ from collections.abc import MutableSequence
 from typing import cast
 from unittest.mock import Mock
 
-from dbtmetabase._models import _Context
+from dbtmetabase._models import _build_tables, _Context
 from dbtmetabase.manifest import Column, Group, Model
 from tests._mocks import MockDbtMetabase
 
@@ -83,7 +83,9 @@ def test_build_lookups(core: MockDbtMetabase):
         "INVENTORY.SKUS": {"SKU_ID", "PRODUCT"},
     }
 
-    actual_tables = core._get_metabase_tables(database_id="2")
+    actual_tables = _build_tables(
+        metadata=core.metabase.get_database_metadata("2"),
+    )
 
     assert set(actual_tables.keys()) == set(expected.keys())
 
@@ -151,7 +153,9 @@ def test_multi_database_get_tables(core: MockDbtMetabase):
     core._metabase = mock_metabase
 
     # Test the method
-    tables = core._get_metabase_tables("test_db_id")
+    tables = _build_tables(
+        metadata=core.metabase.get_database_metadata("test_db_id"),
+    )
 
     # Verify multi-database tables are keyed correctly
     assert "MY_DATABASE.BRONZE.MY_MODEL" in tables
