@@ -121,7 +121,7 @@ def test_extract_exposures_native_depends(
         uid="",
         label="",
     )
-    core._exposure_card(
+    core._extract_exposure_card(
         ctx=ctx,
         exposure=exposure,
         card={
@@ -167,7 +167,7 @@ def test_extract_exposures_native_depends_without__database_name(
         uid="",
         label="",
     )
-    core._exposure_card(
+    core._extract_exposure_card(
         ctx=ctx,
         exposure=exposure,
         card={

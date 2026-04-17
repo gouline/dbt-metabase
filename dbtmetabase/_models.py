@@ -65,7 +65,7 @@ class ModelsMixin(metaclass=ABCMeta):
         if not database:
             raise MetabaseStateError(f"Database not found: {metabase_database}")
 
-        models = self.__filtered_models(
+        models = _filtered_models(
             models=self.manifest.read_models(),
             database_filter=database_filter,
             schema_filter=schema_filter,
@@ -77,56 +77,17 @@ class ModelsMixin(metaclass=ABCMeta):
 
         deadline = int(time.time()) + sync_timeout
         synced = False
-        while not synced:
+        while not synced and int(time.time()) <= deadline:
             time.sleep(_SYNC_PERIOD)
 
-            tables = self._get_metabase_tables(database["id"])
-
-            synced = True
-            for model in models:
-                schema_name = model.schema.upper()
-                model_name = model.alias.upper()
-                schema_table_key = f"{schema_name}.{model_name}"
-                table = tables.get(schema_table_key)
-                table_key = schema_table_key
-
-                # Fallback for multi-database connections: try database.schema.table format
-                if not table and model.database:
-                    database_schema_table_key = model.alias_path.upper()
-                    table = tables.get(database_schema_table_key)
-                    table_key = database_schema_table_key
-
-                if not table:
-                    _logger.warning(
-                        "Table '%s' not in schema '%s'", table_key, schema_name
-                    )
-                    synced = False
-                    continue
-
-                for column in model.columns:
-                    column_name = column.name.upper()
-
-                    field = table.get("fields", {}).get(column_name)
-                    if not field:
-                        if table.get("visibility_type") is not None:
-                            table_label = "hidden table"
-                            table["stale"] = True
-                        else:
-                            table_label = "table"
-                            synced = False
-
-                        _logger.warning(
-                            "Field '%s' not in %s '%s'",
-                            column_name,
-                            table_label,
-                            table_key,
-                        )
-                        continue
-
+            tables = _build_tables(
+                metadata=self.metabase.get_database_metadata(database["id"])
+            )
+            synced = _sync_tables(
+                tables=tables,
+                models=models,
+            )
             ctx.tables = tables
-
-            if int(time.time()) > deadline:
-                break
 
         if not synced and sync_timeout:
             raise MetabaseStateError("Unable to sync models with Metabase")
@@ -250,14 +211,14 @@ class ModelsMixin(metaclass=ABCMeta):
             return success
 
         for column in model.columns:
-            success &= self.__export_column(
+            success &= self._export_column(
                 ctx,
                 table_key=table_key,
                 column=column,
             )
 
         if order_fields:
-            self.__export_model_column_order(
+            self._export_model_column_order(
                 ctx=ctx,
                 model=model,
                 api_table=api_table,
@@ -271,7 +232,7 @@ class ModelsMixin(metaclass=ABCMeta):
 
         return success
 
-    def __export_model_column_order(
+    def _export_model_column_order(
         self,
         ctx: _Context,
         model: Model,
@@ -324,7 +285,7 @@ class ModelsMixin(metaclass=ABCMeta):
                     ", ".join(details),
                 )
 
-    def __export_column(
+    def _export_column(
         self,
         ctx: _Context,
         table_key: str,
@@ -468,72 +429,6 @@ class ModelsMixin(metaclass=ABCMeta):
 
         return success
 
-    def _get_metabase_tables(self, database_id: str) -> Mapping[str, MutableMapping]:
-        tables = {}
-
-        metadata = self.metabase.get_database_metadata(database_id)
-
-        default_schema = DEFAULT_SCHEMA
-        engine = metadata.get("engine", "")
-        if "bigquery" in engine:
-            default_schema = metadata.get("details", {}).get("dataset-id")
-        elif "athena" in engine:
-            default_schema = metadata.get("details", {}).get("dbname")
-
-        for table in metadata.get("tables", []):
-            # table[schema] is null for bigquery datasets
-            table["schema"] = (table.get("schema") or default_schema).upper()
-
-            fields = {}
-            for field in table.get("fields", []):
-                new_field = field.copy()
-                new_field["kind"] = "field"
-
-                field_name = field["name"].upper()
-                fields[field_name] = new_field
-
-            new_table = table.copy()
-            new_table["kind"] = "table"
-            new_table["fields"] = fields
-
-            schema_name = table["schema"].upper()
-            table_name = table["name"].upper()
-
-            # Handle database.schema.table format when database info is available
-            if table_db := table.get("db"):
-                db_parts = str(table_db).split(".")
-                if len(db_parts) >= 2:
-                    # Multi-database connections: "database.schema" format
-                    database_name = db_parts[0].upper()
-                else:
-                    # Single database: just the database name
-                    database_name = str(table_db).upper()
-
-                if database_name:
-                    schema_name = f"{database_name}.{schema_name}"
-
-            tables[f"{schema_name}.{table_name}"] = new_table
-
-        return tables
-
-    def __filtered_models(
-        self,
-        models: Iterable[Model],
-        database_filter: Filter | None,
-        schema_filter: Filter | None,
-        model_filter: Filter | None,
-        skip_sources: bool,
-    ) -> Iterable[Model]:
-        def selected(m: Model) -> bool:
-            return (
-                (not skip_sources or m.group != Group.sources)
-                and (not database_filter or database_filter.match(m.database))
-                and (not schema_filter or schema_filter.match(m.schema))
-                and (not model_filter or model_filter.match(m.name))
-            )
-
-        return list(filter(selected, models))
-
 
 @dc.dataclass
 class _Context:
@@ -557,3 +452,116 @@ class _Context:
         update["body"] = body
 
         self.updates[key] = update
+
+
+def _filtered_models(
+    models: Iterable[Model],
+    database_filter: Filter | None,
+    schema_filter: Filter | None,
+    model_filter: Filter | None,
+    skip_sources: bool,
+) -> Iterable[Model]:
+    def selected(m: Model) -> bool:
+        return (
+            (not skip_sources or m.group != Group.sources)
+            and (not database_filter or database_filter.match(m.database))
+            and (not schema_filter or schema_filter.match(m.schema))
+            and (not model_filter or model_filter.match(m.name))
+        )
+
+    return list(filter(selected, models))
+
+
+def _build_tables(metadata: Mapping) -> Mapping[str, MutableMapping]:
+    """Build table lookup from Metabase metadata."""
+
+    tables = {}
+
+    default_schema = DEFAULT_SCHEMA
+    engine = metadata.get("engine", "")
+    if "bigquery" in engine:
+        default_schema = metadata.get("details", {}).get("dataset-id")
+    elif "athena" in engine:
+        default_schema = metadata.get("details", {}).get("dbname")
+
+    for table in metadata.get("tables", []):
+        # table[schema] is null for bigquery datasets
+        table["schema"] = (table.get("schema") or default_schema).upper()
+
+        fields = {}
+        for field in table.get("fields", []):
+            new_field = field.copy()
+            new_field["kind"] = "field"
+
+            field_name = field["name"].upper()
+            fields[field_name] = new_field
+
+        new_table = table.copy()
+        new_table["kind"] = "table"
+        new_table["fields"] = fields
+
+        schema_name = table["schema"].upper()
+        table_name = table["name"].upper()
+
+        # Handle database.schema.table format when database info is available
+        if table_db := table.get("db"):
+            db_parts = str(table_db).split(".")
+            if len(db_parts) >= 2:
+                # Multi-database connections: "database.schema" format
+                database_name = db_parts[0].upper()
+            else:
+                # Single database: just the database name
+                database_name = str(table_db).upper()
+
+            if database_name:
+                schema_name = f"{database_name}.{schema_name}"
+
+        tables[f"{schema_name}.{table_name}"] = new_table
+
+    return tables
+
+
+def _sync_tables(tables: Mapping[str, MutableMapping], models: Iterable[Model]) -> bool:
+    """Sync models against tables and return sync status."""
+
+    synced = True
+
+    for model in models:
+        schema_name = model.schema.upper()
+        model_name = model.alias.upper()
+        schema_table_key = f"{schema_name}.{model_name}"
+        table = tables.get(schema_table_key)
+        table_key = schema_table_key
+
+        # Fallback for multi-database connections: try database.schema.table format
+        if not table and model.database:
+            database_schema_table_key = model.alias_path.upper()
+            table = tables.get(database_schema_table_key)
+            table_key = database_schema_table_key
+
+        if not table:
+            _logger.warning("Table '%s' not in schema '%s'", table_key, schema_name)
+            synced = False
+            continue
+
+        for column in model.columns:
+            column_name = column.name.upper()
+
+            field = table.get("fields", {}).get(column_name)
+            if not field:
+                if table.get("visibility_type") is not None:
+                    table_label = "hidden table"
+                    table["stale"] = True
+                else:
+                    table_label = "table"
+                    synced = False
+
+                _logger.warning(
+                    "Field '%s' not in %s '%s'",
+                    column_name,
+                    table_label,
+                    table_key,
+                )
+                continue
+
+    return synced

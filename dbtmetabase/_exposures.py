@@ -137,7 +137,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                         f"Visualization: {entity.get('display', 'Unknown').title()}"
                     )
 
-                    self._exposure_card(ctx, exposure, entity)
+                    self._extract_exposure_card(ctx, exposure, entity)
 
                     if average_query_time_ms := entity.get("average_query_time"):
                         average_query_time_s = average_query_time_ms / 1000
@@ -163,7 +163,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                             continue
 
                         if card := self.metabase.find_card(uid=card["id"]):
-                            self._exposure_card(ctx, exposure, card)
+                            self._extract_exposure_card(ctx, exposure, card)
                 else:
                     _logger.warning("Unexpected collection item '%s'", item["model"])
                     continue
@@ -202,7 +202,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                         "id": item["id"],
                         "type": item["model"],
                         "collection": collection_slug,
-                        "body": self.__format_exposure(
+                        "body": self._format_exposure(
                             model=exposure.model,
                             uid=exposure.uid,
                             name=exposure.name,
@@ -221,29 +221,29 @@ class ExposuresMixin(metaclass=ABCMeta):
                     }
                 )
 
-        self.__write_exposures(exposures, output_path, output_grouping)
+        _write_exposures(exposures, output_path, output_grouping)
 
         return exposures
 
-    def _exposure_card(self, ctx: _Context, exposure: _Exposure, card: Mapping):
+    def _extract_exposure_card(self, ctx: _Context, exposure: _Exposure, card: Mapping):
         """Extracts exposures from Metabase questions."""
 
         dataset_query = card.get("dataset_query", {})
         if dataset_query.get("lib/type") == "mbql/query":
             # MBQL 5 format
             for stage in dataset_query.get("stages", []):
-                self.__exposure_mbql5_stage(ctx, exposure, card, stage)
+                self._extract_exposure_mbql5_stage(ctx, exposure, card, stage)
         else:
             # Legacy (MBQL 4) format
             card_type = dataset_query.get("type")
             if card_type == "query":
-                self.__exposure_legacy_query(ctx, exposure, card)
+                self._extract_exposure_legacy_query(ctx, exposure, card)
             elif card_type == "native":
-                self.__exposure_legacy_native(ctx, exposure, card)
+                self._extract_exposure_legacy_native(ctx, exposure, card)
             else:
                 _logger.warning("Unsupported card type '%s'", card_type)
 
-    def __exposure_mbql5_stage(
+    def _extract_exposure_mbql5_stage(
         self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
     ):
         """MBQL 5 queries use a stages-based format with lib/type props for each stage:
@@ -254,13 +254,13 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         stage_type = stage.get("lib/type")
         if stage_type == "mbql.stage/mbql":
-            self.__exposure_mbql5_query(ctx, exposure, card, stage)
+            self._extract_exposure_mbql5_query(ctx, exposure, card, stage)
         elif stage_type == "mbql.stage/native":
-            self.__exposure_mbql5_native(ctx, exposure, card, stage)
+            self._extract_exposure_mbql5_native(ctx, exposure, card, stage)
         else:
             _logger.debug("Unknown MBQL 5 stage type '%s'", stage_type)
 
-    def __exposure_mbql5_query(
+    def _extract_exposure_mbql5_query(
         self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
     ):
         """Extracts exposures from an MBQL 5 GUI stage."""
@@ -272,7 +272,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         if source_card is not None:
             # Stage based on another card/question
             if found_card := self.metabase.find_card(uid=str(source_card)):
-                self._exposure_card(ctx, exposure, found_card)
+                self._extract_exposure_card(ctx, exposure, found_card)
 
         elif source_table is not None and source_table in ctx.table_names:
             # Stage based on a table
@@ -284,9 +284,9 @@ class ExposuresMixin(metaclass=ABCMeta):
         # MBQL 5 joins have their own nested stages array with the same structure as top-level stages
         for join in stage.get("joins", []):
             for join_stage in join.get("stages", []):
-                self.__exposure_mbql5_stage(ctx, exposure, card, join_stage)
+                self._extract_exposure_mbql5_stage(ctx, exposure, card, join_stage)
 
-    def __exposure_mbql5_native(
+    def _extract_exposure_mbql5_native(
         self, ctx: _Context, exposure: _Exposure, card: Mapping, stage: Mapping
     ):
         """Extracts exposures from an MBQL 5 native stage."""
@@ -298,9 +298,9 @@ class ExposuresMixin(metaclass=ABCMeta):
         if not native_query or not database:
             return
 
-        self.__exposure_native_query(ctx, exposure, database, native_query)
+        self._extract_exposure_native_query(ctx, exposure, database, native_query)
 
-    def __exposure_legacy_query(
+    def _extract_exposure_legacy_query(
         self, ctx: _Context, exposure: _Exposure, card: Mapping
     ):
         """Extracts exposures from Metabase GUI queries."""
@@ -313,7 +313,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             # Question based on another question
             source_card_uid = query_source.split("__")[-1]
             if source_card := self.metabase.find_card(uid=source_card_uid):
-                self._exposure_card(ctx, exposure, source_card)
+                self._extract_exposure_card(ctx, exposure, source_card)
 
         elif isinstance(query_source, int) and query_source in ctx.table_names:
             # Question based on table
@@ -328,7 +328,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 # Question based on another question
                 source_card_uid = join_source.split("__")[-1]
                 if source_card := self.metabase.find_card(uid=source_card_uid):
-                    self._exposure_card(ctx, exposure, source_card)
+                    self._extract_exposure_card(ctx, exposure, source_card)
 
                 continue
 
@@ -338,7 +338,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                 exposure.depends.add(joined_table)
                 _logger.info("Extracted model '%s' from join", joined_table)
 
-    def __exposure_legacy_native(
+    def _extract_exposure_legacy_native(
         self, ctx: _Context, exposure: _Exposure, card: Mapping
     ):
         """Extracts exposures from Metabase native queries."""
@@ -350,9 +350,9 @@ class ExposuresMixin(metaclass=ABCMeta):
         if not native_query or not database:
             return
 
-        self.__exposure_native_query(ctx, exposure, database, native_query)
+        self._extract_exposure_native_query(ctx, exposure, database, native_query)
 
-    def __exposure_native_query(
+    def _extract_exposure_native_query(
         self, ctx: _Context, exposure: _Exposure, database: int, native_query: str
     ):
         # Parse common table expressions for exclusion
@@ -396,7 +396,7 @@ class ExposuresMixin(metaclass=ABCMeta):
             # Only include SQL for query exposures
             exposure.native_query = native_query
 
-    def __format_exposure(
+    def _format_exposure(
         self,
         model: str,
         uid: str,
@@ -476,44 +476,6 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         return exposure
 
-    def __write_exposures(
-        self,
-        exposures: Iterable[Mapping],
-        output_path: str,
-        output_grouping: str | None,
-    ):
-        """Write exposures to output files."""
-
-        grouped: MutableMapping[tuple[str, ...], MutableSequence[Mapping]] = {}
-        for exposure in exposures:
-            group: tuple[str, ...] = ("exposures",)
-            if output_grouping == "collection":
-                group = (exposure["collection"],)
-            elif output_grouping == "type":
-                group = (exposure["type"], exposure["id"])
-
-            exps = grouped.get(group, [])
-            exps.append(exposure)
-            if group not in grouped:
-                grouped[group] = exps
-
-        for group, exps in grouped.items():
-            path = Path(output_path).expanduser()
-            path = path.joinpath(*group[:-1]) / f"{group[-1]}.yml"
-            path.parent.mkdir(parents=True, exist_ok=True)
-
-            exps_unwrapped = (x["body"] for x in exps)
-            exps_sorted = sorted(exps_unwrapped, key=itemgetter("name"))
-
-            with open(path, "w", encoding="utf-8") as f:
-                dump_yaml(
-                    data={
-                        "version": _RESOURCE_VERSION,
-                        "exposures": exps_sorted,
-                    },
-                    stream=f,
-                )
-
 
 @dc.dataclass
 class _Context:
@@ -581,3 +543,41 @@ def _table_name(table: Mapping) -> str:
         str(table["name"]),
     ]
     return ".".join(part for part in path if part).lower()
+
+
+def _write_exposures(
+    exposures: Iterable[Mapping],
+    output_path: str,
+    output_grouping: str | None,
+):
+    """Write exposures to output files."""
+
+    grouped: MutableMapping[tuple[str, ...], MutableSequence[Mapping]] = {}
+    for exposure in exposures:
+        group: tuple[str, ...] = ("exposures",)
+        if output_grouping == "collection":
+            group = (exposure["collection"],)
+        elif output_grouping == "type":
+            group = (exposure["type"], exposure["id"])
+
+        exps = grouped.get(group, [])
+        exps.append(exposure)
+        if group not in grouped:
+            grouped[group] = exps
+
+    for group, exps in grouped.items():
+        path = Path(output_path).expanduser()
+        path = path.joinpath(*group[:-1]) / f"{group[-1]}.yml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        exps_unwrapped = (x["body"] for x in exps)
+        exps_sorted = sorted(exps_unwrapped, key=itemgetter("name"))
+
+        with open(path, "w", encoding="utf-8") as f:
+            dump_yaml(
+                data={
+                    "version": _RESOURCE_VERSION,
+                    "exposures": exps_sorted,
+                },
+                stream=f,
+            )
