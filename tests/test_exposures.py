@@ -5,7 +5,8 @@ from typing import cast
 import pytest
 import yaml
 
-from dbtmetabase._exposures import _Context, _Exposure
+from dbtmetabase._exposures import _build_model_refs, _Context, _Exposure
+from dbtmetabase.manifest import Group, Model
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase, MockMetabase
 
 
@@ -133,3 +134,174 @@ def test_extract_exposures_native_depends(
     )
     assert expected == exposure.depends
     assert query == exposure.native_query
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        (
+            "SELECT * FROM schema.table0",
+            {"schema.table0"},
+        ),
+        (
+            "SELECT * FROM table1",
+            {"public.table1"},
+        ),
+    ],
+)
+def test_extract_exposures_native_depends_without__database_name(
+    core: MockDbtMetabase,
+    query: str,
+    expected: set,
+):
+    ctx = _Context(
+        model_refs={
+            "schema.table0": "model0",
+            "public.table1": "model1",
+        },
+        database_names={1: ""},
+        table_names={},
+    )
+    exposure = _Exposure(
+        model="card",
+        uid="",
+        label="",
+    )
+    core._exposure_card(
+        ctx=ctx,
+        exposure=exposure,
+        card={
+            "dataset_query": {
+                "type": "native",
+                "database": 1,
+                "native": {"query": query},
+            }
+        },
+    )
+    assert expected == exposure.depends
+    assert query == exposure.native_query
+
+
+def test_model_refs_schema_alias_fallback_is_only_used_when_unique(
+    core: MockDbtMetabase,
+):
+    unique_models = [
+        Model(
+            database="warehouse",
+            schema="analytics",
+            group=Group.nodes,
+            name="orders",
+            alias="orders",
+        )
+    ]
+    unique_refs = _build_model_refs(unique_models)
+
+    assert unique_refs["warehouse.analytics.orders"] == "ref('orders')"
+    assert unique_refs["analytics.orders"] == "ref('orders')"
+
+    ambiguous_models = [
+        Model(
+            database="warehouse",
+            schema="analytics",
+            group=Group.nodes,
+            name="orders",
+            alias="orders",
+        ),
+        Model(
+            database="other_warehouse",
+            schema="analytics",
+            group=Group.nodes,
+            name="orders_alt",
+            alias="orders",
+        ),
+    ]
+    ambiguous_refs = _build_model_refs(ambiguous_models)
+
+    assert ambiguous_refs["warehouse.analytics.orders"] == "ref('orders')"
+    assert ambiguous_refs["other_warehouse.analytics.orders"] == "ref('orders_alt')"
+    assert "analytics.orders" not in ambiguous_refs
+
+
+class _NullDatabaseMetabase:
+    def __init__(self):
+        self._database = {
+            "id": 1,
+            "name": "Athena connection",
+            "details": {
+                "dbname": None,
+                "db": None,
+                "catalog": None,
+            },
+        }
+
+    def get_databases(self):
+        return [self._database]
+
+    def get_tables(self):
+        return [
+            {
+                "id": 42,
+                "name": "orders",
+                "schema": "analytics",
+                "db": self._database,
+            }
+        ]
+
+    def get_collections(self, exclude_personal: bool):
+        return [{"id": 7, "name": "Analytics", "slug": "analytics"}]
+
+    def get_collection_items(self, uid: str, models: tuple[str, ...]):
+        return [{"id": 99, "model": "card", "name": "Orders"}]
+
+    def find_card(self, uid: int):
+        return {
+            "id": uid,
+            "name": "Orders",
+            "description": "Question over orders",
+            "display": "table",
+            "created_at": "2026-01-01T00:00:00Z",
+            "dataset_query": {
+                "type": "query",
+                "query": {"source-table": 42},
+            },
+        }
+
+    def find_dashboard(self, uid: int):
+        return None
+
+    def find_user(self, uid: int):
+        return None
+
+    def format_card_url(self, uid: str):
+        return f"https://metabase.example.com/card/{uid}"
+
+    def format_dashboard_url(self, uid: str):
+        return f"https://metabase.example.com/dashboard/{uid}"
+
+
+class _NullDatabaseCore(MockDbtMetabase):
+    def __init__(self):
+        self._manifest = type(
+            "ManifestStub",
+            (),
+            {
+                "read_models": lambda self: [
+                    Model(
+                        database="warehouse",
+                        schema="analytics",
+                        group=Group.nodes,
+                        name="orders",
+                        alias="orders",
+                    )
+                ]
+            },
+        )()
+        self._metabase = _NullDatabaseMetabase()
+
+
+def test_extract_exposures_handles_null_database_details(tmp_path: Path):
+    core = _NullDatabaseCore()
+
+    exposures = list(core.extract_exposures(output_path=str(tmp_path)))
+
+    assert exposures[0]["body"]["depends_on"] == ["ref('orders')"]

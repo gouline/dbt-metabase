@@ -16,7 +16,7 @@ from dbtmetabase.metabase import Metabase
 
 from .errors import ArgumentError
 from .format import Filter, dump_yaml, safe_description, safe_name
-from .manifest import DEFAULT_SCHEMA, Manifest
+from .manifest import DEFAULT_SCHEMA, Manifest, Model
 
 _RESOURCE_VERSION = 2
 
@@ -81,33 +81,12 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         models = self.manifest.read_models()
 
-        def dbname(db: Mapping) -> str:
-            """Parse database name from Metabase database."""
-            if details := db.get("details"):
-                for key in (
-                    "dbname",
-                    "db",
-                    "project-id",
-                    "project-id-from-credentials",
-                    "catalog",
-                ):
-                    if key in details:
-                        return details[key]
-            return db.get("name", "")
-
         ctx = _Context(
-            model_refs={m.alias_path.lower(): m.ref for m in models if m.ref},
-            database_names={d["id"]: dbname(d) for d in self.metabase.get_databases()},
-            table_names={
-                t["id"]: ".".join(
-                    [
-                        dbname(t["db"]),
-                        t["schema"] or DEFAULT_SCHEMA,
-                        t["name"],
-                    ]
-                ).lower()
-                for t in self.metabase.get_tables()
+            model_refs=_build_model_refs(models),
+            database_names={
+                d["id"]: _database_name(d) for d in self.metabase.get_databases()
             },
+            table_names={t["id"]: _table_name(t) for t in self.metabase.get_tables()},
         )
 
         exposures = []
@@ -399,8 +378,8 @@ class ExposuresMixin(metaclass=ABCMeta):
                 parsed_model_path.insert(0, DEFAULT_SCHEMA.lower())
             # Missing database -> use query's database
             if len(parsed_model_path) < 3:
-                database_name = ctx.database_names.get(database, "")
-                parsed_model_path.insert(0, database_name.lower())
+                if database_name := ctx.database_names.get(database, ""):
+                    parsed_model_path.insert(0, database_name.lower())
 
             # Fully-qualified database.schema.table
             parsed_model = ".".join(parsed_model_path)
@@ -558,3 +537,47 @@ class _Exposure:
     last_used_at: str | None = None
     native_query: str | None = None
     depends: set[str] = dc.field(default_factory=set)
+
+
+def _database_name(db: Mapping) -> str:
+    """Parse a database identifier from Metabase database details."""
+    details = db.get("details", {})
+    for key in ("dbname", "db", "project-id", "project-id-from-credentials", "catalog"):
+        if value := details.get(key):
+            return str(value)
+    return ""
+
+
+def _build_model_refs(models: Sequence[Model]) -> Mapping[str, str]:
+    """Build ref lookup by fully-qualified path and unique schema.table fallback."""
+    refs = {m.alias_path.lower(): m.ref for m in models if m.ref}
+
+    short_refs: MutableMapping[str, str | None] = {}
+    for model in models:
+        if not model.ref:
+            continue
+
+        key = ".".join(
+            [
+                (model.schema or DEFAULT_SCHEMA).lower(),
+                model.alias.lower(),
+            ]
+        )
+        existing = short_refs.get(key)
+        if existing is None and key not in short_refs:
+            short_refs[key] = model.ref
+        elif existing != model.ref:
+            short_refs[key] = None
+
+    refs.update({key: ref for key, ref in short_refs.items() if ref})
+    return refs
+
+
+def _table_name(table: Mapping) -> str:
+    """Build table path matching available dbt ref keys."""
+    path = [
+        _database_name(table["db"]),
+        str(table.get("schema") or DEFAULT_SCHEMA),
+        str(table["name"]),
+    ]
+    return ".".join(part for part in path if part).lower()
