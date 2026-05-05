@@ -481,11 +481,11 @@ def _build_tables(metadata: Mapping) -> Mapping[str, MutableMapping]:
     engine = metadata.get("engine", "")
     if "bigquery" in engine:
         default_schema = metadata.get("details", {}).get("dataset-id")
-    elif "athena" in engine:
+    elif "athena" in engine or "mysql" in engine or "mariadb" in engine:
         default_schema = metadata.get("details", {}).get("dbname")
 
     for table in metadata.get("tables", []):
-        # table[schema] is null for bigquery datasets
+        # table[schema] is null for bigquery datasets and empty for mysql/mariadb
         table["schema"] = (table.get("schema") or default_schema).upper()
 
         fields = {}

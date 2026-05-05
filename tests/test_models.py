@@ -2,6 +2,8 @@ from collections.abc import MutableSequence
 from typing import cast
 from unittest.mock import Mock
 
+import pytest
+
 from dbtmetabase._models import _build_tables, _Context
 from dbtmetabase.manifest import Column, Group, Model
 from tests._mocks import MockDbtMetabase
@@ -236,6 +238,29 @@ def test_multi_database_model_matching():
         else:
             # Single-database
             assert table_key == f"{schema_name}.{model_name}"
+
+
+@pytest.mark.parametrize("engine", ["mysql", "mariadb"])
+def test_mysql_like_default_schema_fallback(engine: str):
+    """MySQL/MariaDB JDBC reports schema as empty; fall back to details.dbname."""
+
+    metadata = {
+        "engine": engine,
+        "details": {"dbname": "my_db"},
+        "tables": [
+            {
+                "id": 1,
+                "name": "my_model",
+                "schema": "",
+                "fields": [{"id": 1, "name": "id"}],
+            },
+        ],
+    }
+
+    tables = _build_tables(metadata=metadata)
+
+    assert "MY_DB.MY_MODEL" in tables
+    assert tables["MY_DB.MY_MODEL"]["schema"] == "MY_DB"
 
 
 def test_multi_database_foreign_key_resolution():
