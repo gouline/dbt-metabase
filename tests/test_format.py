@@ -51,6 +51,8 @@ def test_safe_description():
         safe_description("{{start_date}} - cast({{rolling_days}})")
         == "(start_date) - cast((rolling_days))"
     )
+    assert safe_description("before {% if true %} after") == "before ( if true ) after"
+    assert safe_description("before {# note #} after") == "before ( note ) after"
 
 
 def test_dump_yaml():

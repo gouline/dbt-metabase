@@ -305,3 +305,94 @@ def test_extract_exposures_handles_null_database_details(tmp_path: Path):
     exposures = list(core.extract_exposures(output_path=str(tmp_path)))
 
     assert exposures[0]["body"]["depends_on"] == ["ref('orders')"]
+
+
+class _JinjaNativeQueryMetabase:
+    def get_databases(self):
+        return [
+            {
+                "id": 1,
+                "name": "Warehouse",
+                "details": {"dbname": "warehouse"},
+            }
+        ]
+
+    def get_tables(self):
+        return []
+
+    def get_collections(self, exclude_personal: bool):
+        return [{"id": 7, "name": "Analytics", "slug": "analytics"}]
+
+    def get_collection_items(self, uid: str, models: tuple[str, ...]):
+        return [{"id": 99, "model": "card", "name": "Native question"}]
+
+    def find_card(self, uid: int):
+        return {
+            "id": uid,
+            "name": "Native question",
+            "description": "Contains {% condition %} and {{ variable }}",
+            "display": "table",
+            "created_at": "2026-01-01T00:00:00Z",
+            "dataset_query": {
+                "type": "native",
+                "database": 1,
+                "native": {
+                    "query": (
+                        "select *\n"
+                        "from analytics.orders\n"
+                        "where source = '{{#161}}'\n"
+                        "and pattern like '{%foo%}'"
+                    )
+                },
+            },
+            "creator": {
+                "email": "dbtmetabase@example.com",
+                "common_name": "dbtmetabase",
+            },
+        }
+
+    def find_dashboard(self, uid: int):
+        return None
+
+    def find_user(self, uid: int):
+        return None
+
+    def format_card_url(self, uid: str):
+        return f"https://metabase.example.com/card/{uid}"
+
+    def format_dashboard_url(self, uid: str):
+        return f"https://metabase.example.com/dashboard/{uid}"
+
+
+class _JinjaNativeQueryCore(MockDbtMetabase):
+    def __init__(self):
+        self._manifest = type(
+            "ManifestStub",
+            (),
+            {
+                "read_models": lambda self: [
+                    Model(
+                        database="warehouse",
+                        schema="analytics",
+                        group=Group.nodes,
+                        name="orders",
+                        alias="orders",
+                    )
+                ]
+            },
+        )()
+        self._metabase = _JinjaNativeQueryMetabase()
+
+
+def test_extract_exposures_wraps_jinja_like_native_sql_in_raw_blocks(tmp_path: Path):
+    core = _JinjaNativeQueryCore()
+
+    exposures = list(core.extract_exposures(output_path=str(tmp_path)))
+    description = exposures[0]["body"]["description"]
+
+    assert exposures[0]["body"]["depends_on"] == ["ref('orders')"]
+    assert "Contains ( condition ) and ( variable )" in description
+    assert "{% raw %}" in description
+    assert "{% endraw %}" in description
+    assert "where source = '{{#161}}'" in description
+    assert "and pattern like '{%foo%}'" in description
