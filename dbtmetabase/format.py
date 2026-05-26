@@ -62,6 +62,14 @@ class _YAMLDumper(yaml.Dumper):
         return super().increase_indent(flow, indentless=False)
 
 
+def _represent_str(dumper: yaml.Dumper, data: str):
+    style = "|" if "\n" in data else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+
+_YAMLDumper.add_representer(str, _represent_str)
+
+
 class _NullValue(str):
     """Explicitly null field value."""
 
