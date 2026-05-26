@@ -10,12 +10,11 @@ from pathlib import Path
 from typing import (
     Any,
 )
-from urllib.parse import unquote
 
 from dbtmetabase.metabase import Metabase
 
 from .errors import ArgumentError
-from .format import Filter, dump_yaml, safe_description, safe_name
+from .format import Filter, dump_yaml, safe_description, safe_identifier
 from .manifest import DEFAULT_SCHEMA, Manifest, Model
 
 _RESOURCE_VERSION = 2
@@ -91,6 +90,7 @@ class ExposuresMixin(metaclass=ABCMeta):
 
         exposures = []
         counts: MutableMapping[str, int] = {}
+        collection_groups: set[str] = set()
 
         for collection in self.metabase.get_collections(
             exclude_personal=not allow_personal_collections
@@ -98,9 +98,21 @@ class ExposuresMixin(metaclass=ABCMeta):
             collection_name = collection["name"]
 
             if "slug" in collection:
-                collection_slug = unquote(collection["slug"])
+                collection_group = safe_identifier(
+                    collection["slug"],
+                    fallback=f"collection_{collection['id']}",
+                    decode_url=True,
+                )
             else:
-                collection_slug = safe_name(collection["name"])
+                collection_group = safe_identifier(
+                    collection["name"],
+                    fallback=f"collection_{collection['id']}",
+                )
+            collection_group = _unique_group_name(
+                collection_group,
+                collection["id"],
+                collection_groups,
+            )
 
             if not collection_filter.match(collection_name):
                 _logger.debug("Skipping collection '%s'", collection["name"])
@@ -181,7 +193,10 @@ class ExposuresMixin(metaclass=ABCMeta):
                         exposure.creator_name = creator.get("common_name", "")
                         exposure.creator_email = creator.get("email", "")
 
-                exposure.name = safe_name(exposure.label)
+                exposure.name = safe_identifier(
+                    exposure.label,
+                    fallback=f"{exposure.model}_{exposure.uid}",
+                )
                 count = counts.get(exposure.name, 0)
                 counts[exposure.name] = count + 1
                 exposure.name = exposure.name + (f"_{count}" if count > 0 else "")
@@ -201,7 +216,7 @@ class ExposuresMixin(metaclass=ABCMeta):
                     {
                         "id": item["id"],
                         "type": item["model"],
-                        "collection": collection_slug,
+                        "collection": collection_group,
                         "body": self._format_exposure(
                             model=exposure.model,
                             uid=exposure.uid,
@@ -581,3 +596,22 @@ def _write_exposures(
                 },
                 stream=f,
             )
+
+
+def _unique_group_name(base: str, suffix: object, used: set[str]) -> str:
+    if base not in used:
+        used.add(base)
+        return base
+
+    candidate = f"{base}_{suffix}"
+    if candidate not in used:
+        used.add(candidate)
+        return candidate
+
+    counter = 1
+    while True:
+        candidate = f"{base}_{suffix}_{counter}"
+        if candidate not in used:
+            used.add(candidate)
+            return candidate
+        counter += 1

@@ -1,4 +1,11 @@
-from dbtmetabase.format import Filter, NullValue, dump_yaml, safe_description, safe_name
+from dbtmetabase.format import (
+    Filter,
+    NullValue,
+    dump_yaml,
+    safe_description,
+    safe_identifier,
+    safe_name,
+)
 from tests._mocks import FIXTURES_PATH, TMP_PATH
 
 
@@ -32,6 +39,23 @@ def test_safe_name():
     assert safe_name("Somebody's 2 collections!") == "somebody_s_2_collections_"
     assert safe_name("somebody_s_2_collections_") == "somebody_s_2_collections_"
     assert safe_name("") == ""
+
+
+def test_safe_identifier():
+    assert safe_identifier("Cash £ Reconciliation") == "cash_pound_sign_reconciliation"
+    assert safe_identifier("Finance €") == "finance_euro_sign"
+    assert safe_identifier("Café") == "cafe"
+    assert (
+        safe_identifier("Коллекция")
+        == "u041a_u043e_u043b_u043b_u0435_u043a_u0446_u0438_u044f"
+    )
+    assert (
+        safe_identifier("коллекция")
+        == "u043a_u043e_u043b_u043b_u0435_u043a_u0446_u0438_u044f"
+    )
+    assert safe_identifier("%25C2%25A3", decode_url=True) == "pound_sign"
+    assert safe_identifier("分析") == "u5206_u6790"
+    assert safe_identifier("!!!", fallback="card_42") == "card_42"
 
 
 def test_safe_description():
