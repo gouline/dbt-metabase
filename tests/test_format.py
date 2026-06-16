@@ -72,4 +72,5 @@ def test_dump_yaml():
         actual = f.read()
     with open(fixture_path, encoding="utf-8") as f:
         expected = f.read()
+    assert "attr1: |-" in actual
     assert actual == expected
