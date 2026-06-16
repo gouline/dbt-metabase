@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from dbtmetabase._exposures import _build_model_refs, _Context, _Exposure
+from dbtmetabase.format import safe_identifier
 from dbtmetabase.manifest import Group, Model
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase, MockMetabase
 
@@ -50,6 +51,8 @@ def test_exposures_collection_grouping(core: MockDbtMetabase, prefix: str):
 
     for file in fixtures_path.iterdir():
         _assert_exposures(file, output_path / file.name)
+
+    assert (output_path / f"{safe_identifier('коллекция')}.yml").exists()
 
 
 @pytest.mark.parametrize("prefix", ["mbql4", "mbql5"])
@@ -305,6 +308,66 @@ def test_extract_exposures_handles_null_database_details(tmp_path: Path):
     exposures = list(core.extract_exposures(output_path=str(tmp_path)))
 
     assert exposures[0]["body"]["depends_on"] == ["ref('orders')"]
+
+
+class _UnsafeCollectionMetabase(_NullDatabaseMetabase):
+    def get_collections(self, exclude_personal: bool):
+        return [
+            {
+                "id": 7,
+                "name": "Cash £ Reconciliation",
+                "slug": "cash_%25C2%25A3_reconciliation",
+            },
+            {
+                "id": 8,
+                "name": "Cash £ Reconciliation",
+                "slug": "cash_%C2%A3_reconciliation",
+            },
+            {"id": 9, "name": "分析", "slug": "%E5%88%86%E6%9E%90"},
+        ]
+
+    def get_collection_items(self, uid: str, models: tuple[str, ...]):
+        return [{"id": uid, "model": "card", "name": f"Orders {uid}"}]
+
+    def find_card(self, uid: int):
+        return {
+            "id": uid,
+            "name": "Finance €",
+            "description": "Question over orders",
+            "display": "table",
+            "created_at": "2026-01-01T00:00:00Z",
+            "dataset_query": {
+                "type": "query",
+                "query": {"source-table": 42},
+            },
+        }
+
+
+class _UnsafeCollectionCore(_NullDatabaseCore):
+    def __init__(self):
+        super().__init__()
+        self._metabase = _UnsafeCollectionMetabase()
+
+
+def test_extract_exposures_collection_grouping_uses_safe_identifiers(tmp_path: Path):
+    core = _UnsafeCollectionCore()
+
+    exposures = list(
+        core.extract_exposures(
+            output_path=str(tmp_path),
+            output_grouping="collection",
+        )
+    )
+
+    assert [exposure["body"]["name"] for exposure in exposures] == [
+        "finance_euro_sign",
+        "finance_euro_sign_1",
+        "finance_euro_sign_2",
+    ]
+
+    assert (tmp_path / "cash_pound_sign_reconciliation.yml").exists()
+    assert (tmp_path / "cash_pound_sign_reconciliation_8.yml").exists()
+    assert (tmp_path / f"{safe_identifier('分析')}.yml").exists()
 
 
 class _JinjaNativeQueryMetabase:

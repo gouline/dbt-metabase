@@ -3,10 +3,12 @@ from __future__ import annotations
 import fnmatch
 import logging
 import re
+import unicodedata
 from collections.abc import MutableSequence, Sequence
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, TextIO
+from urllib.parse import unquote
 
 import yaml
 from rich.logging import RichHandler
@@ -154,6 +156,90 @@ def safe_name(text: str | None) -> str:
         str: Sanitized lowercase string with underscores.
     """
     return re.sub(r"[^\w]", "_", text or "").lower()
+
+
+def _decode_url_component(text: str) -> str:
+    decoded = text
+    for _ in range(5):
+        unquoted = unquote(decoded)
+        if unquoted == decoded:
+            break
+        decoded = unquoted
+    return decoded
+
+
+def _sanitize_identifier_token(token: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_]+", "_", token).strip("_").lower()
+
+
+def _needs_identifier_separator(char: str) -> bool:
+    if not char or char == "_":
+        return False
+    if char.isascii():
+        return char.isalnum()
+    return True
+
+
+def _safe_identifier_inner(text: str) -> str:
+    chunks: list[str] = []
+    normalized = unicodedata.normalize("NFKC", text)
+
+    for index, char in enumerate(normalized):
+        if char.isascii():
+            if char.isalnum() or char == "_":
+                chunks.append(char.lower())
+            else:
+                chunks.append("_")
+            continue
+
+        transliterated = unicodedata.normalize("NFKD", char)
+        transliterated = transliterated.encode("ascii", "ignore").decode("ascii")
+        transliterated = _sanitize_identifier_token(transliterated)
+        if transliterated:
+            chunks.append(transliterated)
+            continue
+
+        category = unicodedata.category(char)
+        if category.startswith(("L", "N")):
+            token = f"u{ord(char):04x}"
+        else:
+            token = _sanitize_identifier_token(unicodedata.name(char, ""))
+            if not token:
+                token = f"u{ord(char):04x}"
+
+        if chunks and chunks[-1] != "_":
+            chunks.append("_")
+        chunks.append(token)
+
+        next_char = normalized[index + 1] if index + 1 < len(normalized) else ""
+        if _needs_identifier_separator(next_char):
+            chunks.append("_")
+
+    return "".join(chunks).strip("_").lower()
+
+
+def safe_identifier(
+    text: str | None,
+    *,
+    fallback: str = "",
+    decode_url: bool = False,
+) -> str:
+    """Sanitizes text to an ASCII-safe dbt/file identifier.
+
+    The output is restricted to ``[A-Za-z0-9_]`` and lowercased. Unicode
+    symbols use readable names where practical, while non-transliterable
+    letters and digits fall back to code point tokens.
+    """
+
+    value = text or ""
+    if decode_url and value:
+        value = _decode_url_component(value)
+
+    identifier = _safe_identifier_inner(value)
+    if identifier or not fallback:
+        return identifier
+
+    return _safe_identifier_inner(fallback)
 
 
 def safe_description(text: str | None) -> str:
