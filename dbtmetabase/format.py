@@ -11,6 +11,10 @@ from typing import Any, TextIO
 import yaml
 from rich.logging import RichHandler
 
+_JINJA_EXPRESSION_PARSER = re.compile(r"{{([\s\S]*?)}}")
+_JINJA_STATEMENT_PARSER = re.compile(r"{%([\s\S]*?)%}")
+_JINJA_COMMENT_PARSER = re.compile(r"{#([\s\S]*?)#}")
+
 
 class Filter:
     """Inclusion/exclusion filtering."""
@@ -153,4 +157,8 @@ def safe_description(text: str | None) -> str:
     Returns:
         str: Sanitized string with escaped Jinja syntax.
     """
-    return re.sub(r"{{(.*?)}}", r"(\1)", text or "")
+    safe_text = text or ""
+    safe_text = _JINJA_EXPRESSION_PARSER.sub(r"(\1)", safe_text)
+    safe_text = _JINJA_STATEMENT_PARSER.sub(r"(\1)", safe_text)
+    safe_text = _JINJA_COMMENT_PARSER.sub(r"(\1)", safe_text)
+    return safe_text
