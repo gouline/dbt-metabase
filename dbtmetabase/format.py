@@ -13,6 +13,10 @@ from urllib.parse import unquote
 import yaml
 from rich.logging import RichHandler
 
+_JINJA_EXPRESSION_PARSER = re.compile(r"{{([\s\S]*?)}}")
+_JINJA_STATEMENT_PARSER = re.compile(r"{%([\s\S]*?)%}")
+_JINJA_COMMENT_PARSER = re.compile(r"{#([\s\S]*?)#}")
+
 
 class Filter:
     """Inclusion/exclusion filtering."""
@@ -62,6 +66,14 @@ class _YAMLDumper(yaml.Dumper):
 
     def increase_indent(self, flow=False, indentless=False):
         return super().increase_indent(flow, indentless=False)
+
+
+def _represent_str(dumper: yaml.Dumper, data: str):
+    style = "|" if "\n" in data else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+
+_YAMLDumper.add_representer(str, _represent_str)
 
 
 class _NullValue(str):
@@ -239,4 +251,8 @@ def safe_description(text: str | None) -> str:
     Returns:
         str: Sanitized string with escaped Jinja syntax.
     """
-    return re.sub(r"{{(.*?)}}", r"(\1)", text or "")
+    safe_text = text or ""
+    safe_text = _JINJA_EXPRESSION_PARSER.sub(r"(\1)", safe_text)
+    safe_text = _JINJA_STATEMENT_PARSER.sub(r"(\1)", safe_text)
+    safe_text = _JINJA_COMMENT_PARSER.sub(r"(\1)", safe_text)
+    return safe_text

@@ -32,6 +32,8 @@ _CTE_PARSER = re.compile(
     re.IGNORECASE,
 )
 
+_JINJA_PARSER = re.compile(r"({{[\s\S]*?}}|{%[\s\S]*?%}|{#[\s\S]*?#})")
+
 _logger = logging.getLogger(__name__)
 
 
@@ -445,14 +447,12 @@ class ExposuresMixin(metaclass=ABCMeta):
             header = f"### {header}\n\n"
 
         if description:
-            description = description.strip()
+            description = safe_description(description.strip())
         else:
             description = "No description provided in Metabase"
 
         if native_query:
-            # Format query into markdown code block
-            native_query = "\n".join(x for x in native_query.split("\n") if x.strip())
-            native_query = f"#### Query\n\n```\n{native_query}\n```\n\n"
+            native_query = _format_native_query(native_query)
         else:
             native_query = ""
 
@@ -465,9 +465,7 @@ class ExposuresMixin(metaclass=ABCMeta):
         exposure: dict[str, Any] = {
             "name": name,
             "label": label,
-            "description": safe_description(
-                f"{header}{description}\n\n{native_query}{metadata}"
-            ),
+            "description": f"{header}{description}\n\n{native_query}{metadata}",
             "type": dbt_type,
             "url": url,
             "maturity": "medium",
@@ -514,6 +512,22 @@ class _Exposure:
     last_used_at: str | None = None
     native_query: str | None = None
     depends: set[str] = dc.field(default_factory=set)
+
+
+def _format_native_query(native_query: str) -> str:
+    """Formats native SQL for the exposure description.
+
+    Wrap SQL containing Jinja-like delimiters in raw blocks so dbt does not
+    attempt to parse Metabase variables or literal template-looking text.
+    """
+
+    native_query = "\n".join(line for line in native_query.split("\n") if line.strip())
+    query_block = f"#### Query\n\n```\n{native_query}\n```\n\n"
+    if _JINJA_PARSER.search(native_query):
+        return (
+            f"#### Query\n\n{{% raw %}}\n```\n{native_query}\n```\n{{% endraw %}}\n\n"
+        )
+    return query_block
 
 
 def _database_name(db: Mapping) -> str:
