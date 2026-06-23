@@ -5,7 +5,12 @@ from typing import cast
 import pytest
 import yaml
 
-from dbtmetabase._exposures import _build_model_refs, _Context, _Exposure
+from dbtmetabase._exposures import (
+    _build_model_refs,
+    _Context,
+    _Exposure,
+    _format_native_query,
+)
 from dbtmetabase.format import safe_identifier
 from dbtmetabase.manifest import Group, Model
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase, MockMetabase
@@ -459,3 +464,11 @@ def test_extract_exposures_wraps_jinja_like_native_sql_in_raw_blocks(tmp_path: P
     assert "{% endraw %}" in description
     assert "where source = '{{#161}}'" in description
     assert "and pattern like '{%foo%}'" in description
+
+
+def test_format_native_query_wraps_literal_jinja_opening_delimiter_in_raw_blocks():
+    description = _format_native_query("select * from orders where foo like '{%}'")
+
+    assert "{% raw %}" in description
+    assert "{% endraw %}" in description
+    assert "where foo like '{%}'" in description

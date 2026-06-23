@@ -32,7 +32,7 @@ _CTE_PARSER = re.compile(
     re.IGNORECASE,
 )
 
-_JINJA_PARSER = re.compile(r"({{[\s\S]*?}}|{%[\s\S]*?%}|{#[\s\S]*?#})")
+_JINJA_PARSER = re.compile(r"({{|{%|{#)")
 
 _logger = logging.getLogger(__name__)
 
