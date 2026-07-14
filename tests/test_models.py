@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from dbtmetabase._models import _build_tables, _Context
+from dbtmetabase._models import _build_display_fields, _build_tables, _Context
 from dbtmetabase.manifest import Column, Group, Model
 from tests._mocks import MockDbtMetabase
 
@@ -279,3 +279,132 @@ def test_multi_database_foreign_key_resolution():
 
     field = ctx.get_field("MY_DATABASE.SILVER.ORDERS", "USER_ID")
     assert field["id"] == 2
+
+
+def test_build_display_fields():
+    """Columns marked with display_field build a SCHEMA.TABLE -> column map."""
+
+    models = [
+        Model(
+            database="db",
+            schema="public",
+            group=Group.nodes,
+            name="customers",
+            alias="customers",
+            columns=[
+                Column(name="customer_id"),
+                Column(name="first_name", display_field=True),
+            ],
+        ),
+    ]
+
+    assert _build_display_fields(models) == {"PUBLIC.CUSTOMERS": "first_name"}
+
+
+def test_export_column_display_field_dimension(core: MockDbtMetabase):
+    """A foreign key whose target declares a display field gets a dimension remap."""
+
+    ctx = _Context()
+    ctx.tables = {
+        "PUBLIC.ORDERS": {
+            "fields": {
+                "CUSTOMER_ID": {
+                    "kind": "field",
+                    "id": 10,
+                    "name": "customer_id",
+                    "fk_target_field_id": None,
+                    "dimensions": [],
+                },
+            },
+        },
+        "PUBLIC.CUSTOMERS": {
+            "fields": {
+                "CUSTOMER_ID": {
+                    "id": 1,
+                    "name": "customer_id",
+                    "semantic_type": "type/PK",
+                },
+                "FIRST_NAME": {
+                    "id": 2,
+                    "name": "first_name",
+                    "display_name": "First Name",
+                },
+            },
+        },
+    }
+
+    column = Column(
+        name="customer_id",
+        semantic_type="type/FK",
+        fk_target_table="PUBLIC.CUSTOMERS",
+        fk_target_field="customer_id",
+    )
+
+    assert core._export_column(
+        ctx,
+        table_key="PUBLIC.ORDERS",
+        column=column,
+        display_fields={"PUBLIC.CUSTOMERS": "first_name"},
+    )
+
+    dimension_updates = [
+        u for u in ctx.updates.values() if u["kind"] == "field_dimension"
+    ]
+    assert len(dimension_updates) == 1
+    update = dimension_updates[0]
+    assert update["id"] == 10
+    dimension = update["body"]["dimension"]
+    assert dimension == {
+        "type": "external",
+        "name": "First Name",
+        "human_readable_field_id": 2,
+    }
+
+
+def test_export_column_display_field_dimension_already_set(core: MockDbtMetabase):
+    """No dimension update is queued when the remapping already points at the target."""
+
+    ctx = _Context()
+    ctx.tables = {
+        "PUBLIC.ORDERS": {
+            "fields": {
+                "CUSTOMER_ID": {
+                    "kind": "field",
+                    "id": 10,
+                    "name": "customer_id",
+                    "fk_target_field_id": 1,
+                    "dimensions": [{"human_readable_field_id": 2}],
+                },
+            },
+        },
+        "PUBLIC.CUSTOMERS": {
+            "fields": {
+                "CUSTOMER_ID": {
+                    "id": 1,
+                    "name": "customer_id",
+                    "semantic_type": "type/PK",
+                },
+                "FIRST_NAME": {
+                    "id": 2,
+                    "name": "first_name",
+                    "display_name": "First Name",
+                },
+            },
+        },
+    }
+
+    column = Column(
+        name="customer_id",
+        semantic_type="type/FK",
+        fk_target_table="PUBLIC.CUSTOMERS",
+        fk_target_field="customer_id",
+    )
+
+    assert core._export_column(
+        ctx,
+        table_key="PUBLIC.ORDERS",
+        column=column,
+        display_fields={"PUBLIC.CUSTOMERS": "first_name"},
+    )
+
+    assert not [u for u in ctx.updates.values() if u["kind"] == "field_dimension"]

@@ -116,6 +116,21 @@ Native [relationship tests](https://docs.getdbt.com/reference/resource-propertie
 
 You can provide `fk_target_table` as `schema_name.table_name` or just `table_name` to use the current schema. If your model has an alias, provide that alias rather than the original name.
 
+### Display Values
+
+By default a foreign key column shows the raw id it points at. Metabase can instead display a human-readable column from the target table (its "display value"). Mark that column once, on the target model, with `metabase.display_field`:
+
+```yaml
+- name: campaign_name
+  config:
+    meta:
+      metabase.display_field: true
+```
+
+Every foreign key that resolves to this table — however the relationship is defined (constraints, relationship tests, or `fk_target_table`/`fk_target_field` meta) — is remapped to show `campaign_name` instead of the raw id, no per-key annotation needed. Only one column per table may be the display field; if several are marked, the first is used.
+
+This sets the field's [dimension](https://www.metabase.com/docs/latest/data-modeling/metadata-editing#remap-a-fields-display-values) (`type: external`), which is independent of the foreign key relationship itself. Run `dbt-metabase models` after the target column exists in Metabase, since the remapping references it.
+
 ### Semantic Types
 
 Now that we have foreign keys configured, let's tell Metabase that `email` column contains email addresses:

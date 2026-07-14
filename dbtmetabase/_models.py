@@ -65,8 +65,14 @@ class ModelsMixin(metaclass=ABCMeta):
         if not database:
             raise MetabaseStateError(f"Database not found: {metabase_database}")
 
+        # Display fields are read from the full manifest, not the filtered set: a
+        # foreign key may point at a table that filtering excluded from export, but
+        # its declared display field is still needed to remap the pointing column.
+        all_models = self.manifest.read_models()
+        display_fields = _build_display_fields(all_models)
+
         models = _filtered_models(
-            models=self.manifest.read_models(),
+            models=all_models,
             database_filter=database_filter,
             schema_filter=schema_filter,
             model_filter=model_filter,
@@ -96,6 +102,7 @@ class ModelsMixin(metaclass=ABCMeta):
             success &= self._export_model(
                 ctx=ctx,
                 model=model,
+                display_fields=display_fields,
                 append_tags=append_tags,
                 docs_url=docs_url,
                 order_fields=order_fields,
@@ -117,6 +124,11 @@ class ModelsMixin(metaclass=ABCMeta):
                     uid=update["id"],
                     body=update["body"],
                 )
+            elif update["kind"] == "field_dimension":
+                self.metabase.update_field_dimension(
+                    uid=update["id"],
+                    body=update["body"]["dimension"],
+                )
 
             _logger.info(
                 "%s '%s' updated successfully: %s",
@@ -132,6 +144,7 @@ class ModelsMixin(metaclass=ABCMeta):
         self,
         ctx: _Context,
         model: Model,
+        display_fields: Mapping[str, str],
         append_tags: bool,
         docs_url: str | None,
         order_fields: bool,
@@ -215,6 +228,7 @@ class ModelsMixin(metaclass=ABCMeta):
                 ctx,
                 table_key=table_key,
                 column=column,
+                display_fields=display_fields,
             )
 
         if order_fields:
@@ -290,6 +304,7 @@ class ModelsMixin(metaclass=ABCMeta):
         ctx: _Context,
         table_key: str,
         column: Column,
+        display_fields: Mapping[str, str] | None = None,
     ) -> bool:
         """Exports one dbt column to Metabase database schema."""
 
@@ -321,6 +336,7 @@ class ModelsMixin(metaclass=ABCMeta):
             fk_target_field_label = f"{fk_target_table_name}.{fk_target_field_name}"
 
             if fk_target_table_name and fk_target_field_name:
+                fk_target_table_key = fk_target_table_name
                 fk_target_field = ctx.get_field(
                     table_key=fk_target_table_name,
                     field_key=fk_target_field_name,
@@ -329,8 +345,9 @@ class ModelsMixin(metaclass=ABCMeta):
                 # Fallback for multi-database connections: try database.schema.table format
                 if not fk_target_field and fk_target_table_name.count(".") < 2:
                     table_database = table_key.split(".")[0]
+                    fk_target_table_key = f"{table_database}.{fk_target_table_name}"
                     fk_target_field = ctx.get_field(
-                        table_key=f"{table_database}.{fk_target_table_name}",
+                        table_key=fk_target_table_key,
                         field_key=fk_target_field_name,
                     )
 
@@ -347,6 +364,18 @@ class ModelsMixin(metaclass=ABCMeta):
                             change={semantic_type_key: "type/PK"},
                             label=fk_target_field_label,
                         )
+
+                    # If the target table declares a display field, remap this
+                    # foreign key to show that column instead of the raw id.
+                    self._export_column_dimension(
+                        ctx=ctx,
+                        column_label=column_label,
+                        fk_field=api_field,
+                        target_table_key=fk_target_table_key,
+                        display_field_name=(display_fields or {}).get(
+                            fk_target_table_name
+                        ),
+                    )
                 else:
                     _logger.error(
                         "Field '%s' referenced as foreign key '%s' not found",
@@ -429,6 +458,70 @@ class ModelsMixin(metaclass=ABCMeta):
 
         return success
 
+    def _export_column_dimension(
+        self,
+        ctx: _Context,
+        column_label: str,
+        fk_field: Mapping,
+        target_table_key: str,
+        display_field_name: str | None,
+    ):
+        """Remaps a foreign key's display value to the target table's display field.
+
+        Metabase calls this a field "dimension" (POST /api/field/:id/dimension); it
+        is independent of ``fk_target_field_id`` and controls which column is shown in
+        place of the raw id in tables and dashboards.
+        """
+
+        if not display_field_name:
+            return
+
+        display_field = ctx.get_field(target_table_key, display_field_name.upper())
+        if not display_field:
+            _logger.warning(
+                "Display field '%s.%s' for foreign key '%s' not found, skipping remapping",
+                target_table_key,
+                display_field_name,
+                column_label,
+            )
+            return
+
+        display_field_id = display_field.get("id")
+
+        # Metabase returns dimensions as a list (newer) or a single object (older).
+        dimensions = fk_field.get("dimensions") or []
+        if isinstance(dimensions, Mapping):
+            dimensions = [dimensions]
+        already_set = any(
+            d.get("human_readable_field_id") == display_field_id for d in dimensions
+        )
+        if already_set:
+            _logger.info(
+                "Field '%s' already shows '%s.%s'",
+                column_label,
+                target_table_key,
+                display_field_name,
+            )
+            return
+
+        ctx.update(
+            entity={"kind": "field_dimension", "id": fk_field["id"]},
+            change={
+                "dimension": {
+                    "type": "external",
+                    "name": display_field.get("display_name") or display_field_name,
+                    "human_readable_field_id": display_field_id,
+                }
+            },
+            label=column_label,
+        )
+        _logger.info(
+            "Field '%s' will be remapped to show '%s.%s'",
+            column_label,
+            target_table_key,
+            display_field_name,
+        )
+
 
 @dc.dataclass
 class _Context:
@@ -452,6 +545,32 @@ class _Context:
         update["body"] = body
 
         self.updates[key] = update
+
+
+def _build_display_fields(models: Iterable[Model]) -> Mapping[str, str]:
+    """Maps 'SCHEMA.TABLE' -> display column name for models declaring a display field.
+
+    A column is a display field when it carries `meta.metabase.display_field: true`.
+    Foreign keys pointing at the table are remapped to show that column.
+    """
+
+    display_fields: MutableMapping[str, str] = {}
+    for model in models:
+        table_key = f"{model.schema.upper()}.{model.alias.upper()}"
+        for column in model.columns:
+            if not column.display_field:
+                continue
+            if table_key in display_fields:
+                _logger.warning(
+                    "Table '%s' has multiple display fields ('%s' and '%s'), keeping the first",
+                    table_key,
+                    display_fields[table_key],
+                    column.name,
+                )
+                continue
+            display_fields[table_key] = column.name
+
+    return display_fields
 
 
 def _filtered_models(

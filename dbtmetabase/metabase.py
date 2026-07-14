@@ -221,3 +221,7 @@ class Metabase:
     def update_field(self, uid: str, body: Mapping) -> Mapping:
         """Posts an update to an existing table field."""
         return dict(self._api("put", f"/api/field/{uid}", json=body))
+
+    def update_field_dimension(self, uid: str, body: Mapping) -> Mapping:
+        """Sets the display-value remapping (dimension) on an existing field."""
+        return dict(self._api("post", f"/api/field/{uid}/dimension", json=body))

@@ -31,6 +31,7 @@ _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "number_style",
     "decimals",
     "currency",
+    "display_field",
 ]
 # Must be covered by Model attributes
 _MODEL_META_FIELDS = _COMMON_META_FIELDS + [
@@ -396,6 +397,11 @@ class Column:
     number_style: str | None = None
     decimals: int | None = None
     currency: str | None = None
+
+    # Marks this column as the human-readable "display field" for its table: any
+    # foreign key pointing at this table has its Metabase dimension remapped to
+    # show this column instead of the raw id.
+    display_field: bool | None = None
 
     fk_target_table: str | None = None
     fk_target_field: str | None = None
