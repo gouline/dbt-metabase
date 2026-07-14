@@ -20,6 +20,20 @@ def test_v11_disabled():
     assert customer_id_col.fk_target_field is None
 
 
+def test_cross_schema_foreign_key_constraint():
+    manifest = MockManifest(FIXTURES_PATH / "manifest-cross-schema-fk.json")
+    manifest.read_models()
+
+    # `orders` lives in `public` but its foreign key targets `stg_customers`, which
+    # lives in `staging`. The FK target must use the target model's schema, not the
+    # referencing model's schema.
+    customer_id_col = manifest.find_column("orders", "customer_id")
+    assert customer_id_col is not None
+    assert customer_id_col.semantic_type == "type/FK"
+    assert customer_id_col.fk_target_table == "staging.stg_customers"
+    assert customer_id_col.fk_target_field == "customer_id"
+
+
 def test_v12():
     models = Manifest(FIXTURES_PATH / "manifest-v12.json").read_models()
     _assert_models_equal(

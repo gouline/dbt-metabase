@@ -1,0 +1,83 @@
+{
+    "metadata": {
+        "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+        "project_name": "sandbox"
+    },
+    "nodes": {
+        "model.sandbox.stg_customers": {
+            "database": "dbtmetabase",
+            "schema": "staging",
+            "name": "stg_customers",
+            "resource_type": "model",
+            "unique_id": "model.sandbox.stg_customers",
+            "alias": "stg_customers",
+            "config": {
+                "materialized": "view"
+            },
+            "tags": [],
+            "description": "",
+            "columns": {
+                "customer_id": {
+                    "name": "customer_id",
+                    "description": "",
+                    "meta": {},
+                    "constraints": [
+                        {
+                            "type": "primary_key"
+                        }
+                    ]
+                }
+            },
+            "meta": {}
+        },
+        "model.sandbox.orders": {
+            "database": "dbtmetabase",
+            "schema": "public",
+            "name": "orders",
+            "resource_type": "model",
+            "unique_id": "model.sandbox.orders",
+            "alias": "orders",
+            "config": {
+                "materialized": "table"
+            },
+            "tags": [],
+            "description": "This table has basic information about orders",
+            "columns": {
+                "order_id": {
+                    "name": "order_id",
+                    "description": "This is a unique identifier for an order",
+                    "meta": {},
+                    "constraints": [
+                        {
+                            "type": "primary_key"
+                        }
+                    ]
+                },
+                "customer_id": {
+                    "name": "customer_id",
+                    "description": "Foreign key to the stg_customers table in another schema",
+                    "meta": {},
+                    "constraints": [
+                        {
+                            "type": "foreign_key",
+                            "name": null,
+                            "expression": null,
+                            "warn_unenforced": true,
+                            "warn_unsupported": true,
+                            "to": "ref('stg_customers')",
+                            "to_columns": [
+                                "customer_id"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "meta": {}
+        }
+    },
+    "sources": {},
+    "child_map": {
+        "model.sandbox.stg_customers": [],
+        "model.sandbox.orders": []
+    }
+}
