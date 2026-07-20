@@ -70,6 +70,15 @@ class Manifest:
         with open(self.path, encoding="utf-8") as f:
             manifest = json.load(f)
 
+        # Schema of every model, keyed by name, so that foreign keys pointing at a
+        # bare model name (e.g. from `ref('model')`) can be resolved to the schema of
+        # the target model rather than assuming the referencing model's schema.
+        ref_schemas = {
+            node["name"]: node["schema"]
+            for node in manifest["nodes"].values()
+            if node["resource_type"] == "model"
+        }
+
         models: MutableSequence[Model] = []
 
         for node in manifest["nodes"].values():
@@ -81,14 +90,20 @@ class Manifest:
                 _logger.debug("Skipping ephemeral model '%s'", name)
                 continue
 
-            models.append(self._read_model(manifest, node, Group.nodes))
+            models.append(self._read_model(manifest, node, Group.nodes, ref_schemas))
 
         for node in manifest["sources"].values():
             if node["resource_type"] != "source":
                 continue
 
             models.append(
-                self._read_model(manifest, node, Group.sources, node["source_name"])
+                self._read_model(
+                    manifest,
+                    node,
+                    Group.sources,
+                    ref_schemas,
+                    node["source_name"],
+                )
             )
 
         return models
@@ -98,6 +113,7 @@ class Manifest:
         manifest: Mapping,
         manifest_model: Mapping,
         group: Group,
+        ref_schemas: Mapping[str, str] | None = None,
         source: str | None = None,
     ) -> Model:
         database = manifest_model["database"]
@@ -107,7 +123,9 @@ class Manifest:
         relationships = self._read_relationships(manifest, group, unique_id)
 
         columns = [
-            self._read_column(column, schema, relationships.get(column["name"]))
+            self._read_column(
+                column, schema, relationships.get(column["name"]), ref_schemas
+            )
             for column in manifest_model.get("columns", {}).values()
         ]
 
@@ -139,6 +157,7 @@ class Manifest:
         manifest_column: Mapping,
         schema: str,
         relationship: Mapping | None,
+        ref_schemas: Mapping[str, str] | None = None,
     ) -> Column:
         meta = self._scan_fields(
             manifest_column.get("meta", {}),
@@ -158,6 +177,7 @@ class Manifest:
             column=column,
             schema=schema,
             relationship=relationship,
+            ref_schemas=ref_schemas,
         )
 
         return column
@@ -269,6 +289,7 @@ class Manifest:
         column: Column,
         schema: str,
         relationship: Mapping | None,
+        ref_schemas: Mapping[str, str] | None = None,
     ):
         """Sets primary key and foreign key target on a column from constraints, meta fields or provided test relationship."""
 
@@ -334,8 +355,13 @@ class Manifest:
             return
 
         fk_target_table_path = fk_target_table.split(".")
-        if len(fk_target_table_path) == 1 and schema:
-            fk_target_table_path.insert(0, schema)
+        if len(fk_target_table_path) == 1 and fk_target_table_path[0]:
+            # A bare, single-segment target (e.g. from `ref('model')` or `model (column)`)
+            # carries no schema. Resolve it to the target model's actual schema, falling
+            # back to the referencing model's schema only when the target is unknown.
+            target_schema = (ref_schemas or {}).get(fk_target_table_path[0], schema)
+            if target_schema:
+                fk_target_table_path.insert(0, target_schema)
 
         column.semantic_type = "type/FK"
         column.fk_target_table = ".".join([x.strip('"`') for x in fk_target_table_path])
