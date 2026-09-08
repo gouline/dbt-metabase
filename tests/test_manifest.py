@@ -259,6 +259,33 @@ def test_v12():
                 unique_id="source.sandbox.inventory.skus",
                 source="inventory",
             ),
+            Model(
+                database="dbtmetabase",
+                schema="public",
+                group=Group.nodes,
+                name="raw_customers",
+                alias="raw_customers",
+                description="",
+                unique_id="seed.sandbox.raw_customers",
+            ),
+            Model(
+                database="dbtmetabase",
+                schema="public",
+                group=Group.nodes,
+                name="raw_orders",
+                alias="raw_orders",
+                description="",
+                unique_id="seed.sandbox.raw_orders",
+            ),
+            Model(
+                database="dbtmetabase",
+                schema="public",
+                group=Group.nodes,
+                name="raw_payments",
+                alias="raw_payments",
+                description="",
+                unique_id="seed.sandbox.raw_payments",
+            ),
         ],
     )
 
@@ -412,8 +439,45 @@ def test_v2():
                     )
                 ],
             ),
+            Model(
+                database="test",
+                schema="public",
+                group=Group.nodes,
+                name="raw_customers",
+                alias="raw_customers",
+                description="",
+                unique_id="seed.jaffle_shop.raw_customers",
+            ),
+            Model(
+                database="test",
+                schema="public",
+                group=Group.nodes,
+                name="raw_payments",
+                alias="raw_payments",
+                description="",
+                unique_id="seed.jaffle_shop.raw_payments",
+            ),
+            Model(
+                database="test",
+                schema="public",
+                group=Group.nodes,
+                name="raw_orders",
+                alias="raw_orders",
+                description="",
+                unique_id="seed.jaffle_shop.raw_orders",
+            ),
         ],
     )
+
+
+def test_read_models_includes_seed_and_snapshot():
+    models = Manifest(FIXTURES_PATH / "manifest-resources.json").read_models()
+
+    assert [(model.unique_id, model.ref) for model in models] == [
+        ("model.sandbox.orders", "ref('orders')"),
+        ("seed.sandbox.countries", "ref('countries')"),
+        ("snapshot.sandbox.customers_snapshot", "ref('customers_snapshot')"),
+    ]
 
 
 @pytest.mark.parametrize(

@@ -12,7 +12,7 @@ from dbtmetabase._exposures import (
     _format_native_query,
 )
 from dbtmetabase.format import safe_identifier
-from dbtmetabase.manifest import Group, Model
+from dbtmetabase.manifest import Group, Manifest, Model
 from tests._mocks import FIXTURES_PATH, TMP_PATH, MockDbtMetabase, MockMetabase
 
 
@@ -228,6 +228,40 @@ def test_model_refs_schema_alias_fallback_is_only_used_when_unique(
     assert ambiguous_refs["warehouse.analytics.orders"] == "ref('orders')"
     assert ambiguous_refs["other_warehouse.analytics.orders"] == "ref('orders_alt')"
     assert "analytics.orders" not in ambiguous_refs
+
+
+@pytest.mark.parametrize(
+    ("table", "expected_ref"),
+    [
+        ("countries", "ref('countries')"),
+        ("customers_snapshot", "ref('customers_snapshot')"),
+    ],
+)
+def test_extract_exposures_resolves_seed_and_snapshot_dependencies(
+    core: MockDbtMetabase, table: str, expected_ref: str
+):
+    models = Manifest(FIXTURES_PATH / "manifest-resources.json").read_models()
+    ctx = _Context(
+        model_refs=_build_model_refs(models),
+        database_names={1: "warehouse"},
+        table_names={},
+    )
+    exposure = _Exposure(model="card", uid="", label="")
+
+    core._extract_exposure_card(
+        ctx=ctx,
+        exposure=exposure,
+        card={
+            "dataset_query": {
+                "type": "native",
+                "database": 1,
+                "native": {"query": f"SELECT * FROM analytics.{table}"},
+            }
+        },
+    )
+
+    assert exposure.depends == {f"warehouse.analytics.{table}"}
+    assert ctx.model_refs[f"warehouse.analytics.{table}"] == expected_ref
 
 
 class _NullDatabaseMetabase:
