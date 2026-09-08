@@ -1,0 +1,40 @@
+{
+  "nodes": {
+    "model.sandbox.orders": {
+      "resource_type": "model",
+      "database": "warehouse",
+      "schema": "analytics",
+      "name": "orders",
+      "alias": "orders",
+      "unique_id": "model.sandbox.orders",
+      "config": {"materialized": "table"},
+      "columns": {}
+    },
+    "seed.sandbox.countries": {
+      "resource_type": "seed",
+      "database": "warehouse",
+      "schema": "analytics",
+      "name": "countries",
+      "alias": "countries",
+      "unique_id": "seed.sandbox.countries",
+      "config": {"materialized": "seed"},
+      "columns": {}
+    },
+    "snapshot.sandbox.customers_snapshot": {
+      "resource_type": "snapshot",
+      "database": "warehouse",
+      "schema": "analytics",
+      "name": "customers_snapshot",
+      "alias": "customers_snapshot",
+      "unique_id": "snapshot.sandbox.customers_snapshot",
+      "config": {"materialized": "snapshot"},
+      "columns": {}
+    }
+  },
+  "sources": {},
+  "child_map": {
+    "model.sandbox.orders": [],
+    "seed.sandbox.countries": [],
+    "snapshot.sandbox.customers_snapshot": []
+  }
+}

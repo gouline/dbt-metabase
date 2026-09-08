@@ -61,7 +61,7 @@ class Manifest:
         self.path = Path(path).expanduser()
 
     def read_models(self) -> Sequence[Model]:
-        """Reads dbt models in Metabase-friendly format.
+        """Reads dbt models, seeds, and snapshots in Metabase-friendly format.
 
         Returns:
             Sequence[Model]: List of dbt models in Metabase-friendly format.
@@ -70,23 +70,27 @@ class Manifest:
         with open(self.path, encoding="utf-8") as f:
             manifest = json.load(f)
 
-        # Schema of every model, keyed by name, so that foreign keys pointing at a
-        # bare model name (e.g. from `ref('model')`) can be resolved to the schema of
-        # the target model rather than assuming the referencing model's schema.
+        # Schema of every refable node, keyed by name, so that foreign keys pointing
+        # at a bare model name (e.g. from `ref('model')`) can be resolved to the
+        # schema of the target node rather than assuming the referencing model's
+        # schema.
         ref_schemas = {
             node["name"]: node["schema"]
             for node in manifest["nodes"].values()
-            if node["resource_type"] == "model"
+            if node["resource_type"] in ("model", "seed", "snapshot")
         }
 
         models: MutableSequence[Model] = []
 
         for node in manifest["nodes"].values():
-            if node["resource_type"] != "model":
+            if node["resource_type"] not in ("model", "seed", "snapshot"):
                 continue
 
             name = node["name"]
-            if node["config"]["materialized"] == "ephemeral":
+            if (
+                node["resource_type"] == "model"
+                and node["config"]["materialized"] == "ephemeral"
+            ):
                 _logger.debug("Skipping ephemeral model '%s'", name)
                 continue
 
@@ -405,7 +409,7 @@ class Group(str, Enum):
         prefix = unique_id.split(".")[0]
         if prefix == "source":
             return Group.sources
-        elif prefix == "model":
+        elif prefix in ("model", "seed", "snapshot"):
             return Group.nodes
         return None
 
