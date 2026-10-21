@@ -27,7 +27,7 @@ _COMMON_META_FIELDS = [
 _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "semantic_type",
     "has_field_values",
-    "coercion_strate`gy",
+    "coercion_strategy",
     "number_style",
     "decimals",
     "currency",
