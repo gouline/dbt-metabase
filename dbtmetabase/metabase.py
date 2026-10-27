@@ -117,7 +117,10 @@ class Metabase:
             self._api(
                 method="get",
                 path=f"/api/database/{uid}/metadata",
-                params={"include_hidden": True},
+                params={
+                    "include_hidden": True,
+                    "include_sensitive_fields": True,
+                },
             )
         )
 
