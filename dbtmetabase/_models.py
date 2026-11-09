@@ -372,12 +372,9 @@ class ModelsMixin(metaclass=ABCMeta):
 
         body_field: MutableMapping[str, Any | None] = {}
 
-        # Update if specified, otherwise reset one that had been set
-        api_display_name = api_field.get("display_name")
-        if api_display_name != column_display_name and (
-            column_display_name
-            or safe_name(api_display_name) != safe_name(api_field.get("name"))
-        ):
+        # Update only if specified; Metabase (>=0.64.5.2) rejects null display names
+        # for fields, so one set manually in the UI cannot be reset from here
+        if column_display_name and api_field.get("display_name") != column_display_name:
             body_field["display_name"] = column_display_name
 
         if api_field.get("description") != column_description:

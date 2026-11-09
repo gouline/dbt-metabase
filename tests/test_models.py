@@ -122,6 +122,44 @@ def test_column_decimals_zero(core: MockDbtMetabase):
     assert found, "decimals=0 should be in API call"
 
 
+def test_column_display_name_never_null(core: MockDbtMetabase):
+    """Test that display_name is omitted (not null) from field updates when unset."""
+    core._manifest.read_models()
+    column = core._manifest.find_column("customers", "customer_id")
+    assert column is not None
+
+    column.display_name = None
+
+    # Simulate a custom display name already set in Metabase
+    original_api = core._metabase._api
+
+    def api(method, path, params=None, **kwargs):
+        result = original_api(method, path, params, **kwargs)
+        if method == "get" and isinstance(result, dict):
+            for table in result.get("tables", []):
+                for field in table.get("fields", []):
+                    field["display_name"] = "Custom Name"
+        return result
+
+    core._metabase._api = api  # type: ignore[method-assign]
+
+    core.export_models(
+        metabase_database="dbtmetabase",
+        skip_sources=True,
+        sync_timeout=1,
+        order_fields=False,
+    )
+
+    field_puts = [
+        call
+        for call in core._metabase.api_calls
+        if call["method"] == "put" and "/api/field/" in call["path"]
+    ]
+    assert field_puts
+    for call in field_puts:
+        assert call["kwargs"].get("json", {}).get("display_name", "") is not None
+
+
 def test_multi_database_get_tables(core: MockDbtMetabase):
     """Test _get_metabase_tables handles multi-database format."""
 
