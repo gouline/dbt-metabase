@@ -34,6 +34,17 @@ def test_cross_schema_foreign_key_constraint():
     assert customer_id_col.fk_target_field == "customer_id"
 
 
+def test_cross_schema_foreign_key_constraint_with_alias():
+    manifest = MockManifest(FIXTURES_PATH / "manifest-cross-schema-fk.json")
+    manifest.read_models()
+
+    supplier_id_col = manifest.find_column("orders", "supplier_id")
+    assert supplier_id_col is not None
+    assert supplier_id_col.semantic_type == "type/FK"
+    assert supplier_id_col.fk_target_table == "staging.suppliers"
+    assert supplier_id_col.fk_target_field == "supplier_id"
+
+
 def test_v12():
     models = Manifest(FIXTURES_PATH / "manifest-v12.json").read_models()
     _assert_models_equal(
