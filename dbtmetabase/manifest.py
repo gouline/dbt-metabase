@@ -70,12 +70,12 @@ class Manifest:
         with open(self.path, encoding="utf-8") as f:
             manifest = json.load(f)
 
-        # Schema of every refable node, keyed by name, so that foreign keys pointing
+        # Schema and alias of every refable node, keyed by name, so that foreign keys pointing
         # at a bare model name (e.g. from `ref('model')`) can be resolved to the
         # schema of the target node rather than assuming the referencing model's
         # schema.
-        ref_schemas = {
-            node["name"]: node["schema"]
+        ref_nodes = {
+            node["name"]: (node["schema"], node.get("alias") or node["name"])
             for node in manifest["nodes"].values()
             if node["resource_type"] in ("model", "seed", "snapshot")
         }
@@ -94,7 +94,7 @@ class Manifest:
                 _logger.debug("Skipping ephemeral model '%s'", name)
                 continue
 
-            models.append(self._read_model(manifest, node, Group.nodes, ref_schemas))
+            models.append(self._read_model(manifest, node, Group.nodes, ref_nodes))
 
         for node in manifest["sources"].values():
             if node["resource_type"] != "source":
@@ -105,7 +105,7 @@ class Manifest:
                     manifest,
                     node,
                     Group.sources,
-                    ref_schemas,
+                    ref_nodes,
                     node["source_name"],
                 )
             )
@@ -117,7 +117,7 @@ class Manifest:
         manifest: Mapping,
         manifest_model: Mapping,
         group: Group,
-        ref_schemas: Mapping[str, str] | None = None,
+        ref_nodes: Mapping[str, tuple[str, str]] | None = None,
         source: str | None = None,
     ) -> Model:
         database = manifest_model["database"]
@@ -128,7 +128,7 @@ class Manifest:
 
         columns = [
             self._read_column(
-                column, schema, relationships.get(column["name"]), ref_schemas
+                column, schema, relationships.get(column["name"]), ref_nodes
             )
             for column in manifest_model.get("columns", {}).values()
         ]
@@ -161,7 +161,7 @@ class Manifest:
         manifest_column: Mapping,
         schema: str,
         relationship: Mapping | None,
-        ref_schemas: Mapping[str, str] | None = None,
+        ref_nodes: Mapping[str, tuple[str, str]] | None = None,
     ) -> Column:
         meta = self._scan_fields(
             manifest_column.get("meta", {}),
@@ -181,7 +181,7 @@ class Manifest:
             column=column,
             schema=schema,
             relationship=relationship,
-            ref_schemas=ref_schemas,
+            ref_nodes=ref_nodes,
         )
 
         return column
@@ -293,7 +293,7 @@ class Manifest:
         column: Column,
         schema: str,
         relationship: Mapping | None,
-        ref_schemas: Mapping[str, str] | None = None,
+        ref_nodes: Mapping[str, tuple[str, str]] | None = None,
     ):
         """Sets primary key and foreign key target on a column from constraints, meta fields or provided test relationship."""
 
@@ -332,6 +332,8 @@ class Manifest:
                     if ref := _REF_PARSER.search(constraint_to):
                         # ref('model') -> model
                         fk_target_table = ref.group("model")
+                        if target := (ref_nodes or {}).get(fk_target_table):
+                            fk_target_table = ".".join(target)
                         fk_target_field = constraint_to_columns[0]
                     elif (path := constraint_to.split(".")) and len(path) <= 3:
                         # "project"."schema"."model" -> "schema"."model"
@@ -363,7 +365,8 @@ class Manifest:
             # A bare, single-segment target (e.g. from `ref('model')` or `model (column)`)
             # carries no schema. Resolve it to the target model's actual schema, falling
             # back to the referencing model's schema only when the target is unknown.
-            target_schema = (ref_schemas or {}).get(fk_target_table_path[0], schema)
+            target = (ref_nodes or {}).get(fk_target_table_path[0])
+            target_schema = target[0] if target else schema
             if target_schema:
                 fk_target_table_path.insert(0, target_schema)
 

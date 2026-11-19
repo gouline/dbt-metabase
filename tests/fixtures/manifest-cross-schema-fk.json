@@ -70,6 +70,50 @@
                             ]
                         }
                     ]
+                },
+                "supplier_id": {
+                    "name": "supplier_id",
+                    "description": "Foreign key to an aliased model in another schema",
+                    "meta": {},
+                    "constraints": [
+                        {
+                            "type": "foreign_key",
+                            "name": null,
+                            "expression": null,
+                            "warn_unenforced": true,
+                            "warn_unsupported": true,
+                            "to": "ref('stg_suppliers')",
+                            "to_columns": [
+                                "supplier_id"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "meta": {}
+        },
+        "model.sandbox.stg_suppliers": {
+            "database": "dbtmetabase",
+            "schema": "staging",
+            "name": "stg_suppliers",
+            "resource_type": "model",
+            "unique_id": "model.sandbox.stg_suppliers",
+            "alias": "suppliers",
+            "config": {
+                "materialized": "view"
+            },
+            "tags": [],
+            "description": "",
+            "columns": {
+                "supplier_id": {
+                    "name": "supplier_id",
+                    "description": "",
+                    "meta": {},
+                    "constraints": [
+                        {
+                            "type": "primary_key"
+                        }
+                    ]
                 }
             },
             "meta": {}
@@ -78,6 +122,7 @@
     "sources": {},
     "child_map": {
         "model.sandbox.stg_customers": [],
-        "model.sandbox.orders": []
+        "model.sandbox.orders": [],
+        "model.sandbox.stg_suppliers": []
     }
 }
